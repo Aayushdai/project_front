@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import { Home } from './Home';
+import Home from './Home';  // ✅ default import
 import AuditLogs from './AuditLogs';
 import ManageBranch from './ManageBranch';
 import MyProfile from './MyProfile';
