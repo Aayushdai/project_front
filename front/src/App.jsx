@@ -1,5 +1,5 @@
 import React from 'react'
-import MyRoutes from './MyRoutes'
+import MyRoutes from './Route_and_tailwind/MyRoutes'
 
 const App = () => {
   return (
