@@ -19,7 +19,7 @@ function MyRoutes() {
       <>
         {!hideNavbar && <Navbar />}
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/home" element={<Home />} />
           <Route path="/explorer" element={<Map />} />
           <Route path="/profile" element={<MyProfile />} />
           <Route path="/about" element={<About />} />
@@ -31,7 +31,7 @@ function MyRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/*" element={<LayoutWithNavbar />} />
       </Routes>

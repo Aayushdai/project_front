@@ -54,11 +54,11 @@ export default function Register() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:ital,wght@1,300;1,500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
         *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
         .rg-root {
-          font-family: 'Plus Jakarta Sans', sans-serif;
+          font-family: 'Poppins', sans-serif;
           min-height: 100vh; display: flex;
           background: #f0ece4;
         }
@@ -85,7 +85,7 @@ export default function Register() {
           background: linear-gradient(135deg,#f97316,#fb923c);
           border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px;
         }
-        .rg-logo-txt { font-size: 17px; font-weight: 700; color: #fff; }
+        .rg-logo-txt { font-family: 'Montserrat', sans-serif; font-size: 17px; font-weight: 700; color: #fff; }
         .rg-logo-txt span { color: #f97316; }
 
         .rg-steps { display: flex; flex-direction: column; gap: 0; }
@@ -99,16 +99,16 @@ export default function Register() {
         .rg-step-num.active { background: #f97316; color: #fff; box-shadow: 0 0 14px rgba(249,115,22,0.5); }
         .rg-step-num.done { background: #34d399; color: #fff; }
         .rg-step-num.idle { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.25); }
-        .rg-step-lbl { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1; }
+        .rg-step-lbl { font-family: 'Montserrat', sans-serif; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); line-height: 1; }
         .rg-step-lbl.idle { color: rgba(255,255,255,0.25); }
         .rg-step-sub2 { font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 3px; }
         .rg-connector { width: 1.5px; height: 16px; background: rgba(255,255,255,0.07); margin-left: 28px; }
 
         .rg-side-foot { margin-top: auto; }
-        .rg-quote { font-family:'Fraunces',serif; font-style:italic; font-weight:300; font-size:17px; color:rgba(255,255,255,0.55); line-height:1.5; }
-        .rg-quote strong { color:#f97316; font-weight:300; }
-        .rg-signin-note { margin-top:16px; font-size:12px; color:rgba(255,255,255,0.25); }
-        .rg-signin-note a { color:#f97316; text-decoration:none; font-weight:600; }
+        .rg-quote { font-family: 'Montserrat', sans-serif; font-style: italic; font-weight: 300; font-size: 17px; color: rgba(255,255,255,0.55); line-height: 1.5; }
+        .rg-quote strong { color: #f97316; font-weight: 300; }
+        .rg-signin-note { margin-top: 16px; font-size: 12px; color: rgba(255,255,255,0.25); }
+        .rg-signin-note a { color: #f97316; text-decoration: none; font-weight: 600; }
 
         .rg-main {
           flex: 1; display: flex; align-items: flex-start; justify-content: center;
@@ -125,21 +125,22 @@ export default function Register() {
           font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase;
           color: #f97316; background: rgba(249,115,22,0.1); border: 1px solid rgba(249,115,22,0.2);
           padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 12px;
+          font-family: 'Poppins', sans-serif;
         }
-        .rg-h1 { font-family:'Fraunces',serif; font-style:italic; font-weight:300; font-size:32px; color:#111827; line-height:1.1; margin-bottom:4px; }
-        .rg-h1 strong { font-weight:500; color:#f97316; }
-        .rg-desc { font-size:13px; color:#94a3b8; line-height:1.6; margin-bottom:28px; }
+        .rg-h1 { font-family: 'Montserrat', sans-serif; font-style: italic; font-weight: 300; font-size: 32px; color: #111827; line-height: 1.1; margin-bottom: 4px; }
+        .rg-h1 strong { font-weight: 600; color: #f97316; }
+        .rg-desc { font-size: 13px; color: #94a3b8; line-height: 1.6; margin-bottom: 28px; }
 
         .rg-sec-title {
           font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase;
           color: #9ca3af; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid #e5e0d8;
+          font-family: 'Poppins', sans-serif;
         }
         .rg-section { margin-bottom: 24px; }
 
         .rg-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .rg-full { grid-column: 1/-1; }
 
-        /* Photo upload circle */
         .rg-photo-row { display: flex; align-items: center; gap: 20px; margin-bottom: 24px; }
         .rg-avatar {
           width: 78px; height: 78px; border-radius: 50%;
@@ -154,7 +155,6 @@ export default function Register() {
         .rg-photo-note { font-size: 12px; color: #9ca3af; line-height: 1.6; }
         .rg-photo-note strong { font-size: 13px; font-weight: 600; color: #374151; display: block; margin-bottom: 2px; }
 
-        /* Passport upload box */
         .rg-passport-box {
           width: 100%; height: 110px; border: 2px dashed #d0c9be; border-radius: 13px;
           background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -166,14 +166,13 @@ export default function Register() {
         .rg-passport-lbl { font-size: 13px; font-weight: 600; color: #374151; }
         .rg-passport-sub { font-size: 11px; color: #9ca3af; }
 
-        /* Field */
         .rg-field { display: flex; flex-direction: column; gap: 5px; }
-        .rg-lbl { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; transition: color 0.2s; }
+        .rg-lbl { font-family: 'Poppins', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: #6b7280; transition: color 0.2s; }
         .rg-lbl.on { color: #f97316; }
         .rg-iw { position: relative; }
         .rg-inp {
           width: 100%; background: #fff; border: 1.5px solid #e2ddd6; border-radius: 11px;
-          padding: 11px 14px; font-size: 14px; font-family: 'Plus Jakarta Sans', sans-serif;
+          padding: 11px 14px; font-size: 14px; font-family: 'Poppins', sans-serif;
           color: #111827; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
         }
         .rg-inp::placeholder { color: #c4bfb7; }
@@ -199,13 +198,13 @@ export default function Register() {
         .rg-nav { display: flex; gap: 12px; margin-top: 28px; }
         .rg-back {
           padding: 13px 20px; background: transparent; border: 1.5px solid #e2ddd6; border-radius: 11px;
-          font-family: 'Plus Jakarta Sans',sans-serif; font-size: 13px; font-weight: 600; color: #9ca3af; cursor: pointer;
+          font-family: 'Poppins', sans-serif; font-size: 13px; font-weight: 600; color: #9ca3af; cursor: pointer;
           transition: border-color 0.2s, color 0.2s;
         }
         .rg-back:hover { border-color: #9ca3af; color: #6b7280; }
         .rg-next {
           flex: 1; padding: 13px; background: linear-gradient(135deg,#ea580c,#f97316,#fb923c);
-          border: none; border-radius: 11px; font-family: 'Plus Jakarta Sans',sans-serif;
+          border: none; border-radius: 11px; font-family: 'Poppins', sans-serif;
           font-size: 14px; font-weight: 700; color: #fff; cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 8px;
           box-shadow: 0 4px 18px rgba(249,115,22,0.3); transition: transform 0.15s, box-shadow 0.2s;

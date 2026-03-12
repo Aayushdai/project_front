@@ -62,12 +62,12 @@ export default function Login() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Poppins:wght@300;400;500;600&display=swap');
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         .login-root {
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Poppins', sans-serif;
           min-height: 100vh;
           display: flex;
           overflow: hidden;
@@ -125,7 +125,7 @@ export default function Login() {
         }
 
         .brand-logo {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Montserrat', sans-serif;
           font-weight: 300;
           font-size: 22px;
           letter-spacing: 5px;
@@ -148,7 +148,7 @@ export default function Login() {
         }
 
         .destination-tagline {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Poppins', sans-serif;
           font-style: italic;
           font-size: 16px;
           font-weight: 300;
@@ -159,7 +159,7 @@ export default function Login() {
         }
 
         .destination-city {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Montserrat', sans-serif;
           font-size: clamp(56px, 7vw, 86px);
           font-weight: 300;
           color: #fff;
@@ -240,7 +240,7 @@ export default function Login() {
         }
 
         .login-heading {
-          font-family: 'Cormorant Garamond', serif;
+          font-family: 'Montserrat', sans-serif;
           font-size: 46px;
           font-weight: 300;
           color: #f5f0e8;
@@ -290,7 +290,7 @@ export default function Login() {
           border-radius: 10px;
           color: rgba(255,255,255,0.75);
           font-size: 13px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Poppins', sans-serif;
           cursor: pointer;
           transition: background 0.2s, border-color 0.2s;
           margin-bottom: 10px;
@@ -339,7 +339,7 @@ export default function Login() {
           padding: 13px 16px;
           color: #f5f0e8;
           font-size: 14px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Poppins', sans-serif;
           outline: none;
           transition: border-color 0.2s, background 0.2s;
         }
@@ -386,7 +386,7 @@ export default function Login() {
           border-radius: 10px;
           color: #0f0e0d;
           font-size: 13px;
-          font-family: 'DM Sans', sans-serif;
+          font-family: 'Poppins', sans-serif;
           font-weight: 600;
           letter-spacing: 3px;
           text-transform: uppercase;
@@ -467,20 +467,6 @@ export default function Login() {
           </div>
           <div className="login-subheading">
             Sign in to continue exploring the world's most beautiful destinations.
-          </div>
-
-          {/* Social Login */}
-          <button className="social-btn">
-            <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" />
-            Continue with Google
-          </button>
-          <button className="social-btn" style={{ filter: "hue-rotate(220deg) brightness(0.9)" }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="#1877F2"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            Continue with Facebook
-          </button>
-
-          <div className="or-row">
-            <div className="or-line" /><span className="or-text">or</span><div className="or-line" />
           </div>
 
           {/* Form */}

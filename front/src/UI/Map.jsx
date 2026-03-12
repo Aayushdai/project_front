@@ -2,8 +2,8 @@ import React, { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet-routing-machine";
-import "./Map.css";
 import "leaflet.markercluster";
+import "./Map.css";
 
 /* ==================== LEAFLET ICON FIX ==================== */
 delete L.Icon.Default.prototype._getIconUrl;
@@ -14,34 +14,19 @@ L.Icon.Default.mergeOptions({
 });
 
 /* ==================== CUSTOM MARKER ICONS ==================== */
-const createCustomIcon = (color, emoji) => {
-  return L.divIcon({
+const createCustomIcon = (color, emoji) =>
+  L.divIcon({
     className: "custom-marker",
-    html: `
-      <div style="
-        background-color: ${color};
-        width: 32px;
-        height: 32px;
-        border-radius: 50% 50% 50% 0;
-        transform: rotate(-45deg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border: 2px solid white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      ">
-        <span style="transform: rotate(45deg); font-size: 16px;">${emoji}</span>
-      </div>
-    `,
+    html: `<div style="background-color:${color};width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:2px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+      <span style="transform:rotate(45deg);font-size:16px;">${emoji}</span></div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
   });
-};
 
 const ICONS = {
   origin: createCustomIcon("#22c55e", "🟢"),
   destination: createCustomIcon("#ef4444", "🔴"),
-  favorite: createCustomIcon("#f59e0b", "⭐"),
+  favorite: createCustomIcon("#f97316", "⭐"),
 };
 
 /* ==================== ROUTING COMPONENT ==================== */
@@ -51,52 +36,32 @@ const RoutingMachine = ({ waypoints, mode, selectedIndex, onRoutes, onSteps, onB
 
   useEffect(() => {
     if (!map || waypoints.length < 2) return;
+    if (routingControlRef.current) map.removeControl(routingControlRef.current);
 
-    // Remove existing control
-    if (routingControlRef.current) {
-      map.removeControl(routingControlRef.current);
-    }
-
-    const ROUTING_PROFILES = { drive: "car", walk: "foot", bike: "bike" };
+    const PROFILES = { drive: "car", walk: "foot", bike: "bike" };
 
     routingControlRef.current = L.Routing.control({
       waypoints: waypoints.map((w) => L.latLng(w.lat, w.lng)),
-      router: L.Routing.osrmv1({ profile: ROUTING_PROFILES[mode] }),
+      router: L.Routing.osrmv1({ profile: PROFILES[mode] }),
       addWaypoints: false,
       draggableWaypoints: false,
       createMarker: () => null,
       showAlternatives: true,
       routeWhileDragging: false,
-      lineOptions: {
-        styles: [{ color: "#2563eb", weight: 6, opacity: 0.8 }],
-      },
-      altLineOptions: {
-        styles: [{ color: "#94a3b8", weight: 4, opacity: 0.6 }],
-      },
+      lineOptions: { styles: [{ color: "#1976D2", weight: 6, opacity: 0.85 }] },
+      altLineOptions: { styles: [{ color: "#94a3b8", weight: 4, opacity: 0.6 }] },
     })
       .on("routesfound", (e) => {
         onRoutes(e.routes);
         const route = e.routes[selectedIndex] || e.routes[0];
-        onSteps(
-          route.instructions.map((instruction, idx) => ({
-            id: idx,
-            text: instruction.text,
-            distance: instruction.distance,
-          }))
-        );
+        onSteps(route.instructions.map((ins, idx) => ({ id: idx, text: ins.text, distance: ins.distance })));
         onBounds(L.latLngBounds(route.coordinates));
       })
       .addTo(map);
 
-    // Hide default UI
     routingControlRef.current.getContainer().style.display = "none";
-
-    return () => {
-      if (routingControlRef.current) {
-        map.removeControl(routingControlRef.current);
-      }
-    };
-  }, [map, waypoints, mode, selectedIndex, onRoutes, onSteps, onBounds]);
+    return () => { if (routingControlRef.current) map.removeControl(routingControlRef.current); };
+  }, [map, waypoints, mode, selectedIndex]);
 
   return null;
 };
@@ -108,39 +73,20 @@ const MarkerClusterLayer = ({ favorites }) => {
 
   useEffect(() => {
     if (!map) return;
+    if (clusterGroupRef.current) map.removeLayer(clusterGroupRef.current);
 
-    // Remove existing cluster group
-    if (clusterGroupRef.current) {
-      map.removeLayer(clusterGroupRef.current);
-    }
-
-    clusterGroupRef.current = L.markerClusterGroup({
-      showCoverageOnHover: false,
-      zoomToBoundsOnClick: true,
-      spiderfyOnMaxZoom: true,
-      removeOutsideVisibleBounds: true,
-      animate: true,
-    });
+    clusterGroupRef.current = L.markerClusterGroup({ showCoverageOnHover: false, animate: true });
 
     favorites.forEach((fav) => {
-      const marker = L.marker([fav.lat, fav.lng], { icon: ICONS.favorite }).bindPopup(
-        `<div class="p-2">
-          <b class="text-sm">${fav.name}</b><br/>
-          <button class="text-xs text-blue-600 mt-1 hover:underline" onclick="window.handleFavoriteClick('${fav.id}')">
-            Use as destination
-          </button>
-        </div>`
-      );
-      clusterGroupRef.current.addLayer(marker);
+      L.marker([fav.lat, fav.lng], { icon: ICONS.favorite })
+        .bindPopup(`<div style="font-family:'Poppins',sans-serif;padding:6px"><b style="font-size:13px">${fav.name}</b><br/>
+          <button style="font-size:11px;color:#1976D2;margin-top:4px;cursor:pointer;border:none;background:none;padding:0"
+            onclick="window.handleFavoriteClick('${fav.id}')">Use as destination →</button></div>`)
+        .addTo(clusterGroupRef.current);
     });
 
     map.addLayer(clusterGroupRef.current);
-
-    return () => {
-      if (clusterGroupRef.current) {
-        map.removeLayer(clusterGroupRef.current);
-      }
-    };
+    return () => { if (clusterGroupRef.current) map.removeLayer(clusterGroupRef.current); };
   }, [map, favorites]);
 
   return null;
@@ -149,55 +95,20 @@ const MarkerClusterLayer = ({ favorites }) => {
 /* ==================== MAP CONTROLS ==================== */
 const MapControls = ({ routeBounds, follow, onFollowToggle }) => {
   const map = useMap();
-
-  const handleZoomIn = () => map.zoomIn();
-  const handleZoomOut = () => map.zoomOut();
-  const handleFollow = () => {
-    onFollowToggle();
-    if (!follow) {
-      map.locate({ watch: true, setView: true, maxZoom: 17 });
-    }
-  };
-  const handleFitBounds = () => {
-    if (routeBounds) {
-      map.fitBounds(routeBounds, { padding: [50, 50] });
-    }
-  };
-
   return (
-    <div className="absolute z-[1000] bottom-24 right-4 flex flex-col gap-2">
-      <button
-        onClick={handleZoomIn}
-        className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all text-xl"
-        aria-label="Zoom in"
-      >
-        ➕
-      </button>
-      <button
-        onClick={handleZoomOut}
-        className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all text-xl"
-        aria-label="Zoom out"
-      >
-        ➖
-      </button>
-      <button
-        onClick={handleFollow}
-        className={`bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all text-xl ${
-          follow ? "ring-2 ring-blue-500" : ""
-        }`}
-        aria-label="Follow location"
-      >
-        📍
-      </button>
-      {routeBounds && (
-        <button
-          onClick={handleFitBounds}
-          className="bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all text-xl"
-          aria-label="Fit route"
-        >
-          🧭
-        </button>
-      )}
+    <div style={{ position: "absolute", zIndex: 1000, bottom: "96px", right: "16px", display: "flex", flexDirection: "column", gap: "8px" }}>
+      {[
+        { label: "➕", action: () => map.zoomIn(), title: "Zoom in" },
+        { label: "➖", action: () => map.zoomOut(), title: "Zoom out" },
+        { label: "📍", action: () => { onFollowToggle(); if (!follow) map.locate({ watch: true, setView: true, maxZoom: 17 }); }, title: "Follow", active: follow },
+        ...(routeBounds ? [{ label: "🧭", action: () => map.fitBounds(routeBounds, { padding: [50, 50] }), title: "Fit route" }] : []),
+      ].map(({ label, action, title, active }) => (
+        <button key={title} onClick={action} title={title} style={{
+          background: "#fff", border: active ? "2px solid #1976D2" : "1px solid rgba(0,0,0,0.1)",
+          borderRadius: "10px", padding: "10px", fontSize: "18px", cursor: "pointer",
+          boxShadow: "0 2px 12px rgba(0,0,0,0.12)", transition: "all 0.2s",
+        }}>{label}</button>
+      ))}
     </div>
   );
 };
@@ -208,68 +119,58 @@ const SearchBox = ({ value, onChange, onSelect, placeholder, icon }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!value.trim()) {
-      setResults([]);
-      return;
-    }
-
+    if (!value.trim()) { setResults([]); return; }
     setLoading(true);
     const timer = setTimeout(async () => {
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-            value
-          )}&limit=5`
-        );
-        const data = await response.json();
-        setResults(data);
-      } catch (error) {
-        console.error("Search error:", error);
-        setResults([]);
-      } finally {
-        setLoading(false);
-      }
+        const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5`);
+        setResults(await res.json());
+      } catch { setResults([]); }
+      finally { setLoading(false); }
     }, 400);
-
     return () => clearTimeout(timer);
   }, [value]);
 
-  const handleSelect = (result) => {
-    onSelect({
-      lat: parseFloat(result.lat),
-      lng: parseFloat(result.lon),
-      name: result.display_name,
-    });
-    onChange(result.display_name);
-    setResults([]);
-  };
-
   return (
-    <div className="relative">
-      <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xl">{icon}</span>
+    <div style={{ position: "relative" }}>
+      <div style={{ position: "relative" }}>
+        <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", fontSize: "18px" }}>{icon}</span>
         <input
-          type="text"
-          value={value}
+          type="text" value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-12 pr-4 py-3 border dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+          style={{
+            width: "100%", paddingLeft: "44px", paddingRight: "40px", paddingTop: "11px", paddingBottom: "11px",
+            border: "1.5px solid #e2e8f0", borderRadius: "10px", fontSize: "13px",
+            fontFamily: "'Poppins', sans-serif", outline: "none", background: "#f8fafc",
+            color: "#1e293b", boxSizing: "border-box", transition: "border-color 0.2s",
+          }}
+          onFocus={(e) => e.target.style.borderColor = "#1976D2"}
+          onBlur={(e) => e.target.style.borderColor = "#e2e8f0"}
         />
         {loading && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
-            <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <div style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)" }}>
+            <div style={{ width: "16px", height: "16px", border: "2px solid #1976D2", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
           </div>
         )}
       </div>
       {results.length > 0 && (
-        <div className="absolute w-full mt-2 bg-white dark:bg-gray-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 border dark:border-gray-600">
-          {results.map((result, idx) => (
-            <div
-              key={idx}
-              onClick={() => handleSelect(result)}
-              className="px-4 py-3 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer border-b dark:border-gray-600 last:border-b-0 dark:text-white transition-colors"
+        <div style={{
+          position: "absolute", width: "100%", marginTop: "6px", background: "#fff",
+          borderRadius: "10px", boxShadow: "0 8px 30px rgba(0,0,0,0.12)", maxHeight: "220px",
+          overflowY: "auto", zIndex: 50, border: "1px solid #e2e8f0",
+        }}>
+          {results.map((r, i) => (
+            <div key={i} onClick={() => { onSelect({ lat: parseFloat(r.lat), lng: parseFloat(r.lon), name: r.display_name }); onChange(r.display_name); setResults([]); }}
+              style={{
+                padding: "10px 14px", fontSize: "12px", fontFamily: "'Poppins', sans-serif",
+                color: "#334155", cursor: "pointer", borderBottom: i < results.length - 1 ? "1px solid #f1f5f9" : "none",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = "rgba(25,118,210,0.06)"}
+              onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
             >
-              📍 {result.display_name}
+              📍 {r.display_name}
             </div>
           ))}
         </div>
@@ -278,400 +179,302 @@ const SearchBox = ({ value, onChange, onSelect, placeholder, icon }) => {
   );
 };
 
-/* ==================== FAVORITES PANEL ==================== */
-const FavoritesPanel = ({ favorites, onDelete, onUse }) => {
-  if (favorites.length === 0) {
-    return (
-      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-        <p className="text-4xl mb-2">⭐</p>
-        <p className="text-sm">No favorites saved yet</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      {favorites.map((fav) => (
-        <div
-          key={fav.id}
-          className="bg-gray-50 dark:bg-gray-700 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium dark:text-white truncate">{fav.name}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                {fav.lat.toFixed(4)}, {fav.lng.toFixed(4)}
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <button
-                onClick={() => onUse(fav)}
-                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-              >
-                Use
-              </button>
-              <button
-                onClick={() => onDelete(fav.id)}
-                className="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-};
-
 /* ==================== MAIN MAP COMPONENT ==================== */
 export default function Map() {
-  // Mode & Theme
   const [mode, setMode] = useState("drive");
-  const [darkMode, setDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  // UI State
+  const [darkMode, setDarkMode] = useState(() => JSON.parse(localStorage.getItem("darkMode") || "false"));
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("route");
-
-  // Location State
   const [origin, setOrigin] = useState(null);
   const [destination, setDestination] = useState(null);
   const [originText, setOriginText] = useState("");
   const [destText, setDestText] = useState("");
-
-  // Route State
   const [showRoute, setShowRoute] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [selectedRoute, setSelectedRoute] = useState(0);
   const [steps, setSteps] = useState([]);
   const [routeBounds, setRouteBounds] = useState(null);
-
-  // Map State
   const [follow, setFollow] = useState(false);
-  const [favorites, setFavorites] = useState(() => {
-    const saved = localStorage.getItem("favorites");
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [favorites, setFavorites] = useState(() => JSON.parse(localStorage.getItem("favorites") || "[]"));
 
-  // Persist dark mode
-  useEffect(() => {
-    localStorage.setItem("darkMode", JSON.stringify(darkMode));
-  }, [darkMode]);
-
-  // Persist favorites
-  useEffect(() => {
-    localStorage.setItem("favorites", JSON.stringify(favorites));
-  }, [favorites]);
-
-  // Global favorite click handler for map popups
+  useEffect(() => { localStorage.setItem("darkMode", JSON.stringify(darkMode)); }, [darkMode]);
+  useEffect(() => { localStorage.setItem("favorites", JSON.stringify(favorites)); }, [favorites]);
   useEffect(() => {
     window.handleFavoriteClick = (id) => {
       const fav = favorites.find((f) => f.id === id);
-      if (fav) {
-        setDestination(fav);
-        setDestText(fav.name);
-        setShowRoute(false);
-        setActiveTab("route");
-      }
+      if (fav) { setDestination(fav); setDestText(fav.name); setShowRoute(false); setActiveTab("route"); }
     };
     return () => delete window.handleFavoriteClick;
   }, [favorites]);
 
-  // Handlers
-  const handleSwapRoute = () => {
-    setOrigin(destination);
-    setDestination(origin);
-    setOriginText(destText);
-    setDestText(originText);
-    setShowRoute(false);
-    setRoutes([]);
-    setSteps([]);
+  const handleSwap = () => {
+    setOrigin(destination); setDestination(origin);
+    setOriginText(destText); setDestText(originText);
+    setShowRoute(false); setRoutes([]); setSteps([]);
   };
 
-  const handleAddToFavorites = () => {
-    if (!destination) return;
-    const newFav = {
-      id: Date.now().toString(),
-      ...destination,
-    };
-    setFavorites([...favorites, newFav]);
+  const colors = {
+    bg: darkMode ? "#0f1117" : "#ffffff",
+    surface: darkMode ? "#1a1f2e" : "#f8fafc",
+    border: darkMode ? "rgba(255,255,255,0.08)" : "#e2e8f0",
+    text: darkMode ? "#f1f5f9" : "#1e293b",
+    subtext: darkMode ? "rgba(255,255,255,0.45)" : "#64748b",
+    inputBg: darkMode ? "#252d3d" : "#f8fafc",
+    inputText: darkMode ? "#f1f5f9" : "#1e293b",
+    cardBg: darkMode ? "#1e2535" : "#f1f5f9",
   };
 
-  const handleDeleteFavorite = (id) => {
-    setFavorites(favorites.filter((f) => f.id !== id));
-  };
-
-  const handleUseFavorite = (fav) => {
-    setDestination(fav);
-    setDestText(fav.name);
-    setShowRoute(false);
-    setActiveTab("route");
-  };
-
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-    setShowRoute(false);
-  };
+  const modeIcons = { drive: "🚗", walk: "🚶", bike: "🚴" };
+  const modeLabels = { drive: "Drive", walk: "Walk", bike: "Bike" };
 
   return (
-    <div className={`h-screen w-screen flex ${darkMode ? "dark" : ""}`}>
-      {/* SIDEBAR */}
-      <aside
-        className={`${
-          sidebarOpen ? "w-96" : "w-0"
-        } bg-white dark:bg-gray-800 shadow-2xl transition-all duration-300 overflow-hidden flex flex-col z-[1001]`}
-      >
-        {/* Header */}
-        <div className="p-4 border-b dark:border-gray-700">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            🗺️ Maps
-          </h1>
-          <div className="flex gap-2 mt-3">
-            <button
-              onClick={() => setActiveTab("route")}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "route"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 dark:text-white"
-              }`}
-            >
-              🧭 Route
-            </button>
-            <button
-              onClick={() => setActiveTab("favorites")}
-              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "favorites"
-                  ? "bg-blue-500 text-white"
-                  : "bg-gray-100 dark:bg-gray-700 dark:text-white"
-              }`}
-            >
-              ⭐ Favorites
-            </button>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Poppins:wght@300;400;500;600&display=swap');
+        @keyframes spin { to { transform: rotate(360deg); } }
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(25,118,210,0.3); border-radius: 4px; }
+      `}</style>
+
+      <div style={{ height: "100vh", width: "100vw", display: "flex", fontFamily: "'Poppins', sans-serif", background: colors.bg }}>
+
+        {/* ── SIDEBAR ── */}
+        <aside style={{
+          width: sidebarOpen ? "360px" : "0",
+          minWidth: sidebarOpen ? "360px" : "0",
+          background: colors.bg,
+          borderRight: `1px solid ${colors.border}`,
+          boxShadow: "4px 0 24px rgba(0,0,0,0.08)",
+          transition: "all 0.3s ease",
+          overflow: "hidden",
+          display: "flex",
+          flexDirection: "column",
+          zIndex: 1001,
+        }}>
+
+          {/* Sidebar Header */}
+          <div style={{ padding: "20px 20px 0", borderBottom: `1px solid ${colors.border}`, paddingBottom: "16px" }}>
+            <h1 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: "20px", color: colors.text, margin: "0 0 14px", display: "flex", alignItems: "center", gap: "8px" }}>
+              🗺️ <span>Travel <span style={{ color: "#1976D2" }}>Maps</span></span>
+            </h1>
+
+            {/* Tabs */}
+            <div style={{ display: "flex", gap: "8px", background: colors.surface, padding: "4px", borderRadius: "10px" }}>
+              {[{ id: "route", label: "🧭 Route" }, { id: "favorites", label: "⭐ Saved" }].map((tab) => (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
+                  flex: 1, padding: "8px", borderRadius: "8px", border: "none", cursor: "pointer",
+                  fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: "12px",
+                  background: activeTab === tab.id ? "#1976D2" : "transparent",
+                  color: activeTab === tab.id ? "#fff" : colors.subtext,
+                  transition: "all 0.2s",
+                }}>{tab.label}</button>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {activeTab === "route" ? (
-            <>
-              {/* Search Boxes */}
-              <div className="space-y-3">
-                <SearchBox
-                  value={originText}
-                  onChange={setOriginText}
-                  onSelect={setOrigin}
-                  placeholder="Starting point"
-                  icon="🟢"
-                />
-                <SearchBox
-                  value={destText}
-                  onChange={setDestText}
-                  onSelect={setDestination}
-                  placeholder="Destination"
-                  icon="🔴"
-                />
-              </div>
+          {/* Sidebar Body */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+            {activeTab === "route" ? (
+              <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
 
-              {/* Travel Mode Selection */}
-              <div className="flex gap-2">
-                {["drive", "walk", "bike"].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => handleModeChange(m)}
-                    className={`flex-1 py-3 rounded-lg font-medium transition-all ${
-                      mode === m
-                        ? "bg-blue-500 text-white shadow-lg"
-                        : "bg-gray-100 dark:bg-gray-700 dark:text-white"
-                    }`}
-                  >
-                    {m === "drive" ? "🚗 Drive" : m === "walk" ? "🚶 Walk" : "🚴 Bike"}
-                  </button>
-                ))}
-              </div>
+                {/* Search inputs */}
+                <SearchBox value={originText} onChange={setOriginText} onSelect={setOrigin} placeholder="Starting point" icon="🟢" />
+                <SearchBox value={destText} onChange={setDestText} onSelect={setDestination} placeholder="Destination" icon="🔴" />
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                {origin && destination && (
-                  <button
-                    onClick={handleSwapRoute}
-                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 dark:text-white rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                  >
-                    🔄 Swap
-                  </button>
-                )}
-                {destination && (
-                  <button
-                    onClick={handleAddToFavorites}
-                    className="px-4 py-3 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600 transition-all"
-                  >
-                    ⭐
-                  </button>
-                )}
-              </div>
-
-              {/* Show Route Button */}
-              {origin && destination && !showRoute && (
-                <button
-                  onClick={() => setShowRoute(true)}
-                  className="w-full py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-all shadow-lg"
-                >
-                  🚀 Show Route
-                </button>
-              )}
-
-              {/* Alternative Routes */}
-              {routes.length > 1 && (
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-3 dark:text-white">Alternative Routes</h3>
-                  <div className="space-y-2">
-                    {routes.map((route, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setSelectedRoute(idx)}
-                        className={`w-full text-left p-3 rounded-lg transition-all ${
-                          selectedRoute === idx
-                            ? "bg-blue-50 dark:bg-blue-900 border-2 border-blue-500"
-                            : "bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500"
-                        }`}
-                      >
-                        <div className="flex justify-between items-center">
-                          <span className="font-medium dark:text-white">Route {idx + 1}</span>
-                          <span className="text-xs text-gray-500 dark:text-gray-300">
-                            ⏱ {Math.round(route.summary.totalTime / 60)} min
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                          📏 {(route.summary.totalDistance / 1000).toFixed(1)} km
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+                {/* Travel Mode */}
+                <div style={{ display: "flex", gap: "8px" }}>
+                  {["drive", "walk", "bike"].map((m) => (
+                    <button key={m} onClick={() => { setMode(m); setShowRoute(false); }} style={{
+                      flex: 1, padding: "10px 0", borderRadius: "10px", border: "none", cursor: "pointer",
+                      fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: "12px",
+                      background: mode === m ? "linear-gradient(135deg, #1565C0, #1976D2)" : colors.surface,
+                      color: mode === m ? "#fff" : colors.subtext,
+                      boxShadow: mode === m ? "0 4px 14px rgba(25,118,210,0.3)" : "none",
+                      transition: "all 0.2s",
+                    }}>{modeIcons[m]} {modeLabels[m]}</button>
+                  ))}
                 </div>
-              )}
 
-              {/* Turn-by-Turn Directions */}
-              {steps.length > 0 && (
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h3 className="font-semibold mb-3 dark:text-white">Directions</h3>
-                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {steps.map((step) => (
-                      <div
-                        key={step.id}
-                        className="bg-white dark:bg-gray-600 p-3 rounded-lg border border-gray-200 dark:border-gray-500"
-                      >
-                        <div className="flex gap-3">
-                          <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                            {step.id + 1}
+                {/* Action Buttons */}
+                {(origin && destination) && (
+                  <div style={{ display: "flex", gap: "8px" }}>
+                    <button onClick={handleSwap} style={{
+                      flex: 1, padding: "10px", borderRadius: "10px", border: `1.5px solid ${colors.border}`,
+                      background: "transparent", color: colors.text, fontFamily: "'Poppins', sans-serif",
+                      fontWeight: 600, fontSize: "12px", cursor: "pointer",
+                    }}>🔄 Swap</button>
+                    {destination && (
+                      <button onClick={() => setFavorites([...favorites, { id: Date.now().toString(), ...destination }])} style={{
+                        padding: "10px 16px", borderRadius: "10px", border: "none",
+                        background: "linear-gradient(135deg, #ea580c, #f97316)",
+                        color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 600,
+                        fontSize: "13px", cursor: "pointer", boxShadow: "0 4px 14px rgba(249,115,22,0.3)",
+                      }}>⭐</button>
+                    )}
+                  </div>
+                )}
+
+                {/* Show Route Button */}
+                {origin && destination && !showRoute && (
+                  <button onClick={() => setShowRoute(true)} style={{
+                    width: "100%", padding: "13px", borderRadius: "10px", border: "none",
+                    background: "linear-gradient(135deg, #1565C0, #1976D2, #42a5f5)",
+                    color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 700,
+                    fontSize: "14px", cursor: "pointer", boxShadow: "0 4px 18px rgba(25,118,210,0.35)",
+                    letterSpacing: "0.02em",
+                  }}>🚀 Show Route</button>
+                )}
+
+                {/* Alternative Routes */}
+                {routes.length > 1 && (
+                  <div style={{ background: colors.surface, borderRadius: "12px", padding: "14px", border: `1px solid ${colors.border}` }}>
+                    <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: "13px", color: colors.text, margin: "0 0 10px" }}>Alternative Routes</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      {routes.map((route, idx) => (
+                        <button key={idx} onClick={() => setSelectedRoute(idx)} style={{
+                          padding: "10px 12px", borderRadius: "8px", border: selectedRoute === idx ? "2px solid #1976D2" : `1px solid ${colors.border}`,
+                          background: selectedRoute === idx ? "rgba(25,118,210,0.08)" : colors.bg,
+                          cursor: "pointer", textAlign: "left", transition: "all 0.2s",
+                        }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: "13px", color: selectedRoute === idx ? "#1976D2" : colors.text }}>Route {idx + 1}</span>
+                            <span style={{ fontFamily: "'Poppins', sans-serif", fontSize: "11px", color: colors.subtext }}>⏱ {Math.round(route.summary.totalTime / 60)} min</span>
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm dark:text-white">{step.text}</p>
-                            <p className="text-xs text-gray-500 dark:text-gray-300 mt-1">
-                              {(step.distance / 1000).toFixed(2)} km
-                            </p>
+                          <div style={{ fontFamily: "'Poppins', sans-serif", fontSize: "12px", color: colors.subtext, marginTop: "2px" }}>
+                            📏 {(route.summary.totalDistance / 1000).toFixed(1)} km
                           </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Turn-by-Turn Steps */}
+                {steps.length > 0 && (
+                  <div style={{ background: colors.surface, borderRadius: "12px", padding: "14px", border: `1px solid ${colors.border}` }}>
+                    <h3 style={{ fontFamily: "'Montserrat', sans-serif", fontWeight: 700, fontSize: "13px", color: colors.text, margin: "0 0 10px" }}>Directions</h3>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "8px", maxHeight: "300px", overflowY: "auto" }}>
+                      {steps.map((step) => (
+                        <div key={step.id} style={{
+                          display: "flex", gap: "10px", padding: "10px", borderRadius: "8px",
+                          background: colors.bg, border: `1px solid ${colors.border}`,
+                        }}>
+                          <div style={{
+                            flexShrink: 0, width: "22px", height: "22px", borderRadius: "50%",
+                            background: "linear-gradient(135deg, #1565C0, #1976D2)",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            color: "#fff", fontSize: "10px", fontWeight: 700,
+                          }}>{step.id + 1}</div>
+                          <div>
+                            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "12px", color: colors.text, margin: "0 0 2px" }}>{step.text}</p>
+                            <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "11px", color: colors.subtext, margin: 0 }}>{(step.distance / 1000).toFixed(2)} km</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Favorites Tab */
+              favorites.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: colors.subtext }}>
+                  <p style={{ fontSize: "40px", margin: "0 0 8px" }}>⭐</p>
+                  <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "13px" }}>No saved places yet</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                  {favorites.map((fav) => (
+                    <div key={fav.id} style={{
+                      background: colors.surface, borderRadius: "10px", padding: "12px",
+                      border: `1px solid ${colors.border}`,
+                    }}>
+                      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "8px" }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontFamily: "'Poppins', sans-serif", fontWeight: 600, fontSize: "12px", color: colors.text, margin: "0 0 3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{fav.name}</p>
+                          <p style={{ fontFamily: "'Poppins', sans-serif", fontSize: "11px", color: colors.subtext, margin: 0 }}>{fav.lat.toFixed(4)}, {fav.lng.toFixed(4)}</p>
+                        </div>
+                        <div style={{ display: "flex", gap: "6px" }}>
+                          <button onClick={() => { setDestination(fav); setDestText(fav.name); setShowRoute(false); setActiveTab("route"); }} style={{
+                            padding: "5px 10px", borderRadius: "6px", border: "none",
+                            background: "linear-gradient(135deg, #1565C0, #1976D2)",
+                            color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 600,
+                            fontSize: "11px", cursor: "pointer",
+                          }}>Use</button>
+                          <button onClick={() => setFavorites(favorites.filter((f) => f.id !== fav.id))} style={{
+                            padding: "5px 10px", borderRadius: "6px", border: "none",
+                            background: "#fee2e2", color: "#ef4444",
+                            fontFamily: "'Poppins', sans-serif", fontWeight: 600,
+                            fontSize: "11px", cursor: "pointer",
+                          }}>✕</button>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </>
-          ) : (
-            <FavoritesPanel
-              favorites={favorites}
-              onDelete={handleDeleteFavorite}
-              onUse={handleUseFavorite}
-            />
-          )}
-        </div>
-      </aside>
+              )
+            )}
+          </div>
+        </aside>
 
-      {/* SIDEBAR TOGGLE */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="absolute z-[1002] top-4 left-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all"
-        aria-label="Toggle sidebar"
-      >
-        {sidebarOpen ? "◀" : "▶"}
-      </button>
+        {/* ── SIDEBAR TOGGLE ── */}
+        <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+          position: "absolute", zIndex: 1002, top: "16px", left: sidebarOpen ? "372px" : "16px",
+          background: "#1976D2", border: "none", borderRadius: "10px", padding: "10px 14px",
+          color: "#fff", fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: "14px",
+          cursor: "pointer", boxShadow: "0 4px 14px rgba(25,118,210,0.35)", transition: "left 0.3s ease",
+        }}>{sidebarOpen ? "◀" : "▶"}</button>
 
-      {/* DARK MODE TOGGLE */}
-      <button
-        onClick={() => setDarkMode(!darkMode)}
-        className="absolute z-[1002] top-4 right-4 bg-white dark:bg-gray-800 p-3 rounded-lg shadow-lg hover:shadow-xl transition-all text-xl"
-        aria-label="Toggle dark mode"
-      >
-        {darkMode ? "☀️" : "🌙"}
-      </button>
+        {/* ── DARK MODE TOGGLE ── */}
+        <button onClick={() => setDarkMode(!darkMode)} style={{
+          position: "absolute", zIndex: 1002, top: "16px", right: "16px",
+          background: darkMode ? "#1e2535" : "#fff", border: `1px solid ${colors.border}`,
+          borderRadius: "10px", padding: "10px", fontSize: "18px", cursor: "pointer",
+          boxShadow: "0 4px 14px rgba(0,0,0,0.1)", transition: "all 0.2s",
+        }}>{darkMode ? "☀️" : "🌙"}</button>
 
-      {/* MAP CONTAINER */}
-      <main className="flex-1 relative">
-        <MapContainer
-          center={[27.7172, 85.324]}
-          zoom={13}
-          className="h-full w-full"
-          zoomControl={false}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url={
-              darkMode
+        {/* ── MAP ── */}
+        <main style={{ flex: 1, position: "relative" }}>
+          <MapContainer center={[27.7172, 85.324]} zoom={13} style={{ height: "100%", width: "100%" }} zoomControl={false}>
+            <TileLayer
+              attribution={darkMode
+                ? '&copy; <a href="https://carto.com/">CARTO</a>'
+                : 'Tiles &copy; Esri &mdash; Source: Esri, HERE, Garmin, USGS'}
+              url={darkMode
                 ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            }
-          />
-
-          {/* Origin Marker */}
-          {origin && (
-            <Marker position={[origin.lat, origin.lng]} icon={ICONS.origin}>
-              <Popup>
-                <div className="p-2">
-                  <b className="text-sm">Origin</b>
-                  <p className="text-xs mt-1">{origin.name}</p>
-                </div>
-              </Popup>
-            </Marker>
-          )}
-
-          {/* Destination Marker */}
-          {destination && (
-            <Marker position={[destination.lat, destination.lng]} icon={ICONS.destination}>
-              <Popup>
-                <div className="p-2">
-                  <b className="text-sm">Destination</b>
-                  <p className="text-xs mt-1">{destination.name}</p>
-                </div>
-              </Popup>
-            </Marker>
-          )}
-
-          {/* Favorites Cluster */}
-          <MarkerClusterLayer favorites={favorites} />
-
-          {/* Routing */}
-          {showRoute && origin && destination && (
-            <RoutingMachine
-              waypoints={[origin, destination]}
-              mode={mode}
-              selectedIndex={selectedRoute}
-              onRoutes={setRoutes}
-              onSteps={setSteps}
-              onBounds={setRouteBounds}
+                : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"}
             />
-          )}
 
-          {/* Map Controls */}
-          <MapControls
-            routeBounds={routeBounds}
-            follow={follow}
-            onFollowToggle={() => setFollow(!follow)}
-          />
-        </MapContainer>
-      </main>
-    </div>
+            {origin && (
+              <Marker position={[origin.lat, origin.lng]} icon={ICONS.origin}>
+                <Popup><div style={{ fontFamily: "'Poppins',sans-serif", padding: "4px" }}><b>Origin</b><p style={{ fontSize: "12px", margin: "4px 0 0" }}>{origin.name}</p></div></Popup>
+              </Marker>
+            )}
+            {destination && (
+              <Marker position={[destination.lat, destination.lng]} icon={ICONS.destination}>
+                <Popup><div style={{ fontFamily: "'Poppins',sans-serif", padding: "4px" }}><b>Destination</b><p style={{ fontSize: "12px", margin: "4px 0 0" }}>{destination.name}</p></div></Popup>
+              </Marker>
+            )}
+
+            <MarkerClusterLayer favorites={favorites} />
+
+            {showRoute && origin && destination && (
+              <RoutingMachine
+                waypoints={[origin, destination]}
+                mode={mode}
+                selectedIndex={selectedRoute}
+                onRoutes={setRoutes}
+                onSteps={setSteps}
+                onBounds={setRouteBounds}
+              />
+            )}
+
+            <MapControls routeBounds={routeBounds} follow={follow} onFollowToggle={() => setFollow(!follow)} />
+          </MapContainer>
+        </main>
+      </div>
+    </>
   );
 }

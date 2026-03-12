@@ -76,7 +76,19 @@ function FadeIn({ children, delay = 0, style = {} }) {
 
 export default function About() {
   return (
-    <div style={{ fontFamily: "'Georgia', serif", background: "#080c14", color: "#fff", overflowX: "hidden" }}>
+    <div style={{ fontFamily: "'Poppins', sans-serif", background: "#080c14", color: "#fff", overflowX: "hidden" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(-30px) scale(1.05); }
+        }
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0px) scale(1); }
+          50% { transform: translateY(20px) scale(0.95); }
+        }
+      `}</style>
 
       {/* ── HERO ── */}
       <section style={{
@@ -135,7 +147,7 @@ export default function About() {
             fontSize: "0.75rem",
             letterSpacing: "0.15em",
             textTransform: "uppercase",
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 700,
             marginBottom: "2rem",
           }}>
@@ -143,6 +155,7 @@ export default function About() {
           </div>
 
           <h1 style={{
+            fontFamily: "'Montserrat', sans-serif",
             fontSize: "clamp(2.8rem, 7vw, 5rem)",
             fontWeight: 700,
             lineHeight: 1.1,
@@ -157,12 +170,12 @@ export default function About() {
             color: "rgba(255,255,255,0.55)",
             fontSize: "1.15rem",
             lineHeight: 1.8,
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 300,
             maxWidth: "580px",
             margin: "0 auto 3rem",
           }}>
-            Travel Sathi was born from a simple frustration — finding like-minded travel companions shouldn't be hard. 
+            Travel Sathi was born from a simple frustration — finding like-minded travel companions shouldn't be hard.
             We built the platform we wished existed.
           </p>
 
@@ -176,8 +189,8 @@ export default function About() {
                 padding: "14px 24px",
                 textAlign: "center",
               }}>
-                <div style={{ color: "#ffd580", fontWeight: 700, fontSize: "1.4rem", letterSpacing: "-0.02em" }}>{num}</div>
-                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "system-ui, sans-serif", marginTop: "2px" }}>{label}</div>
+                <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#ffd580", fontWeight: 700, fontSize: "1.4rem", letterSpacing: "-0.02em" }}>{num}</div>
+                <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.72rem", letterSpacing: "0.1em", textTransform: "uppercase", fontFamily: "'Poppins', sans-serif", marginTop: "2px" }}>{label}</div>
               </div>
             ))}
           </div>
@@ -194,17 +207,17 @@ export default function About() {
             alignItems: "center",
           }}>
             <div>
-              <p style={{ color: "#ffd580", fontFamily: "system-ui, sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "1rem" }}>Our Story</p>
-              <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "1.5rem" }}>
+              <p style={{ color: "#ffd580", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "1rem" }}>Our Story</p>
+              <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "1.5rem" }}>
                 From a hostel conversation<br />to a thriving platform
               </h2>
-              <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "system-ui, sans-serif", fontWeight: 300, fontSize: "1rem", marginBottom: "1.2rem" }}>
-                In 2023, three college friends — Aarav, Priya, and Bikash — sat on the rooftop of a Pokhara hostel 
-                watching the Annapurna range at dusk. They'd all tried to find travel buddies through Facebook groups, 
+              <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: "1rem", marginBottom: "1.2rem" }}>
+                In 2023, three college friends — Aarav, Priya, and Bikash — sat on the rooftop of a Pokhara hostel
+                watching the Annapurna range at dusk. They'd all tried to find travel buddies through Facebook groups,
                 WhatsApp blasts, and word-of-mouth. All three had failed.
               </p>
-              <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "system-ui, sans-serif", fontWeight: 300, fontSize: "1rem" }}>
-                That night, they decided to build something better. A platform that actually understands <em style={{ color: "rgba(255,255,255,0.8)" }}>how</em> you 
+              <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: "1rem" }}>
+                That night, they decided to build something better. A platform that actually understands <em style={{ color: "rgba(255,255,255,0.8)" }}>how</em> you
                 travel — not just where you're going. Travel Sathi was born.
               </p>
             </div>
@@ -216,8 +229,8 @@ export default function About() {
               borderRadius: "24px",
               padding: "2.5rem",
             }}>
-              <div style={{ fontSize: "4rem", color: "#ffd580", lineHeight: 1, marginBottom: "1rem", fontFamily: "Georgia, serif" }}>"</div>
-              <p style={{ color: "rgba(255,255,255,0.8)", fontSize: "1.15rem", lineHeight: 1.7, fontStyle: "italic", marginBottom: "1.5rem" }}>
+              <div style={{ fontSize: "4rem", color: "#ffd580", lineHeight: 1, marginBottom: "1rem", fontFamily: "'Montserrat', sans-serif" }}>"</div>
+              <p style={{ fontFamily: "'Montserrat', sans-serif", color: "rgba(255,255,255,0.8)", fontSize: "1.15rem", lineHeight: 1.7, fontStyle: "italic", marginBottom: "1.5rem" }}>
                 The best travel memories aren't about the places — they're about the people you shared them with.
                 We wanted to make finding those people effortless.
               </p>
@@ -228,11 +241,11 @@ export default function About() {
                   borderRadius: "50%",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "#ffd580", fontWeight: 700, fontSize: "0.85rem",
-                  fontFamily: "system-ui, sans-serif",
+                  fontFamily: "'Poppins', sans-serif",
                 }}>AS</div>
                 <div>
-                  <div style={{ color: "#fff", fontWeight: 600, fontSize: "0.9rem", fontFamily: "system-ui, sans-serif" }}>Aarav Sharma</div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", fontFamily: "system-ui, sans-serif" }}>Co-founder & CTO</div>
+                  <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontWeight: 600, fontSize: "0.9rem" }}>Aarav Sharma</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", fontFamily: "'Poppins', sans-serif" }}>Co-founder & CTO</div>
                 </div>
               </div>
             </div>
@@ -244,8 +257,8 @@ export default function About() {
       <section style={{ padding: "5rem 1.5rem", background: "rgba(255,255,255,0.02)" }}>
         <div style={{ maxWidth: "900px", margin: "0 auto" }}>
           <FadeIn>
-            <p style={{ color: "#ffd580", fontFamily: "system-ui, sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>Milestones</p>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "4rem" }}>How we got here</h2>
+            <p style={{ color: "#ffd580", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>Milestones</p>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "4rem" }}>How we got here</h2>
           </FadeIn>
 
           <div style={{ position: "relative" }}>
@@ -289,9 +302,9 @@ export default function About() {
                     maxWidth: "340px",
                     textAlign: i % 2 === 0 ? "right" : "left",
                   }}>
-                    <div style={{ color: "#ffd580", fontWeight: 700, fontSize: "1.3rem", fontFamily: "system-ui, sans-serif", letterSpacing: "-0.02em" }}>{m.year}</div>
-                    <div style={{ color: "#fff", fontWeight: 600, marginBottom: "0.4rem", fontSize: "1rem" }}>{m.label}</div>
-                    <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.88rem", lineHeight: 1.6, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>{m.desc}</div>
+                    <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#ffd580", fontWeight: 700, fontSize: "1.3rem", letterSpacing: "-0.02em" }}>{m.year}</div>
+                    <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontWeight: 600, marginBottom: "0.4rem", fontSize: "1rem" }}>{m.label}</div>
+                    <div style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.88rem", lineHeight: 1.6, fontFamily: "'Poppins', sans-serif", fontWeight: 300 }}>{m.desc}</div>
                   </div>
                 </div>
               </FadeIn>
@@ -304,9 +317,9 @@ export default function About() {
       <section style={{ padding: "6rem 1.5rem" }}>
         <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
           <FadeIn>
-            <p style={{ color: "#ffd580", fontFamily: "system-ui, sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>The People Behind It</p>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "1rem" }}>Meet the team</h2>
-            <p style={{ color: "rgba(255,255,255,0.4)", textAlign: "center", fontFamily: "system-ui, sans-serif", fontSize: "0.95rem", marginBottom: "3.5rem", fontWeight: 300 }}>
+            <p style={{ color: "#ffd580", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>The People Behind It</p>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "1rem" }}>Meet the team</h2>
+            <p style={{ color: "rgba(255,255,255,0.4)", textAlign: "center", fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem", marginBottom: "3.5rem", fontWeight: 300 }}>
               Three builders. One mission. Infinite adventures ahead.
             </p>
           </FadeIn>
@@ -348,13 +361,13 @@ export default function About() {
                     color: member.color,
                     fontWeight: 700,
                     fontSize: "1.4rem",
-                    fontFamily: "system-ui, sans-serif",
+                    fontFamily: "'Montserrat', sans-serif",
                     letterSpacing: "0.05em",
                   }}>
                     {member.avatar}
                   </div>
 
-                  <h3 style={{ color: "#fff", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "-0.01em", marginBottom: "0.3rem" }}>{member.name}</h3>
+                  <h3 style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontSize: "1.2rem", fontWeight: 700, letterSpacing: "-0.01em", marginBottom: "0.3rem" }}>{member.name}</h3>
                   <div style={{
                     display: "inline-block",
                     background: `${member.color}18`,
@@ -366,13 +379,13 @@ export default function About() {
                     padding: "4px 12px",
                     borderRadius: "100px",
                     marginBottom: "1.2rem",
-                    fontFamily: "system-ui, sans-serif",
+                    fontFamily: "'Poppins', sans-serif",
                   }}>{member.role}</div>
                   <p style={{
                     color: "rgba(255,255,255,0.45)",
                     lineHeight: 1.7,
                     fontSize: "0.9rem",
-                    fontFamily: "system-ui, sans-serif",
+                    fontFamily: "'Poppins', sans-serif",
                     fontWeight: 300,
                   }}>{member.bio}</p>
                 </div>
@@ -386,8 +399,8 @@ export default function About() {
       <section style={{ padding: "5rem 1.5rem", background: "rgba(255,255,255,0.02)" }}>
         <div style={{ maxWidth: "1000px", margin: "0 auto" }}>
           <FadeIn>
-            <p style={{ color: "#ffd580", fontFamily: "system-ui, sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>What Drives Us</p>
-            <h2 style={{ fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "3.5rem" }}>Our values</h2>
+            <p style={{ color: "#ffd580", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "0.8rem", textAlign: "center" }}>What Drives Us</p>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.5rem)", fontWeight: 700, textAlign: "center", letterSpacing: "-0.02em", marginBottom: "3.5rem" }}>Our values</h2>
           </FadeIn>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1.2rem" }}>
             {values.map((v, i) => (
@@ -403,8 +416,8 @@ export default function About() {
                   onMouseLeave={e => e.currentTarget.style.borderColor = "rgba(255,255,255,0.07)"}
                 >
                   <div style={{ color: "#ffd580", marginBottom: "1rem" }}>{v.icon}</div>
-                  <h4 style={{ color: "#fff", fontWeight: 600, marginBottom: "0.5rem", fontSize: "1rem" }}>{v.title}</h4>
-                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", lineHeight: 1.6, fontFamily: "system-ui, sans-serif", fontWeight: 300 }}>{v.desc}</p>
+                  <h4 style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontWeight: 600, marginBottom: "0.5rem", fontSize: "1rem" }}>{v.title}</h4>
+                  <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.85rem", lineHeight: 1.6, fontFamily: "'Poppins', sans-serif", fontWeight: 300 }}>{v.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -423,10 +436,10 @@ export default function About() {
             borderRadius: "28px",
             padding: "3.5rem 2rem",
           }}>
-            <h2 style={{ fontSize: "clamp(1.6rem, 4vw, 2.2rem)", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "1rem" }}>
+            <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.6rem, 4vw, 2.2rem)", fontWeight: 700, letterSpacing: "-0.02em", marginBottom: "1rem" }}>
               Ready to find your Sathi?
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "system-ui, sans-serif", fontSize: "0.95rem", lineHeight: 1.7, fontWeight: 300, marginBottom: "2rem" }}>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem", lineHeight: 1.7, fontWeight: 300, marginBottom: "2rem" }}>
               Join thousands of travelers who have already found their adventure companions.
             </p>
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -439,7 +452,7 @@ export default function About() {
                 fontSize: "0.95rem",
                 fontWeight: 700,
                 cursor: "pointer",
-                fontFamily: "system-ui, sans-serif",
+                fontFamily: "'Poppins', sans-serif",
                 boxShadow: "0 8px 30px rgba(249,115,22,0.35)",
               }}>
                 Join for Free →
@@ -453,7 +466,7 @@ export default function About() {
                 fontSize: "0.95rem",
                 fontWeight: 600,
                 cursor: "pointer",
-                fontFamily: "system-ui, sans-serif",
+                fontFamily: "'Poppins', sans-serif",
               }}>
                 Explore the Map
               </button>
@@ -462,16 +475,6 @@ export default function About() {
         </FadeIn>
       </section>
 
-      <style>{`
-        @keyframes float1 {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50% { transform: translateY(-30px) scale(1.05); }
-        }
-        @keyframes float2 {
-          0%, 100% { transform: translateY(0px) scale(1); }
-          50% { transform: translateY(20px) scale(0.95); }
-        }
-      `}</style>
     </div>
   );
 }

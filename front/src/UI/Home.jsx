@@ -1,8 +1,17 @@
 import { Search, MapPin, Users, Shield, ArrowDown, Star } from "lucide-react";
 import bg from "../assets/bg.png";
+
 export default function Home() {
   return (
-    <div style={{ fontFamily: "'Georgia', serif", color: "#1a1a2e", background: "#f8f6f1" }}>
+    <div style={{ fontFamily: "'Poppins', sans-serif", color: "#1a1a2e", background: "#f8f6f1" }}>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
+        @keyframes bounce {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(6px); }
+        }
+      `}</style>
 
       {/* ── HERO ── */}
       <section
@@ -20,12 +29,12 @@ export default function Home() {
         {/* Background */}
         <div
           style={{
-  position: "absolute",
-  inset: 0,
-  backgroundImage: `url(${bg})`,
-  backgroundSize: "cover",
-  backgroundPosition: "center 30%",
-}}
+            position: "absolute",
+            inset: 0,
+            backgroundImage: `url(${bg})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center 30%",
+          }}
         />
 
         {/* Dark gradient so text pops */}
@@ -37,9 +46,8 @@ export default function Home() {
         {/* Content */}
         <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 1.5rem", maxWidth: "760px" }}>
 
-          
-
           <h1 style={{
+            fontFamily: "'Montserrat', sans-serif",
             fontSize: "clamp(2.4rem, 6vw, 4.2rem)",
             fontWeight: 700,
             color: "#ffffff",
@@ -57,7 +65,7 @@ export default function Home() {
             fontSize: "1.1rem",
             marginBottom: "2.5rem",
             lineHeight: 1.7,
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 300,
           }}>
             Connect with like-minded travelers, plan trips together,<br />
@@ -87,7 +95,7 @@ export default function Home() {
                 fontSize: "0.95rem",
                 color: "#374151",
                 background: "transparent",
-                fontFamily: "system-ui, sans-serif",
+                fontFamily: "'Poppins', sans-serif",
               }}
             />
             <button style={{
@@ -99,7 +107,7 @@ export default function Home() {
               fontSize: "0.9rem",
               fontWeight: 600,
               cursor: "pointer",
-              fontFamily: "system-ui, sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               whiteSpace: "nowrap",
               boxShadow: "0 4px 15px rgba(249,115,22,0.4)",
             }}>
@@ -113,11 +121,11 @@ export default function Home() {
             justifyContent: "center",
             gap: "2.5rem",
             marginTop: "2.5rem",
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
           }}>
             {[["12K+", "Travelers"], ["340+", "Destinations"], ["4.9★", "Rating"]].map(([num, label]) => (
               <div key={label} style={{ textAlign: "center" }}>
-                <div style={{ color: "#ffd580", fontWeight: 700, fontSize: "1.2rem" }}>{num}</div>
+                <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#ffd580", fontWeight: 700, fontSize: "1.2rem" }}>{num}</div>
                 <div style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.78rem", letterSpacing: "0.08em", textTransform: "uppercase" }}>{label}</div>
               </div>
             ))}
@@ -135,7 +143,7 @@ export default function Home() {
           flexDirection: "column",
           alignItems: "center",
           gap: "6px",
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "'Poppins', sans-serif",
           fontSize: "0.72rem",
           letterSpacing: "0.1em",
           textTransform: "uppercase",
@@ -156,7 +164,7 @@ export default function Home() {
           <div style={{ textAlign: "center", marginBottom: "4rem" }}>
             <p style={{
               color: "#ffd580",
-              fontFamily: "system-ui, sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontSize: "0.8rem",
               letterSpacing: "0.15em",
               textTransform: "uppercase",
@@ -164,6 +172,7 @@ export default function Home() {
               marginBottom: "0.8rem",
             }}>Why Travel Sathi?</p>
             <h2 style={{
+              fontFamily: "'Montserrat', sans-serif",
               color: "#ffffff",
               fontSize: "clamp(1.8rem, 4vw, 2.8rem)",
               fontWeight: 700,
@@ -238,9 +247,10 @@ export default function Home() {
                   padding: "3px 10px",
                   borderRadius: "100px",
                   marginBottom: "0.9rem",
-                  fontFamily: "system-ui, sans-serif",
+                  fontFamily: "'Poppins', sans-serif",
                 }}>{tag}</div>
                 <h3 style={{
+                  fontFamily: "'Montserrat', sans-serif",
                   color: "#ffffff",
                   fontSize: "1.2rem",
                   fontWeight: 600,
@@ -251,7 +261,7 @@ export default function Home() {
                   color: "rgba(255,255,255,0.5)",
                   lineHeight: 1.7,
                   fontSize: "0.92rem",
-                  fontFamily: "system-ui, sans-serif",
+                  fontFamily: "'Poppins', sans-serif",
                   fontWeight: 300,
                 }}>{desc}</p>
               </div>
@@ -268,6 +278,7 @@ export default function Home() {
       }}>
         <div style={{ maxWidth: "600px", margin: "0 auto" }}>
           <h2 style={{
+            fontFamily: "'Montserrat', sans-serif",
             color: "#ffffff",
             fontSize: "clamp(1.6rem, 4vw, 2.4rem)",
             fontWeight: 700,
@@ -278,7 +289,7 @@ export default function Home() {
             color: "rgba(255,255,255,0.8)",
             fontSize: "1rem",
             marginBottom: "2rem",
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 300,
             lineHeight: 1.6,
           }}>
@@ -293,7 +304,7 @@ export default function Home() {
             fontSize: "1rem",
             fontWeight: 700,
             cursor: "pointer",
-            fontFamily: "system-ui, sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             boxShadow: "0 8px 30px rgba(0,0,0,0.2)",
             letterSpacing: "-0.01em",
           }}>
@@ -302,12 +313,6 @@ export default function Home() {
         </div>
       </section>
 
-      <style>{`
-        @keyframes bounce {
-          0%, 100% { transform: translateX(-50%) translateY(0); }
-          50% { transform: translateX(-50%) translateY(6px); }
-        }
-      `}</style>
     </div>
   );
 }
