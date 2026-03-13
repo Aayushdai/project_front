@@ -10,8 +10,12 @@ export default function Register() {
   const [step, setStep] = useState(1);
   const [profilePhoto, setProfilePhoto] = useState(null);
   const [passportPhoto, setPassportPhoto] = useState(null);
+  const [profileFile, setProfileFile] = useState(null);   // ✅ store actual file
+  const [passportFile, setPassportFile] = useState(null); // ✅ store actual file
   const profileRef = useRef();
   const passportRef = useRef();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", dob: "", gender: "",
@@ -27,20 +31,70 @@ export default function Register() {
   const focus = (k) => () => setFocused(k);
   const blur = () => setFocused(null);
 
-  const handlePhoto = (setter) => (e) => {
+  // ✅ Save both preview (base64) and actual file
+  const handlePhoto = (setter, fileSetter) => (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    fileSetter(file);
     const reader = new FileReader();
     reader.onload = (ev) => setter(ev.target.result);
     reader.readAsDataURL(file);
   };
 
-  const nextStep = (e) => {
+  const nextStep = async (e) => {
     e.preventDefault();
-    if (step < 3) setStep(step + 1);
-    else {
-      if (!agreed) { alert("Please agree to the terms"); return; }
-      alert("🎉 Account created! Welcome aboard! (Demo)");
+
+    if (step < 3) {
+      setStep(step + 1);
+      return;
+    }
+
+    if (!agreed) { setError("Please agree to the terms."); return; }
+    if (form.password !== form.confirm) { setError("Passwords do not match."); return; }
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL;
+
+      const formData = new FormData();
+      formData.append("first_name", form.firstName);
+      formData.append("last_name", form.lastName);
+      formData.append("dob", form.dob);
+      formData.append("gender", form.gender.toLowerCase());
+      formData.append("citizenship", form.citizenship);
+      formData.append("passport_no", form.passportNo);
+      formData.append("passport_expiry", form.passportExpiry);
+      formData.append("address", form.address);
+      formData.append("city", form.city);
+      formData.append("zip_code", form.zip);
+      formData.append("country", form.country);
+      formData.append("phone", form.phone);
+      formData.append("email", form.email);
+      formData.append("password", form.password);
+
+      // ✅ Use saved file state instead of refs (refs get cleared on step change)
+      if (profileFile) formData.append("profile_photo", profileFile);
+      if (passportFile) formData.append("passport_photo", passportFile);
+
+      const response = await fetch(`${apiUrl}users/`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert(" Account created! Please log in.");
+        window.location.href = "/";
+      } else {
+        setError(JSON.stringify(data));
+      }
+    } catch (err) {
+      setError("Unable to connect to the server.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -195,6 +249,12 @@ export default function Register() {
         .rg-terms-txt { font-size: 12px; color: #6b7280; line-height: 1.6; }
         .rg-terms-txt a { color: #f97316; font-weight: 600; text-decoration: none; }
 
+        .rg-error {
+          color: #f87171; font-size: 13px; margin-top: 12px;
+          padding: 10px 14px; background: rgba(248,113,113,0.08);
+          border-radius: 8px; border: 1px solid rgba(248,113,113,0.2);
+        }
+
         .rg-nav { display: flex; gap: 12px; margin-top: 28px; }
         .rg-back {
           padding: 13px 20px; background: transparent; border: 1.5px solid #e2ddd6; border-radius: 11px;
@@ -209,8 +269,9 @@ export default function Register() {
           display: flex; align-items: center; justify-content: center; gap: 8px;
           box-shadow: 0 4px 18px rgba(249,115,22,0.3); transition: transform 0.15s, box-shadow 0.2s;
         }
-        .rg-next:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249,115,22,0.4); }
+        .rg-next:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(249,115,22,0.4); }
         .rg-next:active { transform: translateY(0); }
+        .rg-next:disabled { opacity: 0.65; cursor: not-allowed; }
 
         @media(max-width:860px) { .rg-side{display:none;} }
         @media(max-width:540px) {
@@ -280,7 +341,9 @@ export default function Register() {
                       <div className="rg-avatar-lbl">Photo</div>
                     </>}
                   </div>
-                  <input ref={profileRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhoto(setProfilePhoto)} />
+                  {/* ✅ updated handler */}
+                  <input ref={profileRef} type="file" accept="image/*" style={{ display:"none" }}
+                    onChange={handlePhoto(setProfilePhoto, setProfileFile)} />
                   <div className="rg-photo-note">
                     <strong>Profile Photo</strong>
                     Upload a clear face photo. JPG or PNG, max 5MB.
@@ -325,7 +388,9 @@ export default function Register() {
                       <div className="rg-passport-sub">JPG or PNG — clear, unobstructed scan</div>
                     </>}
                   </div>
-                  <input ref={passportRef} type="file" accept="image/*" style={{ display:"none" }} onChange={handlePhoto(setPassportPhoto)} />
+                  {/* ✅ updated handler */}
+                  <input ref={passportRef} type="file" accept="image/*" style={{ display:"none" }}
+                    onChange={handlePhoto(setPassportPhoto, setPassportFile)} />
                 </div>
 
                 <div className="rg-section">
@@ -414,10 +479,12 @@ export default function Register() {
                 </div>
               </>)}
 
+              {error && <div className="rg-error">{error}</div>}
+
               <div className="rg-nav">
-                {step > 1 && <button type="button" className="rg-back" onClick={()=>setStep(step-1)}>← Back</button>}
-                <button type="submit" className="rg-next">
-                  {step < 3 ? "Continue →" : "🎉 Create Account"}
+                {step > 1 && <button type="button" className="rg-back" onClick={() => setStep(step - 1)}>← Back</button>}
+                <button type="submit" className="rg-next" disabled={loading}>
+                  {loading ? "Creating Account..." : step < 3 ? "Continue →" : " Create Account"}
                 </button>
               </div>
             </form>
