@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import bg from "../assets/bg.png";
-import axios from "axios";
+import api from "../API/api";
 import PeopleIcon from "@mui/icons-material/People";
 import RoomIcon from "@mui/icons-material/Room";
 import ShieldIcon from "@mui/icons-material/Shield";
@@ -12,14 +13,19 @@ const features = [
 ];
 
 export default function Home() {
+  const navigate = useNavigate();
   const [destinations, setDestinations] = useState([]);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    axios.get("http://127.0.0.1:8000/api/api/destinations/")
+    api.get("trips/destinations/")
       .then((res) => setDestinations(res.data))
       .catch((err) => console.error("Destinations fetch failed:", err));
   }, []);
+
+  const handleDestinationClick = (destinationName) => {
+    navigate("/explore", { state: { destinationName } });
+  };
 
   return (
     <div className="font-[Poppins,sans-serif] bg-[#f8f6f1] text-[#1a1a2e]">
@@ -44,7 +50,7 @@ export default function Home() {
           </p>
 
           {/* Search */}
-          <div className="mx-auto flex max-w-lg items-center gap-2 rounded-full bg-white px-5 py-2 shadow-lg">
+          <div className="mx-auto flex max-w-lg items-center gap-2 rounded-full bg-white px-5 py-2 shadow-lg relative">
             <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
@@ -54,10 +60,55 @@ export default function Home() {
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search destination, people, or trips…"
               className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && query.trim()) {
+                  const match = destinations.find(d => d.name.toLowerCase().includes(query.toLowerCase()));
+                  if (match) {
+                    handleDestinationClick(match.name);
+                  }
+                }
+              }}
             />
-            <button className="rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-1.5 text-sm font-medium text-white hover:brightness-110 transition">
+            <button 
+              onClick={() => {
+                const match = destinations.find(d => d.name.toLowerCase().includes(query.toLowerCase()));
+                if (match) {
+                  handleDestinationClick(match.name);
+                }
+              }}
+              className="rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-1.5 text-sm font-medium text-white hover:brightness-110 transition"
+            >
               Explore →
             </button>
+
+            {/* Search dropdown */}
+            {query.trim() && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto">
+                {destinations.filter(d => d.name.toLowerCase().includes(query.toLowerCase())).length > 0 ? (
+                  destinations.filter(d => d.name.toLowerCase().includes(query.toLowerCase())).map(d => (
+                    <button
+                      key={d.id}
+                      onClick={() => handleDestinationClick(d.name)}
+                      className="w-full text-left px-5 py-3 border-b last:border-b-0 hover:bg-orange-50 transition flex items-center gap-3"
+                    >
+                      {d.image ? (
+                        <img src={d.image} alt={d.name} className="w-10 h-10 rounded object-cover" />
+                      ) : (
+                        <span className="text-lg">📍</span>
+                      )}
+                      <div>
+                        <div className="font-semibold text-gray-900">{d.name}</div>
+                        <div className="text-xs text-gray-500">{d.location}</div>
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-5 py-3 text-center text-sm text-gray-500">
+                    No destinations found
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -72,15 +123,35 @@ export default function Home() {
 
       {/* ── Destinations ── */}
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="mb-6 text-3xl font-semibold">Destinations</h2>
+        <h2 className="mb-6 text-3xl font-semibold">Popular Destinations</h2>
         {destinations.length === 0 ? (
           <p className="text-gray-400">No destinations found.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {destinations.map((d) => (
-              <div key={d.id} className="rounded-xl bg-white p-5 shadow-sm hover:shadow-md transition">
-                <h3 className="text-lg font-semibold">{d.name}</h3>
-                <p className="text-sm text-gray-500">{d.country}</p>
+              <div 
+                key={d.id} 
+                onClick={() => handleDestinationClick(d.name)}
+                className="group rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer"
+              >
+                <div className="relative h-40 bg-gradient-to-br from-orange-100 to-orange-50 overflow-hidden">
+                  {d.image ? (
+                    <img 
+                      src={d.image} 
+                      alt={d.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-5xl">📍</span>
+                    </div>
+                  )}
+                </div>
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold text-gray-900">{d.name}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{d.location}</p>
+                  {d.description && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{d.description}</p>}
+                </div>
               </div>
             ))}
           </div>

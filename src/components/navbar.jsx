@@ -92,7 +92,7 @@ export default function NavbarComponent() {
             <button className="text-sm text-white/80 transition hover:text-white">More ▾</button>
             <div className="absolute left-0 top-7 hidden min-w-[140px] rounded-xl bg-[#111] py-1 shadow-lg group-hover:block">
               <span className="block cursor-pointer px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white">Blog</span>
-              <span className="block cursor-pointer px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white">About</span>
+              <Link to="/about" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white no-underline">About</Link>
             </div>
           </div>
         </div>
@@ -146,7 +146,8 @@ export default function NavbarComponent() {
             </Link>
           ))}
           <span className="block py-2 text-sm text-white/80">Blog</span>
-          <span className="block py-2 text-sm text-white/80">About</span>
+          <span className="block py-2 text-sm text-white/80">About
+          </span>
         </div>
       )}
     </nav>
