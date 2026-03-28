@@ -1,27 +1,34 @@
 import React, { useEffect, useState } from "react";
-  //  import { Card, CardContent } from "../components/ui/card";
-// import { Button } from "/components/ui/button";
-// import { Input } from "@/components/ui/input";
-// import { motion } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
 
-const API_BASE = "http://127.0.0.1:8000/api/trips"; // Django backend
+const API_BASE = "http://127.0.0.1:8000/api/trips";
 
 export default function Dashboard() {
+  const { user } = useAuth();
   const [trips, setTrips] = useState([]);
   const [destinations, setDestinations] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
+    const token = localStorage.getItem("access_token");
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
     try {
       const [tripRes, destRes, expRes] = await Promise.all([
-        fetch(`${API_BASE}/trips/`),
-        fetch(`${API_BASE}/destinations/`),
-        fetch(`${API_BASE}/expenses/`),
+        fetch(`${API_BASE}/trips/`, { headers }),
+        fetch(`${API_BASE}/destinations/`, { headers }),
+        fetch(`${API_BASE}/expenses/`, { headers }),
       ]);
+
+      // Check each response before parsing — a 404 returns HTML, not JSON
+      if (!tripRes.ok) throw new Error(`Trips API error: ${tripRes.status}`);
+      if (!destRes.ok) throw new Error(`Destinations API error: ${destRes.status}`);
+      if (!expRes.ok) throw new Error(`Expenses API error: ${expRes.status}`);
 
       const tripsData = await tripRes.json();
       const destData = await destRes.json();
@@ -32,6 +39,7 @@ export default function Dashboard() {
       setExpenses(expData);
     } catch (err) {
       console.error("Error fetching data:", err);
+      setError(err.message);
     }
   };
 
@@ -39,18 +47,34 @@ export default function Dashboard() {
     <div className="p-6 grid gap-6">
       <h1 className="text-3xl font-bold">Travel Dashboard</h1>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <StatCard title="Trips" value={trips.length} />
-        <StatCard title="Destinations" value={destinations.length} />
-        <StatCard title="Expenses" value={expenses.length} />
-      </div>
+      {!user && (
+        <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-3 text-sm text-yellow-400">
+          ℹ Please log in to view your dashboard.
+        </div>
+      )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        <ListCard title="Trips" data={trips} field="name" />
-        <ListCard title="Destinations" data={destinations} field="name" />
-      </div>
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          ⚠ {error} — check that your Django trips API is running and URLs are registered.
+        </div>
+      )}
 
-      <ExpenseCard expenses={expenses} />
+      {user && (
+        <>
+          <div className="grid md:grid-cols-3 gap-6">
+            <StatCard title="Trips" value={trips.length} />
+            <StatCard title="Destinations" value={destinations.length} />
+            <StatCard title="Expenses" value={expenses.length} />
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <ListCard title="Trips" data={trips} field="name" />
+            <ListCard title="Destinations" data={destinations} field="name" />
+          </div>
+
+          <ExpenseCard expenses={expenses} />
+        </>
+      )}
     </div>
   );
 }

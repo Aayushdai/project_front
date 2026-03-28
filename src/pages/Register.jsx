@@ -1,530 +1,552 @@
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
-const destinations = [
-  {
-    image: "/mountain.png",
-    city: "Mustang",
-    country: "Nepal",
-    tagline: "Where the sky meets the peaks",
-  },
-  {
-    image: "pokhara.png",
-    city: "Pokhara",
-    country: "Nepal",
-    tagline: "A Place untouched by time",
-  },
-  {
-    image: "Taplejung.png",
-    city: "Taplejung",
-    country: "Nepal",
-    tagline: "Where the Beauty falls from the sky",
-  },
-  {
-    image: "walkingman.png",
-    city: "Kathmandu",
-    country: "Nepal",
-    tagline: "Life is beautiful here",
-  },
+const STEPS = [
+  { id: 1, label: "Personal Info", sub: "Name, photo, date of birth" },
+  { id: 2, label: "Passport / ID", sub: "Citizenship & document details" },
+  { id: 3, label: "Contact", sub: "Address, phone & email" },
 ];
 
-export default function Register() {
-  const [current, setCurrent] = useState(0);
-  const [transitioning, setTransitioning] = useState(false);
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
-  const [focused, setFocused] = useState(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState("");
+const VALIDATORS = {
+  firstName: (v) => {
+    if (!v.trim()) return "First name is required";
+    if (/\d/.test(v)) return "Name cannot contain numbers";
+    if (v.trim().length < 2) return "Name must be at least 2 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(v)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    return "";
+  },
+  lastName: (v) => {
+    if (!v.trim()) return "Last name is required";
+    if (/\d/.test(v)) return "Name cannot contain numbers";
+    if (v.trim().length < 2) return "Name must be at least 2 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(v)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    return "";
+  },
+  dob: (v) => {
+    if (!v) return "Date of birth is required";
+    const age = Math.floor((Date.now() - new Date(v)) / (1000 * 60 * 60 * 24 * 365.25));
+    if (age < 16) return "You must be at least 16 years old";
+    if (age > 120) return "Please enter a valid date of birth";
+    return "";
+  },
+  gender: (v) => (!v ? "Please select a gender" : ""),
+  citizenship: (v) => {
+    if (!v.trim()) return "Citizenship is required";
+    if (/\d/.test(v)) return "Citizenship cannot contain numbers";
+    return "";
+  },
+  passportNo: (v) => {
+    if (!v.trim()) return "Passport / ID number is required";
+    if (v.trim().length < 5) return "Enter a valid passport number";
+    return "";
+  },
+  passportExpiry: (v) => {
+    if (!v) return "Expiry date is required";
+    if (new Date(v) < new Date()) return "Passport has already expired";
+    return "";
+  },
+  address: (v) => (!v.trim() ? "Street address is required" : ""),
+  city: (v) => {
+    if (!v.trim()) return "City is required";
+    if (/\d/.test(v)) return "City name cannot contain numbers";
+    return "";
+  },
+  country: (v) => {
+    if (!v.trim()) return "Country is required";
+    if (/\d/.test(v)) return "Country name cannot contain numbers";
+    return "";
+  },
+  zip: (v) => {
+    if (!v.trim()) return "ZIP / Postal code is required";
+    if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(v.trim())) return "Enter a valid postal code";
+    return "";
+  },
+  phone: (v) => {
+    if (!v.trim()) return "Phone number is required";
+    const cleaned = v.replace(/[\s\-().+]/g, "");
+    if (!/^\d{7,15}$/.test(cleaned)) return "Enter a valid phone number (7–15 digits)";
+    return "";
+  },
+  email: (v) => {
+    if (!v.trim()) return "Email is required";
+    const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!re.test(v.trim())) return "Enter a valid email address";
+    const typos = ["gail.com", "gmial.com", "gamil.com", "yaho.com", "hotnail.com", "outloo.com"];
+    const domain = v.trim().split("@")[1]?.toLowerCase();
+    if (typos.includes(domain)) return `Did you mean a different domain? "${domain}" looks like a typo`;
+    return "";
+  },
+  password: (v) => {
+    if (!v) return "Password is required";
+    if (v.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter";
+    if (!/[0-9]/.test(v)) return "Include at least one number";
+    if (!/[^a-zA-Z0-9]/.test(v)) return "Include at least one special character";
+    return "";
+  },
+  confirm: (v, form) => {
+    if (!v) return "Please confirm your password";
+    if (v !== form.password) return "Passwords do not match";
+    return "";
+  },
+};
+
+const STEP_FIELDS = {
+  1: ["firstName", "lastName", "dob", "gender"],
+  2: ["citizenship", "passportNo", "passportExpiry"],
+  3: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
+};
+
+
+
+export default function RegisterFull() {
   const navigate = useNavigate();
+  const [step, setStep]           = useState(1);
+  const [loading, setLoading]     = useState(false);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTransitioning(true);
-      setTimeout(() => {
-        setCurrent((prev) => (prev + 1) % destinations.length);
-        setTransitioning(false);
-      }, 1200);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, []);
+  const [globalError, setGlobalError] = useState("");
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-    if (error) setError("");
+  const [profilePhoto, setProfilePhoto] = useState(null);
+  const [passportPhoto, setPassportPhoto] = useState(null);
+  const [profileFile, setProfileFile]   = useState(null);
+  const [passportFile, setPassportFile] = useState(null);
+  const [photoErrors, setPhotoErrors]   = useState({ profile: "", passport: "" });
+  const profileRef  = useRef();
+  const passportRef = useRef();
+
+  const [form, setForm] = useState({
+    firstName: "", lastName: "", dob: "", gender: "",
+    citizenship: "", passportNo: "", passportExpiry: "",
+    address: "", city: "", country: "", zip: "",
+    phone: "", email: "", password: "", confirm: "",
+  });
+  const [errors, setErrors]   = useState({});
+  const [touched, setTouched] = useState({});
+  const [focused, setFocused] = useState(null);
+  const [pwVisible, setPwVisible] = useState(false);
+  const [agreed, setAgreed]   = useState(false);
+
+  const validate = (field, value) => {
+    const fn = VALIDATORS[field];
+    return fn ? fn(value, form) : "";
+  };
+
+  const set = (k) => (e) => {
+    const val = e.target.value;
+    setForm((f) => ({ ...f, [k]: val }));
+    if (touched[k]) setErrors((er) => ({ ...er, [k]: validate(k, val) }));
+  };
+
+  const blur = (k) => () => {
+    setTouched((t) => ({ ...t, [k]: true }));
+    setErrors((er) => ({ ...er, [k]: validate(k, form[k]) }));
+    setFocused(null);
+  };
+
+  const validateStep = (s) => {
+    const fields = STEP_FIELDS[s];
+    const newErrors = {};
+    const newTouched = {};
+    let valid = true;
+    for (const f of fields) {
+      newTouched[f] = true;
+      const err = validate(f, form[f]);
+      newErrors[f] = err;
+      if (err) valid = false;
+    }
+    const newPhotoErrors = { ...photoErrors };
+    if (s === 1 && !profileFile) { newPhotoErrors.profile = "Profile photo is required"; valid = false; }
+    if (s === 2 && !passportFile) { newPhotoErrors.passport = "Passport photo is required"; valid = false; }
+    setErrors((er) => ({ ...er, ...newErrors }));
+    setTouched((t) => ({ ...t, ...newTouched }));
+    setPhotoErrors(newPhotoErrors);
+    return valid;
+  };
+
+  const handlePhoto = (setter, fileSetter, photoKey) => (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setPhotoErrors((p) => ({ ...p, [photoKey]: "Only JPG, PNG or WEBP files allowed" }));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoErrors((p) => ({ ...p, [photoKey]: "File must be under 5MB" }));
+      return;
+    }
+    fileSetter(file);
+    setPhotoErrors((p) => ({ ...p, [photoKey]: "" }));
+    const reader = new FileReader();
+    reader.onload = (ev) => setter(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const pwStrength = (() => {
+    const v = form.password;
+    let score = 0;
+    if (v.length >= 8) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^a-zA-Z0-9]/.test(v)) score++;
+    return score;
+  })();
+  const strengthColor = ["", "text-red-400", "text-yellow-400", "text-blue-400", "text-emerald-400"][pwStrength];
+  const strengthBg    = ["", "bg-red-400", "bg-yellow-400", "bg-blue-400", "bg-emerald-400"][pwStrength];
+  const strengthLabel = ["", "Weak", "Fair", "Good", "Strong"][pwStrength];
+
+  const handleNext = (e) => {
+    e.preventDefault();
+    if (!validateStep(step)) return;
+    setStep(step + 1);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.username || !form.email || !form.password) {
-      setError("Please fill in all fields.");
-      return;
-    }
+    if (!validateStep(3)) return;
+    if (!agreed) { setGlobalError("Please agree to the Terms of Service."); return; }
+
     setLoading(true);
-    setError("");
+    setGlobalError("");
     try {
-      const res = await axios.post(
-        "http://127.0.0.1:8000/users/api/register",
-        form,
-        { headers: { "Content-Type": "application/json" } }
-      );
-      if (res.data.success) {
-        setMessage("Registered successfully");
-        setTimeout(() => navigate("/"), 1000);
+      const formData = new FormData();
+      formData.append("first_name",      form.firstName);
+      formData.append("last_name",       form.lastName);
+      formData.append("dob",             form.dob);
+      formData.append("gender",          form.gender.toLowerCase());
+      formData.append("citizenship",     form.citizenship);
+      formData.append("passport_no",     form.passportNo);
+      formData.append("passport_expiry", form.passportExpiry);
+      formData.append("address",         form.address);
+      formData.append("city",            form.city);
+      formData.append("zip_code",        form.zip);
+      formData.append("country",         form.country);
+      formData.append("phone",           form.phone);
+      formData.append("email",           form.email.trim().toLowerCase());
+      formData.append("password",        form.password);
+      if (profileFile)  formData.append("profile_photo",  profileFile);
+      if (passportFile) formData.append("passport_photo", passportFile);
+
+      const response = await fetch("http://127.0.0.1:8000/users/api/register/", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        navigate("/login");
       } else {
-        setError(res.data.message || "Registration failed.");
+        setGlobalError(data.message || JSON.stringify(data));
       }
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Unable to connect. Please try again."
-      );
+    } catch {
+      setGlobalError("Unable to connect to the server.");
     } finally {
       setLoading(false);
     }
   };
 
+
+
+  const inp = (k) =>
+    `w-full bg-white border rounded-xl px-4 py-3 text-sm text-[#111827] placeholder-[#c4bfb7] outline-none transition focus:ring-2 focus:ring-orange-500/10 ${
+      errors[k] && touched[k]
+        ? "border-red-400 focus:border-red-400"
+        : "border-[#e2ddd6] focus:border-orange-500"
+    }`;
+  const lbl = (k) =>
+    `text-[10px] font-bold tracking-[1px] uppercase transition-colors ${
+      errors[k] && touched[k] ? "text-red-400" : focused === k ? "text-orange-500" : "text-gray-400"
+    }`;
+  const errMsg = (k) =>
+    errors[k] && touched[k] ? <p className="mt-1 text-[11px] text-red-400">{errors[k]}</p> : null;
+
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Poppins:wght@300;400;500;600&display=swap');
+    <div className="flex min-h-screen bg-[#f0ece4] font-[Poppins,sans-serif]">
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        .reg-root {
-          font-family: 'Poppins', sans-serif;
-          min-height: 100vh;
-          display: flex;
-          overflow: hidden;
-          background: #0a0a0a;
-        }
-
-        /* ── Left Slideshow (identical to Login) ── */
-        .left-panel {
-          position: relative;
-          flex: 1.2;
-          overflow: hidden;
-        }
-
-        .slide {
-          position: absolute;
-          inset: 0;
-          background-size: cover;
-          background-position: center;
-          transition: opacity 1.2s ease, transform 8s ease;
-          transform: scale(1.06);
-          opacity: 0;
-        }
-        .slide.active {
-          opacity: 1;
-          animation: kenBurns 8s ease forwards;
-        }
-        @keyframes kenBurns {
-          from { transform: scale(1.06); }
-          to   { transform: scale(1.0); }
-        }
-
-        .left-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.35) 50%, rgba(0,0,0,0.7) 100%);
-          z-index: 2;
-        }
-
-        .left-content {
-          position: absolute;
-          inset: 0;
-          z-index: 3;
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          padding: 44px 48px;
-        }
-
-        .brand-logo {
-          font-family: 'Montserrat', sans-serif;
-          font-weight: 300;
-          font-size: 22px;
-          letter-spacing: 5px;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.92);
-        }
-        .brand-logo span { font-style: italic; font-weight: 400; color: #f0c27a; }
-
-        .destination-info { animation: fadeUpIn 1.2s ease; }
-        @keyframes fadeUpIn {
-          from { opacity: 0; transform: translateY(24px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-
-        .destination-tagline {
-          font-family: 'Poppins', sans-serif;
-          font-style: italic;
-          font-size: 16px;
-          font-weight: 300;
-          color: rgba(255,255,255,0.65);
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          margin-bottom: 12px;
-        }
-
-        .destination-city {
-          font-family: 'Montserrat', sans-serif;
-          font-size: clamp(56px, 7vw, 86px);
-          font-weight: 300;
-          color: #fff;
-          line-height: 0.9;
-          letter-spacing: -1px;
-        }
-        .destination-city span {
-          display: block;
-          font-size: clamp(20px, 2.5vw, 28px);
-          font-weight: 400;
-          font-style: italic;
-          color: #f0c27a;
-          letter-spacing: 4px;
-          text-transform: uppercase;
-          margin-top: 10px;
-        }
-
-        .dots { display: flex; gap: 8px; margin-top: 32px; }
-        .dot {
-          width: 28px; height: 2px;
-          background: rgba(255,255,255,0.3);
-          border-radius: 2px;
-          transition: background 0.4s, width 0.4s;
-          cursor: pointer;
-        }
-        .dot.active { background: #f0c27a; width: 48px; }
-
-        /* ── Right Panel ── */
-        .right-panel {
-          width: 460px;
-          flex-shrink: 0;
-          background: #0f0e0d;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          padding: 60px 48px;
-          position: relative;
-          overflow: hidden;
-        }
-
-        .right-panel::before {
-          content: '';
-          position: absolute;
-          top: -120px; right: -120px;
-          width: 400px; height: 400px;
-          background: radial-gradient(circle, rgba(240,194,122,0.07) 0%, transparent 70%);
-          pointer-events: none;
-        }
-        .right-panel::after {
-          content: '';
-          position: absolute;
-          bottom: -80px; left: -80px;
-          width: 280px; height: 280px;
-          background: radial-gradient(circle, rgba(240,194,122,0.05) 0%, transparent 70%);
-          pointer-events: none;
-        }
-
-        .reg-eyebrow {
-          font-size: 11px;
-          letter-spacing: 4px;
-          text-transform: uppercase;
-          color: #f0c27a;
-          font-weight: 500;
-          margin-bottom: 16px;
-        }
-
-        .reg-heading {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 42px;
-          font-weight: 300;
-          color: #f5f0e8;
-          line-height: 1.05;
-          margin-bottom: 8px;
-        }
-        .reg-heading em { font-style: italic; color: #f0c27a; }
-
-        .reg-subheading {
-          font-size: 13px;
-          color: rgba(255,255,255,0.38);
-          font-weight: 300;
-          line-height: 1.6;
-          margin-bottom: 32px;
-        }
-
-        /* ── Fields ── */
-        .field-group { margin-bottom: 14px; }
-
-        .field-label {
-          display: block;
-          font-size: 11px;
-          letter-spacing: 2px;
-          text-transform: uppercase;
-          color: rgba(255,255,255,0.35);
-          margin-bottom: 8px;
-          font-weight: 500;
-          transition: color 0.2s;
-        }
-        .field-label.focused { color: #f0c27a; }
-
-        .field-input {
-          width: 100%;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.1);
-          border-radius: 10px;
-          padding: 13px 16px;
-          color: #f5f0e8;
-          font-size: 14px;
-          font-family: 'Poppins', sans-serif;
-          outline: none;
-          transition: border-color 0.2s, background 0.2s;
-        }
-        .field-input::placeholder { color: rgba(255,255,255,0.18); }
-        .field-input:focus {
-          border-color: rgba(240,194,122,0.5);
-          background: rgba(255,255,255,0.07);
-        }
-        .field-input.error-field { border-color: rgba(255,90,90,0.5); }
-
-        /* ── Error Banner ── */
-        .error-banner {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(255,80,80,0.08);
-          border: 1px solid rgba(255,80,80,0.25);
-          border-radius: 10px;
-          padding: 12px 14px;
-          margin-bottom: 18px;
-          animation: shakeIn 0.35s ease;
-        }
-        @keyframes shakeIn {
-          0%   { transform: translateX(-6px); opacity: 0; }
-          40%  { transform: translateX(4px); }
-          70%  { transform: translateX(-2px); }
-          100% { transform: translateX(0); opacity: 1; }
-        }
-        .error-icon {
-          flex-shrink: 0;
-          width: 18px; height: 18px;
-          background: rgba(255,80,80,0.7);
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 11px; color: #fff; font-weight: 700;
-        }
-        .error-text {
-          font-size: 12.5px;
-          color: rgba(255,140,140,0.9);
-          font-weight: 400;
-          line-height: 1.4;
-        }
-
-        /* ── Success Banner ── */
-        .success-banner {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: rgba(80,200,120,0.08);
-          border: 1px solid rgba(80,200,120,0.25);
-          border-radius: 10px;
-          padding: 12px 14px;
-          margin-bottom: 18px;
-          animation: shakeIn 0.35s ease;
-        }
-        .success-icon {
-          flex-shrink: 0;
-          width: 18px; height: 18px;
-          background: rgba(80,200,120,0.7);
-          border-radius: 50%;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 11px; color: #fff; font-weight: 700;
-        }
-        .success-text {
-          font-size: 12.5px;
-          color: rgba(140,255,180,0.9);
-          font-weight: 400;
-          line-height: 1.4;
-        }
-
-        /* ── Submit Button ── */
-        .submit-btn {
-          width: 100%;
-          padding: 14px;
-          background: linear-gradient(135deg, #c9973a 0%, #f0c27a 50%, #c9973a 100%);
-          background-size: 200% 100%;
-          background-position: right;
-          border: none;
-          border-radius: 10px;
-          color: #0f0e0d;
-          font-size: 13px;
-          font-family: 'Poppins', sans-serif;
-          font-weight: 600;
-          letter-spacing: 3px;
-          text-transform: uppercase;
-          cursor: pointer;
-          transition: background-position 0.4s ease, transform 0.15s, opacity 0.2s;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          margin-top: 8px;
-        }
-        .submit-btn:hover:not(:disabled) { background-position: left; transform: translateY(-1px); }
-        .submit-btn:active:not(:disabled) { transform: translateY(0); }
-        .submit-btn:disabled { opacity: 0.65; cursor: not-allowed; }
-
-        .spinner {
-          width: 14px; height: 14px;
-          border: 2px solid rgba(15,14,13,0.3);
-          border-top-color: #0f0e0d;
-          border-radius: 50%;
-          animation: spin 0.7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* ── Footer ── */
-        .login-row {
-          text-align: center;
-          margin-top: 24px;
-          font-size: 13px;
-          color: rgba(255,255,255,0.3);
-        }
-        .login-row a {
-          color: #f0c27a;
-          text-decoration: none;
-          font-weight: 500;
-          margin-left: 4px;
-        }
-        .login-row a:hover { text-decoration: underline; }
-
-        /* ── Responsive ── */
-        @media (max-width: 768px) {
-          .reg-root { flex-direction: column; }
-          .left-panel { height: 42vh; flex: none; }
-          .right-panel { width: 100%; padding: 36px 28px; }
-          .destination-city { font-size: 48px; }
-          .reg-heading { font-size: 34px; }
-        }
-      `}</style>
-
-      <div className="reg-root">
-        {/* ─── Left: Cinematic Slideshow ─── */}
-        <div className="left-panel">
-          {destinations.map((d, i) => (
-            <div
-              key={i}
-              className={`slide ${i === current ? "active" : ""}`}
-              style={{ backgroundImage: `url('${d.image}')` }}
-            />
-          ))}
-          <div className="left-overlay" />
-          <div className="left-content">
-            <div className="brand-logo">Travel<span>·</span>Companion</div>
-            <div key={current} className="destination-info">
-              <div className="destination-tagline">{destinations[current].tagline}</div>
-              <div className="destination-city">
-                {destinations[current].city}
-                <span>{destinations[current].country}</span>
-              </div>
-              <div className="dots">
-                {destinations.map((_, i) => (
-                  <div
-                    key={i}
-                    className={`dot ${i === current ? "active" : ""}`}
-                    onClick={() => setCurrent(i)}
-                  />
-                ))}
-              </div>
-            </div>
+      {/* Sidebar */}
+      <div className="relative hidden w-[280px] flex-shrink-0 flex-col overflow-hidden bg-[#111827] p-10 md:flex">
+        <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1488085061387-422e29b40080?w=800')] bg-cover bg-center opacity-20" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#111827]/50 to-[#111827]" />
+        <div className="relative z-10 flex h-full flex-col">
+          <div className="mb-10 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-orange-500 to-orange-400 text-base font-bold text-white">T</div>
+            <span className="font-['Montserrat'] text-[17px] font-bold text-white">
+              Travel<span className="text-orange-500">Co</span>
+            </span>
           </div>
-        </div>
-
-        {/* ─── Right: Register Form ─── */}
-        <div className="right-panel">
-          <div className="reg-eyebrow">Start your journey</div>
-          <div className="reg-heading">Create your<br /><em>account</em><br />today.</div>
-          <div className="reg-subheading">
-            Join thousands of travellers discovering the world's most breathtaking destinations.
+          <div className="flex flex-col">
+            {STEPS.map((s, i) => (
+              <div key={s.id}>
+                <div className={`flex items-center gap-3 rounded-xl px-3 py-3 transition ${step === s.id ? "bg-orange-500/13" : ""}`}>
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                    step === s.id ? "bg-orange-500 text-white shadow-[0_0_14px_rgba(249,115,22,0.5)]"
+                    : step > s.id ? "bg-emerald-400 text-white"
+                    : "bg-white/10 text-white/25"
+                  }`}>
+                    {step > s.id ? "✓" : s.id}
+                  </div>
+                  <div>
+                    <p className={`font-['Montserrat'] text-[13px] font-semibold ${step < s.id ? "text-white/25" : "text-white/85"}`}>{s.label}</p>
+                    <p className="text-[10px] text-white/25">{s.sub}</p>
+                  </div>
+                </div>
+                {i < STEPS.length - 1 && <div className="ml-7 h-4 w-px bg-white/10" />}
+              </div>
+            ))}
           </div>
-
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div className="error-banner">
-                <div className="error-icon">!</div>
-                <div className="error-text">{error}</div>
-              </div>
-            )}
-            {message && (
-              <div className="success-banner">
-                <div className="success-icon">✓</div>
-                <div className="success-text">{message}</div>
-              </div>
-            )}
-
-            <div className="field-group">
-              <label className={`field-label ${focused === "username" ? "focused" : ""}`}>
-                Username
-              </label>
-              <input
-                type="text"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                onFocus={() => setFocused("username")}
-                onBlur={() => setFocused(null)}
-                placeholder="your_username"
-                className={`field-input ${error ? "error-field" : ""}`}
-                required
-              />
-            </div>
-
-            <div className="field-group">
-              <label className={`field-label ${focused === "email" ? "focused" : ""}`}>
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                onFocus={() => setFocused("email")}
-                onBlur={() => setFocused(null)}
-                placeholder="you@example.com"
-                className={`field-input ${error ? "error-field" : ""}`}
-                required
-              />
-            </div>
-
-            <div className="field-group">
-              <label className={`field-label ${focused === "password" ? "focused" : ""}`}>
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                onFocus={() => setFocused("password")}
-                onBlur={() => setFocused(null)}
-                placeholder="Create a strong password"
-                className={`field-input ${error ? "error-field" : ""}`}
-                required
-              />
-            </div>
-
-            <button type="submit" className="submit-btn" disabled={loading}>
-              {loading && <span className="spinner" />}
-              {loading ? "Creating Account..." : "Create Account"}
-            </button>
-          </form>
-
-          <div className="login-row">
-            Already have an account?<a href="/">Sign in</a>
+          <div className="mt-auto">
+            <p className="font-['Montserrat'] text-[17px] font-light italic text-white/55 leading-relaxed">
+              Every great journey starts with a <span className="text-orange-500">single step.</span>
+            </p>
+            <p className="mt-4 text-xs text-white/25">
+              Already have an account?{" "}
+              <a href="/" className="font-semibold text-orange-500 hover:underline">Sign in</a>
+            </p>
           </div>
         </div>
       </div>
-    </>
+
+      {/* Main */}
+      <div className="flex flex-1 items-start justify-center overflow-y-auto px-5 py-12 md:px-10">
+        <div className="w-full max-w-[600px]" key={step}>
+
+          <div className="mb-6 h-[3px] overflow-hidden rounded-full bg-[#e2ddd6]">
+            <div className="h-full rounded-full bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 transition-all duration-500"
+              style={{ width: `${(step / 3) * 100}%` }} />
+          </div>
+
+          <span className="mb-3 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[2.5px] text-orange-500">
+            Step {step} of 3
+          </span>
+          <h1 className="font-['Montserrat'] text-3xl font-light italic text-[#111827] leading-tight mb-1">
+            {step === 1 && <>Tell us about <strong className="font-semibold text-orange-500">yourself</strong></>}
+            {step === 2 && <>Your <strong className="font-semibold text-orange-500">travel documents</strong></>}
+            {step === 3 && <>How to <strong className="font-semibold text-orange-500">reach you</strong></>}
+          </h1>
+          <p className="mb-7 text-[13px] text-slate-400">
+            {step === 1 && "Your name, date of birth, and a clear profile photo."}
+            {step === 2 && "We keep your passport info secure and fully encrypted."}
+            {step === 3 && "Your address, phone number, email and account password."}
+          </p>
+
+          <form onSubmit={step < 3 ? handleNext : handleSubmit} noValidate>
+
+            {/* Step 1 */}
+            {step === 1 && (
+              <>
+                <div className="mb-6 flex items-start gap-5">
+                  <div>
+                    <div
+                      onClick={() => profileRef.current.click()}
+                      className={`flex h-20 w-20 flex-shrink-0 cursor-pointer flex-col items-center justify-center overflow-hidden rounded-full border-2 border-dashed bg-white transition hover:border-orange-500 ${
+                        photoErrors.profile ? "border-red-400" : "border-[#d0c9be]"
+                      }`}
+                    >
+                      {profilePhoto
+                        ? <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
+                        : <span className="text-[10px] font-bold uppercase tracking-wide text-[#b0a99e]">Photo</span>
+                      }
+                    </div>
+                    {photoErrors.profile && <p className="mt-1 text-[11px] text-red-400 text-center w-20">{photoErrors.profile}</p>}
+                  </div>
+                  <input ref={profileRef} type="file" accept="image/*" className="hidden"
+                    onChange={handlePhoto(setProfilePhoto, setProfileFile, "profile")} />
+                  <div className="text-[12px] text-gray-400 leading-relaxed">
+                    <strong className="block text-[13px] font-semibold text-[#374151]">Profile Photo *</strong>
+                    Clear face photo. JPG or PNG, max 5MB.
+                    <br />This will be reviewed by admin.
+                  </div>
+                </div>
+
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Personal Details</p>
+                <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("firstName")}>First Name *</label>
+                    <input className={inp("firstName")} value={form.firstName} onChange={set("firstName")}
+                      onFocus={() => setFocused("firstName")} onBlur={blur("firstName")} placeholder="Jane" />
+                    {errMsg("firstName")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("lastName")}>Last Name *</label>
+                    <input className={inp("lastName")} value={form.lastName} onChange={set("lastName")}
+                      onFocus={() => setFocused("lastName")} onBlur={blur("lastName")} placeholder="Doe" />
+                    {errMsg("lastName")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("dob")}>Date of Birth *</label>
+                    <input type="date" className={inp("dob")} value={form.dob} onChange={set("dob")}
+                      onFocus={() => setFocused("dob")} onBlur={blur("dob")} />
+                    {errMsg("dob")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("gender")}>Gender *</label>
+                    <select className={inp("gender")} value={form.gender} onChange={set("gender")}
+                      onFocus={() => setFocused("gender")} onBlur={blur("gender")}>
+                      <option value="">Select...</option>
+                      <option>Male</option><option>Female</option>
+                      <option>Non-binary</option><option>Prefer not to say</option>
+                    </select>
+                    {errMsg("gender")}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 2 */}
+            {step === 2 && (
+              <>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Passport / ID Photo *</p>
+                <div
+                  onClick={() => passportRef.current.click()}
+                  className={`mb-1 flex h-28 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white transition hover:border-orange-500 hover:bg-orange-50 ${
+                    photoErrors.passport ? "border-red-400" : "border-[#d0c9be]"
+                  }`}
+                >
+                  {passportPhoto
+                    ? <img src={passportPhoto} alt="passport" className="h-full w-full rounded-2xl object-cover" />
+                    : <>
+                        <p className="text-[13px] font-semibold text-[#374151]">Upload passport or ID photo</p>
+                        <p className="text-[11px] text-gray-400">JPG or PNG — clear, unobstructed scan</p>
+                      </>
+                  }
+                </div>
+                {photoErrors.passport && <p className="mb-4 text-[11px] text-red-400">{photoErrors.passport}</p>}
+                <input ref={passportRef} type="file" accept="image/*" className="hidden"
+                  onChange={handlePhoto(setPassportPhoto, setPassportFile, "passport")} />
+
+                <p className="mb-3.5 mt-5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Document Details</p>
+                <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("citizenship")}>Citizenship *</label>
+                    <input className={inp("citizenship")} value={form.citizenship} onChange={set("citizenship")}
+                      onFocus={() => setFocused("citizenship")} onBlur={blur("citizenship")} placeholder="e.g. Nepali" />
+                    {errMsg("citizenship")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("passportNo")}>Passport / ID No *</label>
+                    <input className={inp("passportNo")} value={form.passportNo} onChange={set("passportNo")}
+                      onFocus={() => setFocused("passportNo")} onBlur={blur("passportNo")} placeholder="A12345678" />
+                    {errMsg("passportNo")}
+                  </div>
+                  <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
+                    <label className={lbl("passportExpiry")}>Expiry Date *</label>
+                    <input type="date" className={inp("passportExpiry")} value={form.passportExpiry}
+                      onChange={set("passportExpiry")} onFocus={() => setFocused("passportExpiry")} onBlur={blur("passportExpiry")} />
+                    {errMsg("passportExpiry")}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Step 3 */}
+            {step === 3 && (
+              <>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Address</p>
+                <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                  <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
+                    <label className={lbl("address")}>Street Address *</label>
+                    <input className={inp("address")} value={form.address} onChange={set("address")}
+                      onFocus={() => setFocused("address")} onBlur={blur("address")} placeholder="123 Explorer Street" />
+                    {errMsg("address")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("city")}>City *</label>
+                    <input className={inp("city")} value={form.city} onChange={set("city")}
+                      onFocus={() => setFocused("city")} onBlur={blur("city")} placeholder="Kathmandu" />
+                    {errMsg("city")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("zip")}>ZIP / Postal Code *</label>
+                    <input className={inp("zip")} value={form.zip} onChange={set("zip")}
+                      onFocus={() => setFocused("zip")} onBlur={blur("zip")} placeholder="44600" />
+                    {errMsg("zip")}
+                  </div>
+                  <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
+                    <label className={lbl("country")}>Country *</label>
+                    <input className={inp("country")} value={form.country} onChange={set("country")}
+                      onFocus={() => setFocused("country")} onBlur={blur("country")} placeholder="Nepal" />
+                    {errMsg("country")}
+                  </div>
+                </div>
+
+                <p className="mb-3.5 mt-6 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Contact & Account</p>
+                <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("phone")}>Phone Number *</label>
+                    <input type="tel" className={inp("phone")} value={form.phone} onChange={set("phone")}
+                      onFocus={() => setFocused("phone")} onBlur={blur("phone")} placeholder="+977 98XXXXXXXX" />
+                    {errMsg("phone")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("email")}>Email Address *</label>
+                    <input type="email" className={inp("email")} value={form.email} onChange={set("email")}
+                      onFocus={() => setFocused("email")} onBlur={blur("email")} placeholder="jane@example.com" />
+                    {errMsg("email")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("password")}>Password *</label>
+                    <div className="relative">
+                      <input type={pwVisible ? "text" : "password"} className={inp("password")}
+                        style={{ paddingRight: 40 }} value={form.password} onChange={set("password")}
+                        onFocus={() => setFocused("password")} onBlur={blur("password")} placeholder="Min. 8 characters" />
+                      <button type="button" onClick={() => setPwVisible(!pwVisible)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-35 hover:opacity-75">
+                        {pwVisible ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    {form.password.length > 0 && (
+                      <div className="mt-1.5 flex items-center gap-2">
+                        <div className="flex gap-1">
+                          {[1, 2, 3, 4].map((i) => (
+                            <div key={i} className={`h-[3px] w-4 rounded-full transition-all ${pwStrength >= i ? strengthBg : "bg-[#e2ddd6]"}`} />
+                          ))}
+                        </div>
+                        <span className={`text-[10px] font-bold ${strengthColor}`}>{strengthLabel}</span>
+                      </div>
+                    )}
+                    {errMsg("password")}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className={lbl("confirm")}>Confirm Password *</label>
+                    <input type="password" className={inp("confirm")} value={form.confirm} onChange={set("confirm")}
+                      onFocus={() => setFocused("confirm")} onBlur={blur("confirm")} placeholder="Repeat password" />
+                    {errMsg("confirm")}
+                  </div>
+                </div>
+
+                <label className="mt-5 flex cursor-pointer items-start gap-2.5">
+                  <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500" />
+                  <span className="text-[12px] text-gray-500 leading-relaxed">
+                    I agree to the <a href="#" className="font-semibold text-orange-500">Terms of Service</a> and{" "}
+                    <a href="#" className="font-semibold text-orange-500">Privacy Policy</a>. My data is handled securely.
+                  </span>
+                </label>
+              </>
+            )}
+
+            {globalError && (
+              <div className="mt-4 rounded-xl border border-red-300/20 bg-red-400/8 px-4 py-3 text-[13px] text-red-400">
+                {globalError}
+              </div>
+            )}
+
+            <div className="mt-8 flex gap-3">
+              {step > 1 && (
+                <button type="button" onClick={() => setStep(step - 1)}
+                  className="rounded-xl border border-[#e2ddd6] px-5 py-3 text-[13px] font-semibold text-gray-400 transition hover:border-gray-400 hover:text-gray-600">
+                  Back
+                </button>
+              )}
+              <button type="submit" disabled={loading}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-orange-400 py-3.5 text-[14px] font-bold text-white shadow-[0_4px_18px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(249,115,22,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-65">
+                {loading
+                  ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Submitting...</>
+                  : step < 3 ? "Continue" : "Submit for Verification"
+                }
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }

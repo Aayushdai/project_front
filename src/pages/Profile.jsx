@@ -1,391 +1,398 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "../context/AuthContext";
 
-export default function MyProfile() {
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem("user");
-    return stored ? JSON.parse(stored) : null;
+// ─── helpers ────────────────────────────────────────────────────────────────
+const API = "http://127.0.0.1:8000";
+const token = () => localStorage.getItem("access_token");
+const avatar = (url) =>
+  url ? (url.startsWith("http") ? url : `${API}${url}`) : null;
+
+const TRAVEL_STYLES = ["Budget", "Luxury", "Adventure"];
+const PACE_OPTIONS  = ["Relaxed", "Moderate", "Fast-paced"];
+const ACCOMM        = ["Hostel", "Hotel", "Inn", "Camping"];
+
+// ─── stat card ──────────────────────────────────────────────────────────────
+function StatCard({ icon, label, value }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 border border-white/8 px-5 py-4 min-w-[90px]">
+      <span className="text-xl">{icon}</span>
+      <span className="text-[22px] font-bold text-white leading-none">{value ?? "—"}</span>
+      <span className="text-[10px] uppercase tracking-widest text-white/40 text-center">{label}</span>
+    </div>
+  );
+}
+
+// ─── slider field ───────────────────────────────────────────────────────────
+function SliderField({ label, name, value, onChange, min = 0, max = 10, leftLabel, rightLabel }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
+      <input
+        type="range" min={min} max={max} name={name} value={value}
+        onChange={onChange}
+        className="accent-[#1976D2] w-full h-1.5 rounded-full"
+      />
+      <div className="flex justify-between text-[10px] text-white/30">
+        <span>{leftLabel}</span>
+        <span className="text-white/60 font-semibold">{value} / {max}</span>
+        <span>{rightLabel}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── chip selector ──────────────────────────────────────────────────────────
+function ChipSelect({ label, options, value, onChange }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <button
+            key={o} type="button"
+            onClick={() => onChange(o.toLowerCase())}
+            className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold border transition-all ${
+              value === o.toLowerCase()
+                ? "bg-[#1976D2] border-[#1976D2] text-white"
+                : "bg-white/5 border-white/10 text-white/50 hover:border-[#1976D2]/50 hover:text-white/80"
+            }`}
+          >
+            {o}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── edit modal ─────────────────────────────────────────────────────────────
+function EditModal({ profile, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    first_name:               profile.first_name || "",
+    last_name:                profile.last_name  || "",
+    bio:                      profile.bio        || "",
+    location:                 profile.location   || "",
+    travel_style:             profile.travel_style             || "",
+    pace:                     profile.pace                     || "",
+    accommodation_preference: profile.accommodation_preference || "",
+    budget_level:             profile.budget_level             ?? 5,
+    adventure_level:          profile.adventure_level          ?? 5,
+    social_level:             profile.social_level             ?? 5,
   });
-  const [editingPhoto, setEditingPhoto] = useState(false);
-  const [previewPhoto, setPreviewPhoto] = useState(null);
-  const [photoFile, setPhotoFile] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState("");
-  const photoRef = useRef();
+  const [photoFile, setPhotoFile]       = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(avatar(profile.profile_picture));
+  const [saving, setSaving]             = useState(false);
+  const [err, setErr]                   = useState("");
+  const fileRef = useRef();
 
-  const handlePhotoChange = (e) => {
+  const set     = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
+  const setChip = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
+  const setSlider = (e) => setForm((f) => ({ ...f, [e.target.name]: Number(e.target.value) }));
+
+  const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setPhotoFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setPreviewPhoto(ev.target.result);
-    reader.readAsDataURL(file);
-    setEditingPhoto(true);
+    const r = new FileReader();
+    r.onload = (ev) => setPhotoPreview(ev.target.result);
+    r.readAsDataURL(file);
   };
 
-  const handleSavePhoto = async () => {
-    if (!photoFile || !user?.id) return;
+  // ✅ handleSave is INSIDE EditModal
+  const handleSave = async () => {
     setSaving(true);
-    setSaveMsg("");
+    setErr("");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const formData = new FormData();
-      formData.append("profile_photo", photoFile);
+      const fd = new FormData();
+      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
+      if (photoFile) fd.append("profile_photo", photoFile);
 
-      const response = await fetch(`${apiUrl}users/${user.id}/`, {
+      const res = await fetch(`${API}/users/api/profile/update/`, {
         method: "PATCH",
-        body: formData,
+        headers: { Authorization: `Bearer ${token()}` },
+        body: fd,
       });
-      const data = await response.json();
-      if (response.ok) {
-        const updated = { ...user, profile_photo: data.profile_photo };
-        setUser(updated);
-        localStorage.setItem("user", JSON.stringify(updated));
-        setEditingPhoto(false);
-        setPreviewPhoto(null);
-        setSaveMsg("✓ Photo updated!");
-        setTimeout(() => setSaveMsg(""), 3000);
-      } else {
-        setSaveMsg("Failed to update photo.");
-      }
+      const data = await res.json();
+      if (!res.ok) { setErr(data.message || "Failed to save."); return; }
+      onSaved(data);
+      // ✅ Notify navbar to refresh profile picture
+      window.dispatchEvent(new Event("profile-updated"));
+      onClose();
     } catch {
-      setSaveMsg("Server error.");
+      setErr("Could not connect to server.");
     } finally {
       setSaving(false);
     }
   };
 
-  const currentPhoto = previewPhoto || user?.profile_photo;
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const inp = "w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition";
 
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&family=Poppins:wght@300;400;500;600;700&display=swap');
-        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0d1117] border border-white/10 shadow-2xl">
+        {/* header */}
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0d1117]/90 backdrop-blur px-6 py-4 border-b border-white/8">
+          <h2 className="text-lg font-bold text-white">Edit Profile</h2>
+          <button onClick={onClose} className="rounded-full bg-white/8 px-3 py-1 text-sm text-white/60 hover:bg-white/15 hover:text-white transition">
+            ✕ Close
+          </button>
+        </div>
 
-        .pf-root {
-          font-family: 'Poppins', sans-serif;
-          min-height: 100vh;
-          background: #07080f;
-          color: #f5f0e8;
-          padding: 40px 20px 80px;
-        }
-
-        .pf-container {
-          max-width: 900px;
-          margin: 0 auto;
-        }
-
-        /* ── Cover ── */
-        .pf-cover {
-          height: 180px;
-          border-radius: 20px 20px 0 0;
-          background: linear-gradient(135deg, #0d1117 0%, #1a1200 50%, #0d1117 100%);
-          position: relative;
-          overflow: hidden;
-        }
-        .pf-cover::before {
-          content: '';
-          position: absolute; inset: 0;
-          background: 
-            radial-gradient(ellipse at 20% 50%, rgba(240,194,122,0.12) 0%, transparent 60%),
-            radial-gradient(ellipse at 80% 50%, rgba(25,118,210,0.1) 0%, transparent 60%);
-        }
-        .pf-cover-pattern {
-          position: absolute; inset: 0; opacity: 0.04;
-          background-image: repeating-linear-gradient(
-            45deg, #f0c27a 0px, #f0c27a 1px, transparent 1px, transparent 20px
-          );
-        }
-
-        /* ── Card ── */
-        .pf-card {
-          background: rgba(15,16,26,0.97);
-          border: 1px solid rgba(255,255,255,0.07);
-          border-top: none;
-          border-radius: 0 0 20px 20px;
-          padding: 0 36px 40px;
-        }
-
-        /* ── Avatar area ── */
-        .pf-avatar-row {
-          display: flex;
-          align-items: flex-end;
-          gap: 20px;
-          margin-top: -56px;
-          padding-bottom: 24px;
-          border-bottom: 1px solid rgba(255,255,255,0.06);
-          flex-wrap: wrap;
-        }
-        .pf-avatar-wrap {
-          position: relative;
-          flex-shrink: 0;
-        }
-        .pf-avatar {
-          width: 110px; height: 110px;
-          border-radius: 50%;
-          border: 3px solid #0f101a;
-          object-fit: cover;
-          background: linear-gradient(135deg, #1565C0, #1976D2);
-          display: flex; align-items: center; justify-content: center;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 36px; font-weight: 700; color: #fff;
-          overflow: hidden;
-        }
-        .pf-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
-        .pf-avatar-edit {
-          position: absolute; bottom: 4px; right: 4px;
-          width: 30px; height: 30px; border-radius: 50%;
-          background: #f0c27a; border: 2px solid #0f101a;
-          display: flex; align-items: center; justify-content: center;
-          cursor: pointer; font-size: 13px;
-          transition: transform 0.2s, background 0.2s;
-        }
-        .pf-avatar-edit:hover { transform: scale(1.1); background: #e6b86a; }
-
-        .pf-name-block { flex: 1; padding-bottom: 8px; }
-        .pf-name {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 26px; font-weight: 700; color: #f5f0e8;
-          line-height: 1.1;
-        }
-        .pf-location {
-          font-size: 13px; color: rgba(255,255,255,0.4);
-          margin-top: 4px;
-          display: flex; align-items: center; gap: 5px;
-        }
-
-        .pf-save-btn {
-          padding: 9px 22px;
-          background: linear-gradient(135deg, #c9973a, #f0c27a);
-          border: none; border-radius: 10px;
-          font-family: 'Poppins', sans-serif;
-          font-size: 13px; font-weight: 600; color: #0f0e0d;
-          cursor: pointer; transition: transform 0.15s, opacity 0.2s;
-          align-self: flex-end;
-        }
-        .pf-save-btn:hover:not(:disabled) { transform: translateY(-1px); }
-        .pf-save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .pf-save-msg {
-          font-size: 12px; color: #34d399;
-          align-self: flex-end; padding-bottom: 10px;
-        }
-
-        /* ── Grid ── */
-        .pf-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 20px;
-          margin-top: 28px;
-        }
-        @media(max-width: 640px) { .pf-grid { grid-template-columns: 1fr; } }
-
-        .pf-full { grid-column: 1 / -1; }
-
-        /* ── Section ── */
-        .pf-section {
-          background: rgba(255,255,255,0.03);
-          border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 14px;
-          padding: 20px 22px;
-        }
-        .pf-section-title {
-          font-size: 10px; font-weight: 700;
-          letter-spacing: 2.5px; text-transform: uppercase;
-          color: #f0c27a; margin-bottom: 16px;
-          font-family: 'Poppins', sans-serif;
-        }
-
-        /* ── Info rows ── */
-        .pf-info-row {
-          display: flex; justify-content: space-between;
-          align-items: center;
-          padding: 9px 0;
-          border-bottom: 1px solid rgba(255,255,255,0.04);
-          gap: 12px;
-        }
-        .pf-info-row:last-child { border-bottom: none; }
-        .pf-info-label {
-          font-size: 11px; font-weight: 600;
-          letter-spacing: 0.5px; text-transform: uppercase;
-          color: rgba(255,255,255,0.28);
-        }
-        .pf-info-value {
-          font-size: 13px; font-weight: 500;
-          color: rgba(255,255,255,0.82);
-          text-align: right;
-        }
-
-        /* ── Badge ── */
-        .pf-badge {
-          display: inline-flex; align-items: center; gap: 5px;
-          padding: 4px 12px; border-radius: 20px;
-          font-size: 11px; font-weight: 600;
-          background: rgba(240,194,122,0.1);
-          border: 1px solid rgba(240,194,122,0.2);
-          color: #f0c27a;
-          font-family: 'Poppins', sans-serif;
-        }
-
-        /* ── Member since ── */
-        .pf-member {
-          text-align: center;
-          padding: 14px;
-          background: rgba(240,194,122,0.04);
-          border: 1px solid rgba(240,194,122,0.1);
-          border-radius: 12px;
-          margin-top: 20px;
-        }
-        .pf-member-label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,0.25); }
-        .pf-member-date { font-family: 'Montserrat', sans-serif; font-size: 15px; font-weight: 600; color: #f0c27a; margin-top: 4px; }
-
-        /* ── No user ── */
-        .pf-no-user {
-          text-align: center; padding: 80px 20px;
-          color: rgba(255,255,255,0.3);
-          font-size: 15px;
-        }
-      `}</style>
-
-      <div className="pf-root">
-        <div className="pf-container">
-          {!user ? (
-            <div className="pf-no-user">
-              No user data found. Please <a href="/login" style={{color:"#f0c27a"}}>log in</a>.
+        <div className="flex flex-col gap-6 px-6 py-6">
+          {/* avatar upload */}
+          <div className="flex items-center gap-4">
+            <div
+              onClick={() => fileRef.current.click()}
+              className="relative h-20 w-20 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-dashed border-[#1976D2]/50 bg-white/5 hover:border-[#1976D2] transition group"
+            >
+              {photoPreview
+                ? <img src={photoPreview} alt="" className="h-full w-full object-cover" />
+                : <span className="flex h-full items-center justify-center text-2xl">📷</span>
+              }
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition">
+                <span className="text-xs font-bold text-white">Change</span>
+              </div>
             </div>
-          ) : (
-            <>
-              <div className="pf-cover">
-                <div className="pf-cover-pattern" />
-              </div>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
+            <div>
+              <p className="text-sm font-semibold text-white">Profile Photo</p>
+              <p className="text-xs text-white/40">Click to upload · JPG or PNG</p>
+            </div>
+          </div>
 
-              <div className="pf-card">
-                {/* Avatar + Name Row */}
-                <div className="pf-avatar-row">
-                  <div className="pf-avatar-wrap">
-                    <div className="pf-avatar">
-                      {currentPhoto
-                        ? <img src={currentPhoto} alt="Profile" />
-                        : (user.first_name?.[0] || "U").toUpperCase()
-                      }
-                    </div>
-                    <div className="pf-avatar-edit" onClick={() => photoRef.current.click()} title="Change photo">
-                      📷
-                    </div>
-                    <input
-                      ref={photoRef} type="file" accept="image/*"
-                      style={{ display: "none" }}
-                      onChange={handlePhotoChange}
-                    />
-                  </div>
+          {/* name */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">First Name</label>
+              <input className={inp} value={form.first_name} onChange={set("first_name")} placeholder="Jane" />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Last Name</label>
+              <input className={inp} value={form.last_name} onChange={set("last_name")} placeholder="Doe" />
+            </div>
+          </div>
 
-                  <div className="pf-name-block">
-                    <div className="pf-name">{user.first_name} {user.last_name}</div>
-                    <div className="pf-location">
-                      📍 {user.city}, {user.country}
-                    </div>
-                  </div>
+          {/* bio */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Bio</label>
+            <textarea className={`${inp} resize-none`} rows={3} value={form.bio} onChange={set("bio")} placeholder="Tell travellers about yourself…" />
+          </div>
 
-                  {editingPhoto && (
-                    <button className="pf-save-btn" onClick={handleSavePhoto} disabled={saving}>
-                      {saving ? "Saving..." : "Save Photo"}
-                    </button>
-                  )}
-                  {saveMsg && <div className="pf-save-msg">{saveMsg}</div>}
-                </div>
+          {/* location */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Location</label>
+            <input className={inp} value={form.location} onChange={set("location")} placeholder="Kathmandu, Nepal" />
+          </div>
 
-                {/* Info Grid */}
-                <div className="pf-grid">
+          {/* travel prefs */}
+          <ChipSelect label="Travel Style" options={TRAVEL_STYLES} value={form.travel_style} onChange={setChip("travel_style")} />
+          <ChipSelect label="Pace" options={PACE_OPTIONS} value={form.pace} onChange={setChip("pace")} />
+          <ChipSelect label="Accommodation" options={ACCOMM} value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
 
-                  {/* Personal Info */}
-                  <div className="pf-section">
-                    <div className="pf-section-title">Personal Info</div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">First Name</span>
-                      <span className="pf-info-value">{user.first_name}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Last Name</span>
-                      <span className="pf-info-value">{user.last_name}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Date of Birth</span>
-                      <span className="pf-info-value">{user.dob}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Gender</span>
-                      <span className="pf-info-value" style={{textTransform:"capitalize"}}>{user.gender}</span>
-                    </div>
-                  </div>
+          {/* sliders */}
+          <SliderField label="Budget Level" name="budget_level" value={form.budget_level} onChange={setSlider} leftLabel="Budget" rightLabel="Luxury" />
+          <SliderField label="Adventure Level" name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel="Chill" rightLabel="Extreme" />
+          <SliderField label="Social Level" name="social_level" value={form.social_level} onChange={setSlider} leftLabel="Solo" rightLabel="Group" />
 
-                  {/* Contact Info */}
-                  <div className="pf-section">
-                    <div className="pf-section-title">Contact</div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Email</span>
-                      <span className="pf-info-value" style={{fontSize:"12px"}}>{user.email}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Phone</span>
-                      <span className="pf-info-value">{user.phone}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">City</span>
-                      <span className="pf-info-value">{user.city}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Country</span>
-                      <span className="pf-info-value">{user.country}</span>
-                    </div>
-                  </div>
-
-                  {/* Address */}
-                  <div className="pf-section">
-                    <div className="pf-section-title">Address</div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Street</span>
-                      <span className="pf-info-value">{user.address}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">ZIP Code</span>
-                      <span className="pf-info-value">{user.zip_code}</span>
-                    </div>
-                  </div>
-
-                  {/* Travel Documents */}
-                  <div className="pf-section">
-                    <div className="pf-section-title">Travel Documents</div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Citizenship</span>
-                      <span className="pf-info-value">{user.citizenship}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Passport No</span>
-                      <span className="pf-info-value">{user.passport_no}</span>
-                    </div>
-                    <div className="pf-info-row">
-                      <span className="pf-info-label">Expiry</span>
-                      <span className="pf-info-value">{user.passport_expiry}</span>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Member Since */}
-                <div className="pf-member">
-                  <div className="pf-member-label">Member Since</div>
-                  <div className="pf-member-date">
-                    {new Date(user.created_at).toLocaleDateString("en-US", {
-                      year: "numeric", month: "long", day: "numeric"
-                    })}
-                  </div>
-                </div>
-
-              </div>
-            </>
+          {err && (
+            <p className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">{err}</p>
           )}
+
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="w-full rounded-xl bg-[#1976D2] py-3 text-sm font-bold text-white transition hover:bg-[#1565c0] disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save Changes"}
+          </button>
         </div>
       </div>
-    </>
+    </div>
+  );
+}
+
+// ─── main profile page ───────────────────────────────────────────────────────
+export default function ProfilePage() {
+  const { user } = useAuth();
+  const [profile, setProfile] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => {
+    fetch(`${API}/users/api/me/`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    })
+      .then((r) => r.json())
+      .then((d) => { setProfile(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  if (loading) return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0c16]">
+      <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#1976D2]" />
+    </div>
+  );
+
+  if (!profile) return (
+    <div className="flex min-h-screen items-center justify-center bg-[#0a0c16] text-white/50">
+      Could not load profile.
+    </div>
+  );
+
+  const pic      = avatar(profile.profile_picture);
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username || "Traveller";
+  const initial  = fullName[0]?.toUpperCase() || "T";
+
+  const styleEmoji = { budget: "🎒", luxury: "💎", adventure: "🧗" };
+  const paceEmoji  = { relaxed: "🌅", moderate: "🚶", fast_paced: "🏃" };
+  const accommEmoji = { hostel: "🏨", hotel: "🏩", inn: "🏡", camping: "⛺" };
+
+  return (
+    <div className="min-h-screen bg-[#0a0c16] font-[Poppins,sans-serif] text-white">
+
+      {/* ── Banner ── */}
+      <div className="relative h-48 w-full overflow-hidden md:h-60">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0d2137] via-[#0a0c16] to-[#0d1b2a]" />
+        <svg className="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1976D2" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
+        <div className="absolute -left-10 -top-10 h-60 w-60 rounded-full bg-[#1976D2]/20 blur-3xl" />
+        <div className="absolute right-0 bottom-0 h-40 w-80 rounded-full bg-[#1976D2]/10 blur-2xl" />
+        <button
+          onClick={() => setEditing(true)}
+          className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[13px] font-semibold text-white/80 backdrop-blur transition hover:bg-white/15 hover:text-white"
+        >
+          ✏️ Edit Profile
+        </button>
+      </div>
+
+      <div className="mx-auto max-w-3xl px-5">
+
+        {/* ── Avatar ── */}
+        <div className="-mt-14 flex items-end justify-between">
+          <div className="relative">
+            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-[#0a0c16] bg-[#1976D2] shadow-xl shadow-[#1976D2]/20">
+              {pic
+                ? <img src={pic} alt={fullName} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
+                : <span className="flex h-full items-center justify-center text-4xl font-bold text-white">{initial}</span>
+              }
+            </div>
+            <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-[#0a0c16] bg-emerald-400" />
+          </div>
+        </div>
+
+        {/* ── Name / meta ── */}
+        <div className="mt-4">
+          <h1 className="text-2xl font-bold text-white md:text-3xl">{fullName}</h1>
+          <p className="mt-0.5 text-sm text-white/40">@{profile.username || profile.email?.split("@")[0]}</p>
+          {profile.location && (
+            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/50">
+              <span>📍</span>{profile.location}
+            </p>
+          )}
+          {profile.bio && (
+            <p className="mt-3 max-w-lg text-[14px] leading-relaxed text-white/65">{profile.bio}</p>
+          )}
+        </div>
+
+        {/* ── Stats ── */}
+        <div className="mt-6 flex flex-wrap gap-3">
+          <StatCard icon="✈️" label="Trips"     value={profile.trips_count    ?? 0} />
+          <StatCard icon="🤝" label="Buddies"   value={profile.buddies_count  ?? 0} />
+          <StatCard icon="🌍" label="Countries" value={profile.countries_count ?? 0} />
+          <StatCard icon="⭐" label="Rating"    value={profile.rating ? profile.rating.toFixed(1) : "—"} />
+        </div>
+
+        {/* ── Travel Preferences ── */}
+        <div className="mt-8">
+          <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Travel Preferences</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Style</p>
+              <p className="text-2xl mb-1">{styleEmoji[profile.travel_style] || "🎒"}</p>
+              <p className="text-sm font-semibold text-white capitalize">{profile.travel_style || "Not set"}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Pace</p>
+              <p className="text-2xl mb-1">{paceEmoji[profile.pace] || "🚶"}</p>
+              <p className="text-sm font-semibold text-white capitalize">{profile.pace?.replace("_", "-") || "Not set"}</p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Stays</p>
+              <p className="text-2xl mb-1">{accommEmoji[profile.accommodation_preference] || "🏨"}</p>
+              <p className="text-sm font-semibold text-white capitalize">{profile.accommodation_preference || "Not set"}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Vibe bars ── */}
+        <div className="mt-8 rounded-2xl border border-white/8 bg-white/4 p-5">
+          <h2 className="mb-5 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Traveller Vibe</h2>
+          <div className="flex flex-col gap-5">
+            {[
+              { label: "Budget",    left: "Budget 💸", right: "Luxury 💎",  value: profile.budget_level    ?? 5 },
+              { label: "Adventure", left: "Chill 🌅",  right: "Extreme 🧗", value: profile.adventure_level ?? 5 },
+              { label: "Social",    left: "Solo 🎧",   right: "Group 🎉",   value: profile.social_level    ?? 5 },
+            ].map(({ label, left, right, value }) => (
+              <div key={label}>
+                <div className="mb-1.5 flex items-center justify-between">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</span>
+                  <span className="text-xs font-semibold text-[#1976D2]">{value}/10</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
+                  <div className="h-full rounded-full bg-gradient-to-r from-[#1976D2] to-[#42a5f5] transition-all"
+                    style={{ width: `${value * 10}%` }} />
+                </div>
+                <div className="mt-1 flex justify-between text-[10px] text-white/25">
+                  <span>{left}</span><span>{right}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── Account Info ── */}
+        <div className="mt-8 mb-12 rounded-2xl border border-white/8 bg-white/4 p-5">
+          <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Account Info</h2>
+          <div className="flex flex-col gap-3">
+            {[
+              { icon: "✉️", label: "Email", value: profile.email },
+              { icon: "📅", label: "Member since", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
+            ].map(({ icon, label, value }) => (
+              <div key={label} className="flex items-center gap-3">
+                <span className="text-base">{icon}</span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{label}</p>
+                  <p className="text-sm text-white/70">{value || "—"}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Edit Modal ── */}
+      {editing && (
+        <EditModal
+          profile={profile}
+          onClose={() => setEditing(false)}
+          onSaved={(updated) => setProfile((p) => ({ ...p, ...updated }))}
+        />
+      )}
+    </div>
   );
 }

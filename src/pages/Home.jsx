@@ -1,204 +1,127 @@
 import { useEffect, useState } from "react";
 import bg from "../assets/bg.png";
-
-// MUI imports
-import { Box, Typography, Container, Button, TextField, Grid, Paper } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import axios from "axios";
 import PeopleIcon from "@mui/icons-material/People";
 import RoomIcon from "@mui/icons-material/Room";
 import ShieldIcon from "@mui/icons-material/Shield";
 
+const features = [
+  { icon: <PeopleIcon />, title: "Smart Matching", desc: "Connect with travelers who share your pace and interests", tag: "AI-Powered" },
+  { icon: <RoomIcon />, title: "Trip Planning", desc: "Build itineraries together in real time", tag: "Collaborative" },
+  { icon: <ShieldIcon />, title: "Safe & Verified", desc: "Verified members and 24/7 support keep you safe", tag: "Trusted" },
+];
+
 export default function Home() {
   const [destinations, setDestinations] = useState([]);
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
-    fetch("http://127.0.0.1:8000/api/destinations/")
-      .then((response) => response.json())
-      .then((data) => setDestinations(data));
+    axios.get("http://127.0.0.1:8000/api/api/destinations/")
+      .then((res) => setDestinations(res.data))
+      .catch((err) => console.error("Destinations fetch failed:", err));
   }, []);
 
   return (
-    <Box sx={{ fontFamily: "Poppins, sans-serif", color: "#1a1a2e", background: "#f8f6f1" }}>
-      
-      {/* HERO SECTION */}
-      <Box
-        sx={{
-          position: "relative",
-          height: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          overflow: "hidden",
-          textAlign: "center",
-        }}
-      >
-        {/* Background */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            backgroundImage: `url(${bg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center 30%",
-            zIndex: 0,
-          }}
-        />
-        {/* Gradient overlay */}
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            background:
-              "linear-gradient(to bottom, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.45) 50%, rgba(10,15,30,0.92) 100%)",
-            zIndex: 1,
-          }}
-        />
+    <div className="font-[Poppins,sans-serif] bg-[#f8f6f1] text-[#1a1a2e]">
 
-        {/* Hero Content */}
-        <Box sx={{ position: "relative", zIndex: 2, maxWidth: 760, px: 2 }}>
-          <Typography
-            variant="h2"
-            sx={{
-              fontWeight: 700,
-              color: "#fff",
-              mb: 2,
-              lineHeight: 1.2,
-              textShadow: "0 2px 20px rgba(0,0,0,0.5)",
-            }}
-          >
+      {/* ── Hero ── */}
+      <section className="relative flex h-screen flex-col items-center justify-center overflow-hidden text-center">
+        <div
+          className="absolute inset-0 bg-cover bg-[center_30%]"
+          style={{ backgroundImage: `url(${bg})` }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/45 to-[#0a0f1e]/90" />
+
+        <div className="relative z-10 max-w-2xl px-4">
+          <h1 className="mb-4 text-4xl font-bold leading-tight text-white drop-shadow-lg md:text-5xl">
             Find Your Partner<br />
-            <Box component="span" sx={{ color: "#ffd580" }}>
-              for the Adventure
-            </Box>
-          </Typography>
+            <span className="text-[#ffd580]">for the Adventure</span>
+          </h1>
 
-          <Typography
-            sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 300, mb: 3 }}
-          >
+          <p className="mb-6 font-light text-white/75">
             Connect with like-minded travelers, plan trips together,
-            <br />
             and explore the world — one journey at a time.
-          </Typography>
+          </p>
 
-          {/* Search Bar */}
-          <Paper
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              p: "8px 24px",
-              borderRadius: "100px",
-              maxWidth: 560,
-              mx: "auto",
-              mb: 4,
-            }}
-            elevation={6}
-          >
-            <SearchIcon sx={{ color: "#9ca3af", mr: 1 }} />
-            <TextField
-              variant="standard"
+          {/* Search */}
+          <div className="mx-auto flex max-w-lg items-center gap-2 rounded-full bg-white px-5 py-2 shadow-lg">
+            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+            </svg>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
               placeholder="Search destination, people, or trips…"
-              InputProps={{ disableUnderline: true }}
-              sx={{ flex: 1 }}
+              className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400"
             />
-            <Button
-              sx={{
-                ml: 2,
-                background: "linear-gradient(135deg, #f97316, #ea580c)",
-                color: "#fff",
-                borderRadius: "100px",
-                px: 3,
-                py: 1,
-                textTransform: "none",
-                "&:hover": { background: "linear-gradient(135deg, #ea580c, #f97316)" },
-              }}
-            >
+            <button className="rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-1.5 text-sm font-medium text-white hover:brightness-110 transition">
               Explore →
-            </Button>
-          </Paper>
+            </button>
+          </div>
+        </div>
 
-          {/* Scroll Cue */}
-          <Box
-            sx={{
-              position: "absolute",
-              bottom: 32,
-              left: "50%",
-              transform: "translateX(-50%)",
-              color: "rgba(255,255,255,0.4)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              gap: 0.5,
-              fontSize: 12,
-              textTransform: "uppercase",
-              animation: "bounce 2s infinite",
-            }}
-          >
-            <Typography>Scroll</Typography>
-            <ArrowDownwardIcon fontSize="small" />
-          </Box>
-        </Box>
-      </Box>
+        {/* Scroll cue */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/40 animate-bounce">
+          <span className="text-[11px] uppercase tracking-widest">Scroll</span>
+          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
+      </section>
 
-      {/* DESTINATIONS */}
-      <Container sx={{ py: 6 }}>
-        <Typography variant="h4" sx={{ mb: 3 }}>
-          Destinations
-        </Typography>
-        <Grid container spacing={2}>
-          {destinations.map((d) => (
-            <Grid item key={d.id} xs={12} sm={6} md={4}>
-              <Paper sx={{ p: 2 }}>
-                <Typography variant="h6">{d.name}</Typography>
-                <Typography variant="body2">{d.country}</Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
-      </Container>
-
-      {/* FEATURES SECTION */}
-      <Box sx={{ background: "#111827", py: 12 }}>
-        <Container>
-          <Typography
-            sx={{ color: "#ffd580", textTransform: "uppercase", fontWeight: 600, mb: 1 }}
-          >
-            Why Travel Sathi?
-          </Typography>
-          <Typography variant="h4" sx={{ color: "#fff", mb: 6 }}>
-            Your journey, <Box component="span" sx={{ color: "#ffd580", fontStyle: "italic" }}>elevated</Box>
-          </Typography>
-
-          <Grid container spacing={4}>
-            {[
-              { icon: <PeopleIcon sx={{ color: "#ffd580" }} />, title: "Smart Matching", desc: "Connect with travelers who share your pace and interests", tag: "AI-Powered" },
-              { icon: <RoomIcon sx={{ color: "#ffd580" }} />, title: "Trip Planning", desc: "Build itineraries together in real time", tag: "Collaborative" },
-              { icon: <ShieldIcon sx={{ color: "#ffd580" }} />, title: "Safe & Verified", desc: "Verified members and 24/7 support keep you safe", tag: "Trusted" },
-            ].map(({ icon, title, desc, tag }) => (
-              <Grid item xs={12} sm={6} md={4} key={title}>
-                <Paper
-                  sx={{
-                    p: 4,
-                    borderRadius: 3,
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    "&:hover": { transform: "translateY(-6px)", borderColor: "rgba(255,213,128,0.3)" },
-                    transition: "transform 0.3s, border-color 0.3s",
-                  }}
-                >
-                  <Box sx={{ width: 52, height: 52, mb: 2, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: 2, background: "rgba(255,213,128,0.1)" }}>
-                    {icon}
-                  </Box>
-                  <Typography sx={{ color: "#ffd580", fontWeight: 700, fontSize: 12, textTransform: "uppercase", mb: 1 }}>{tag}</Typography>
-                  <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>{title}</Typography>
-                  <Typography sx={{ color: "rgba(255,255,255,0.5)", fontSize: 14 }}>{desc}</Typography>
-                </Paper>
-              </Grid>
+      {/* ── Destinations ── */}
+      <section className="mx-auto max-w-6xl px-4 py-16">
+        <h2 className="mb-6 text-3xl font-semibold">Destinations</h2>
+        {destinations.length === 0 ? (
+          <p className="text-gray-400">No destinations found.</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3">
+            {destinations.map((d) => (
+              <div key={d.id} className="rounded-xl bg-white p-5 shadow-sm hover:shadow-md transition">
+                <h3 className="text-lg font-semibold">{d.name}</h3>
+                <p className="text-sm text-gray-500">{d.country}</p>
+              </div>
             ))}
-          </Grid>
-        </Container>
-      </Box>
-    </Box>
+          </div>
+        )}
+      </section>
+
+      {/* ── Features ── */}
+      <section className="bg-[#111827] py-20">
+        <div className="mx-auto max-w-6xl px-4">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#ffd580]">
+            Why Travel Sathi?
+          </p>
+          <h2 className="mb-12 text-3xl font-semibold text-white">
+            Your journey,{" "}
+            <span className="italic text-[#ffd580]">elevated</span>
+          </h2>
+
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+            {features.map(({ icon, title, desc, tag }) => (
+              <div
+                key={title}
+                className="group rounded-2xl border border-white/8 bg-white/[0.04] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#ffd580]/30"
+              >
+                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#ffd580]/10 text-[#ffd580]">
+                  {icon}
+                </div>
+                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[#ffd580]">{tag}</p>
+                <h3 className="mb-1 text-lg font-semibold text-white">{title}</h3>
+                <p className="text-sm text-white/50">{desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <style>{`
+        @keyframes bounce {
+          0%, 100% { transform: translateX(-50%) translateY(0); }
+          50% { transform: translateX(-50%) translateY(8px); }
+        }
+      `}</style>
+    </div>
   );
 }
