@@ -213,7 +213,7 @@ function EditModal({ profile, onClose, onSaved }) {
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  const inp = "w-full rounded-xl bg-white/4 border border-white/10 px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-[#C9A84C]/50 focus:ring-1 focus:ring-[#C9A84C]/20 transition";
+  const inp = "w-full rounded-xl bg-[#1a1a1a] border border-white/20 px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-[#C9A84C]/70 focus:ring-1 focus:ring-[#C9A84C]/30 transition";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4"
@@ -440,10 +440,13 @@ export default function ProfilePage() {
           <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#080808] to-transparent" />
         </div>
 
-        {/* ── Content ── */}
-        <div className="max-w-2xl mx-auto px-4 sm:px-6">
-
-          {/* Avatar + actions row */}
+        {/* ── Content (two-column layout) ── */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 py-6">
+            {/* Main content (left: 2 cols) */}
+            <div className="lg:col-span-2">
+              
+              {/* Avatar + actions row */}
           <div className="flex items-end justify-between -mt-[52px] mb-4">
             {/* Avatar with gold ring */}
             <div className="relative flex-shrink-0">
@@ -546,7 +549,7 @@ export default function ProfilePage() {
 
           {/* ── Tabs ── */}
           <div className="flex border-b border-white/8 mb-6 -mx-1">
-            {["overview", "preferences", "friends"].map(tab => (
+            {["overview", "preferences"].map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{ fontFamily: FONTS.body }}
                 className={`flex-1 py-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all ${
@@ -645,45 +648,51 @@ export default function ProfilePage() {
               )}
             </div>
           )}
-
-          {/* ── Friends tab ── */}
-          {activeTab === "friends" && (
-            <div className="pb-20">
-              {friends.length > 0 ? (
-                <div className="flex flex-col">
-                  {friends.map(friend => {
-                    const name = friend.first_name && friend.last_name
-                      ? `${friend.first_name} ${friend.last_name}` : friend.username;
-                    return (
-                      <Link key={friend.id} to={`/user/${friend.username}`}
-                        className="flex items-center gap-3 py-3.5 border-b border-white/6 last:border-0 hover:bg-white/3 rounded-xl px-3 -mx-3 transition no-underline">
-                        <div className="h-11 w-11 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
-                          {friend.profile_picture
-                            ? <img src={friend.profile_picture} alt={friend.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
-                            : <span className="text-base font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{friend.username[0].toUpperCase()}</span>
-                          }
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white truncate">{name}</p>
-                          <p style={{ fontFamily: FONTS.mono }} className="text-xs text-white/35 truncate">@{friend.username}</p>
-                        </div>
-                        <ChevronRight className="w-4 h-4 text-white/15 flex-shrink-0" />
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-24 gap-3">
-                  <div className="h-16 w-16 rounded-full bg-white/4 flex items-center justify-center">
-                    <Users className="w-7 h-7 text-white/15" />
-                  </div>
-                  <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/25">No friends yet</p>
-                  <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/15">Find travel buddies to connect with</p>
-                </div>
-              )}
             </div>
-          )}
 
+            {/* Friends sidebar (right: 1 col) */}
+            <div className="lg:col-span-1">
+              <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold uppercase tracking-[0.15em] text-white/30">
+                    Friends {friends.length > 0 && <span className="text-[#C9A84C]">({friends.length})</span>}
+                  </p>
+                </div>
+
+                {friends.length > 0 ? (
+                  <div className="flex flex-col gap-3">
+                    {friends.map(friend => {
+                      const name = friend.first_name && friend.last_name
+                        ? `${friend.first_name} ${friend.last_name}` : friend.username;
+                      return (
+                        <Link key={friend.id} to={`/user/${friend.username}`}
+                          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition no-underline group">
+                          <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
+                            {friend.profile_picture
+                              ? <img src={friend.profile_picture} alt={friend.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
+                              : <span className="text-sm font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{friend.username[0].toUpperCase()}</span>
+                            }
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p style={{ fontFamily: FONTS.body }} className="text-xs font-semibold text-white truncate group-hover:text-[#C9A84C] transition">{name}</p>
+                            <p style={{ fontFamily: FONTS.mono }} className="text-[10px] text-white/25 truncate">@{friend.username}</p>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-8 gap-2">
+                    <div className="h-12 w-12 rounded-full bg-white/4 flex items-center justify-center">
+                      <Users className="w-5 h-5 text-white/15" />
+                    </div>
+                    <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 text-center">No friends yet</p>
+                    <p style={{ fontFamily: FONTS.body }} className="text-[10px] text-white/15 text-center">Find travel buddies to connect</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
         {editing && (
