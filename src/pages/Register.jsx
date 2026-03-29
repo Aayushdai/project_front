@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const STEPS = [
   { id: 1, label: "Personal Info", sub: "Name, photo, date of birth" },
@@ -11,77 +12,119 @@ const VALIDATORS = {
   firstName: (v) => {
     if (!v.trim()) return "First name is required";
     if (/\d/.test(v)) return "Name cannot contain numbers";
-    if (v.trim().length < 2) return "Name must be at least 2 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(v)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    const trimmed = v.trim();
+    if (trimmed.length < 2) return "First name must be at least 2 characters";
+    if (trimmed.length > 50) return "First name must be less than 50 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Name can only contain letters, spaces, hyphens or apostrophes";
     return "";
   },
   lastName: (v) => {
     if (!v.trim()) return "Last name is required";
     if (/\d/.test(v)) return "Name cannot contain numbers";
-    if (v.trim().length < 2) return "Name must be at least 2 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(v)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    const trimmed = v.trim();
+    if (trimmed.length < 2) return "Last name must be at least 2 characters";
+    if (trimmed.length > 50) return "Last name must be less than 50 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Name can only contain letters, spaces, hyphens or apostrophes";
     return "";
   },
   dob: (v) => {
     if (!v) return "Date of birth is required";
-    const age = Math.floor((Date.now() - new Date(v)) / (1000 * 60 * 60 * 24 * 365.25));
+    const dobDate = new Date(v);
+    const age = Math.floor((Date.now() - dobDate) / (1000 * 60 * 60 * 24 * 365.25));
     if (age < 16) return "You must be at least 16 years old";
     if (age > 120) return "Please enter a valid date of birth";
+    if (dobDate > new Date()) return "Date of birth cannot be in the future";
     return "";
   },
   gender: (v) => (!v ? "Please select a gender" : ""),
   citizenship: (v) => {
     if (!v.trim()) return "Citizenship is required";
     if (/\d/.test(v)) return "Citizenship cannot contain numbers";
+    const trimmed = v.trim();
+    if (trimmed.length < 2) return "Citizenship must be at least 2 characters";
+    if (trimmed.length > 50) return "Citizenship must be less than 50 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Citizenship can only contain letters and spaces";
     return "";
   },
   passportNo: (v) => {
     if (!v.trim()) return "Passport / ID number is required";
-    if (v.trim().length < 5) return "Enter a valid passport number";
+    const trimmed = v.trim();
+    if (trimmed.length < 6) return "Passport number must be at least 6 characters";
+    if (trimmed.length > 20) return "Passport number must be less than 20 characters";
+    if (!/^[A-Z0-9]{6,20}$/.test(trimmed.toUpperCase())) return "Passport number can only contain letters and numbers (no spaces or special chars)";
     return "";
   },
   passportExpiry: (v) => {
     if (!v) return "Expiry date is required";
-    if (new Date(v) < new Date()) return "Passport has already expired";
+    const expiryDate = new Date(v);
+    const sixMonthsFromNow = new Date();
+    sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
+    if (expiryDate < new Date()) return "Passport has already expired";
+    if (expiryDate < sixMonthsFromNow) return "Passport must be valid for at least 6 more months";
     return "";
   },
-  address: (v) => (!v.trim() ? "Street address is required" : ""),
+  address: (v) => {
+    if (!v.trim()) return "Street address is required";
+    const trimmed = v.trim();
+    if (trimmed.length < 5) return "Street address must be at least 5 characters";
+    if (trimmed.length > 100) return "Street address must be less than 100 characters";
+    return "";
+  },
   city: (v) => {
     if (!v.trim()) return "City is required";
     if (/\d/.test(v)) return "City name cannot contain numbers";
+    const trimmed = v.trim();
+    if (trimmed.length < 2) return "City name must be at least 2 characters";
+    if (trimmed.length > 50) return "City name must be less than 50 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "City can only contain letters and spaces";
     return "";
   },
   country: (v) => {
     if (!v.trim()) return "Country is required";
     if (/\d/.test(v)) return "Country name cannot contain numbers";
+    const trimmed = v.trim();
+    if (trimmed.length < 2) return "Country name must be at least 2 characters";
+    if (trimmed.length > 50) return "Country name must be less than 50 characters";
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Country can only contain letters and spaces";
     return "";
   },
   zip: (v) => {
     if (!v.trim()) return "ZIP / Postal code is required";
-    if (!/^[a-zA-Z0-9\s-]{3,10}$/.test(v.trim())) return "Enter a valid postal code";
+    const trimmed = v.trim();
+    if (!/^\d{5,10}$/.test(trimmed)) return "Postal code must be 5-10 digits only (no letters or special characters)";
     return "";
   },
   phone: (v) => {
     if (!v.trim()) return "Phone number is required";
     const cleaned = v.replace(/[\s\-().+]/g, "");
-    if (!/^\d{7,15}$/.test(cleaned)) return "Enter a valid phone number (7–15 digits)";
+    if (!/^\d{10}$/.test(cleaned)) return "Phone number must be exactly 10 digits";
+    if (cleaned[0] === "0") return "Phone number cannot start with 0";
+    if (!/^[6-9]\d{9}$/.test(cleaned)) return "Phone number must start with 6, 7, 8, or 9";
     return "";
   },
   email: (v) => {
     if (!v.trim()) return "Email is required";
+    const emailLower = v.trim().toLowerCase();
+    if (emailLower.length > 100) return "Email must be less than 100 characters";
     const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
-    if (!re.test(v.trim())) return "Enter a valid email address";
-    const typos = ["gail.com", "gmial.com", "gamil.com", "yaho.com", "hotnail.com", "outloo.com"];
-    const domain = v.trim().split("@")[1]?.toLowerCase();
+    if (!re.test(emailLower)) return "Enter a valid email address";
+    // Check for consecutive dots
+    if (/\.\./.test(emailLower)) return "Email cannot contain consecutive dots";
+    // Check for valid domain
+    const domain = emailLower.split("@")[1];
+    if (!domain || domain.length > 50) return "Email domain is invalid";
+    const typos = ["gail.com", "gmial.com", "gamil.com", "yaho.com", "hotnail.com", "outloo.com", "yahooo.com"];
     if (typos.includes(domain)) return `Did you mean a different domain? "${domain}" looks like a typo`;
     return "";
   },
   password: (v) => {
     if (!v) return "Password is required";
-    if (v.length < 8) return "Password must be at least 8 characters";
-    if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter";
-    if (!/[0-9]/.test(v)) return "Include at least one number";
-    if (!/[^a-zA-Z0-9]/.test(v)) return "Include at least one special character";
+    if (v.length < 10) return "Password must be at least 10 characters";
+    if (v.length > 50) return "Password must be less than 50 characters";
+    if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter (A-Z)";
+    if (!/[a-z]/.test(v)) return "Include at least one lowercase letter (a-z)";
+    if (!/[0-9]/.test(v)) return "Include at least one number (0-9)";
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
     return "";
   },
   confirm: (v, form) => {
@@ -101,6 +144,7 @@ const STEP_FIELDS = {
 
 export default function RegisterFull() {
   const navigate = useNavigate();
+  const { login } = useAuth(); // ✅ Get login function from AuthContext
   const [step, setStep]           = useState(1);
   const [loading, setLoading]     = useState(false);
 
@@ -232,7 +276,13 @@ export default function RegisterFull() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        navigate("/login");
+        // ✅ Auto-login: Store JWT token and user
+        if (data.access && data.user) {
+          localStorage.setItem("access_token", data.access);
+          localStorage.setItem("user", JSON.stringify(data.user));
+          login(data.user, data.access); // Update AuthContext
+        }
+        navigate("/about");
       } else {
         setGlobalError(data.message || JSON.stringify(data));
       }

@@ -35,7 +35,7 @@ export default function CreateTrip() {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    API.post("trips/", form)
+    API.post("trips/trips/", form)
       .then(res => navigate(`/trip/${res.data.id}`))
       .catch(err => console.error(err));
   };

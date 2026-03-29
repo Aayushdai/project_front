@@ -11,38 +11,46 @@ import CreateTrip from "./pages/CreateTrip";
 import ExploreDestination from "./pages/ExploreDestination";
 import Itinerary from "./pages/Itinerary";
 import Profile from "./pages/Profile";
-import About from "./pages/About";
 import TripDetails from "./pages/TripDetails";
 import TripPlanner from "./pages/TripPlanner";
+import About from "./pages/About";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
   return user ? children : <Navigate to="/" />;
 }
 
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  return user && user.is_staff ? children : <Navigate to="/" />;
+}
+
 function Layout() {
   const location = useLocation();
-  const hideNavbar = location.pathname === "/" || location.pathname === "/register";
+  const hideNav = location.pathname === "/" || location.pathname === "/register";
 
   return (
     <>
-      {!hideNavbar && <NavbarComponent />}
+      {!hideNav && <NavbarComponent />}
       <ChatbotWidget />
       <Routes>
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/about" element={<About />} />
 
         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-        <Route path="/about" element={<PrivateRoute><About /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/create-trip" element={<PrivateRoute><CreateTrip /></PrivateRoute>} />
         <Route path="/trip-planner" element={<PrivateRoute><TripPlanner /></PrivateRoute>} />
         <Route path="/trip/:id" element={<PrivateRoute><TripDetails /></PrivateRoute>} />
         <Route path="/itinerary/:tripId" element={<PrivateRoute><Itinerary /></PrivateRoute>} />
         <Route path="/explore" element={<PrivateRoute><ExploreDestination /></PrivateRoute>} />
+
+        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
       </Routes>
-      {!hideNavbar && <Footer />}
+      {!hideNav && <Footer />}
     </>
   );
 }

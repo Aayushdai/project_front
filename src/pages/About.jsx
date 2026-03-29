@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { MapPin, Users, Compass, Heart, Globe, Zap } from "lucide-react";
+import { MapPin, Globe, Heart, Zap, Compass } from "lucide-react";
 
-// Simple hook to detect when element enters viewport
 function useInView() {
   const ref = useRef(null);
   const [inView, setInView] = useState(false);
@@ -18,35 +17,35 @@ function useInView() {
 
 const team = [
   {
-    name: "Aarav Sharma",
-    role: "Full Stack Developer",
-    bio: "Passionate about building scalable travel tech. Loves trekking in the Himalayas on weekends.",
-    avatar: "AS",
+    name: "Aayush Poudel",
+    role: "Frontend Developer",
+    bio: "Brings designs to life with clean, performant code. Passionate about crafting smooth user experiences that feel native and effortless.",
+    avatar: "AP",
     color: "#ffd580",
     bg: "#1a1400",
   },
   {
-    name: "Priya Thapa",
-    role: "UI/UX Designer",
-    bio: "Crafts beautiful, intuitive interfaces. Believes great design is invisible — it just feels right.",
-    avatar: "PT",
-    color: "#86efac",
-    bg: "#021a0a",
-  },
-  {
-    name: "Bikash Rai",
-    role: "Backend & Systems",
-    bio: "Keeps everything running behind the scenes. Travel enthusiast who has visited 14 of Nepal's districts.",
-    avatar: "BR",
+    name: "Utsav Pandit",
+    role: "Backend Developer",
+    bio: "Architects the systems that power everything under the hood. Focused on reliability, speed, and building APIs that just work.",
+    avatar: "UP",
     color: "#93c5fd",
     bg: "#020d1a",
+  },
+  {
+    name: "Sandesh Parajuli",
+    role: "UI Designer",
+    bio: "Shapes the look and feel of Travel Sathi. Believes that great design should feel invisible — intuitive, beautiful, and purposeful.",
+    avatar: "SP",
+    color: "#86efac",
+    bg: "#021a0a",
   },
 ];
 
 const milestones = [
-  { year: "2023", label: "Idea Born", desc: "Three friends frustrated by solo travel met at a Pokhara hostel." },
-  { year: "2024", label: "MVP Launch", desc: "First version shipped with matching and basic trip planning." },
-  { year: "2025", label: "Community Grows", desc: "12,000+ verified travelers. 340+ destinations covered." },
+  { year: "2023", label: "Idea Born", desc: "Three friends frustrated by solo travel met and decided to build something better." },
+  { year: "2024", label: "MVP Launch", desc: "First version shipped with traveler matching and basic trip planning features." },
+  { year: "2025", label: "Building Together", desc: "Growing the platform based on real traveler feedback and community needs." },
   { year: "Now", label: "You're Here", desc: "Join the movement. Find your adventure partner today." },
 ];
 
@@ -101,7 +100,6 @@ export default function About() {
         padding: "8rem 1.5rem 5rem",
         overflow: "hidden",
       }}>
-        {/* Animated background orbs */}
         <div style={{
           position: "absolute", top: "10%", left: "15%",
           width: "420px", height: "420px",
@@ -124,7 +122,6 @@ export default function About() {
           animation: "float1 12s ease-in-out infinite reverse",
         }} />
 
-        {/* Grid texture overlay */}
         <div style={{
           position: "absolute", inset: 0,
           backgroundImage: `
@@ -179,9 +176,9 @@ export default function About() {
             We built the platform we wished existed.
           </p>
 
-          {/* Stat pills */}
+          {/* Stat pills — only real data */}
           <div style={{ display: "flex", justifyContent: "center", flexWrap: "wrap", gap: "1rem" }}>
-            {[["12K+", "Travelers"], ["340+", "Destinations"], ["3", "Founders"], ["2023", "Founded"]].map(([num, label]) => (
+            {[["3", "Founders"], ["2023", "Founded"], ["Nepal", "Based In"]].map(([num, label]) => (
               <div key={label} style={{
                 background: "rgba(255,255,255,0.05)",
                 border: "1px solid rgba(255,255,255,0.1)",
@@ -209,15 +206,14 @@ export default function About() {
             <div>
               <p style={{ color: "#ffd580", fontFamily: "'Poppins', sans-serif", fontSize: "0.78rem", letterSpacing: "0.15em", textTransform: "uppercase", fontWeight: 700, marginBottom: "1rem" }}>Our Story</p>
               <h2 style={{ fontFamily: "'Montserrat', sans-serif", fontSize: "clamp(1.8rem, 4vw, 2.6rem)", fontWeight: 700, letterSpacing: "-0.02em", lineHeight: 1.2, marginBottom: "1.5rem" }}>
-                From a hostel conversation<br />to a thriving platform
+                From a simple idea<br />to a real platform
               </h2>
               <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: "1rem", marginBottom: "1.2rem" }}>
-                In 2023, three college friends — Aarav, Priya, and Bikash — sat on the rooftop of a Pokhara hostel
-                watching the Annapurna range at dusk. They'd all tried to find travel buddies through Facebook groups,
-                WhatsApp blasts, and word-of-mouth. All three had failed.
+                In 2023, three friends — Aayush, Utsav, and Sandesh — shared the same frustration. Finding a genuine
+                travel companion through Facebook groups, WhatsApp blasts, and word-of-mouth never really worked.
               </p>
               <p style={{ color: "rgba(255,255,255,0.55)", lineHeight: 1.9, fontFamily: "'Poppins', sans-serif", fontWeight: 300, fontSize: "1rem" }}>
-                That night, they decided to build something better. A platform that actually understands <em style={{ color: "rgba(255,255,255,0.8)" }}>how</em> you
+                So they decided to build something better. A platform that actually understands <em style={{ color: "rgba(255,255,255,0.8)" }}>how</em> you
                 travel — not just where you're going. Travel Sathi was born.
               </p>
             </div>
@@ -242,10 +238,10 @@ export default function About() {
                   display: "flex", alignItems: "center", justifyContent: "center",
                   color: "#ffd580", fontWeight: 700, fontSize: "0.85rem",
                   fontFamily: "'Poppins', sans-serif",
-                }}>AS</div>
+                }}>AP</div>
                 <div>
-                  <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontWeight: 600, fontSize: "0.9rem" }}>Aarav Sharma</div>
-                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", fontFamily: "'Poppins', sans-serif" }}>Co-founder & CTO</div>
+                  <div style={{ fontFamily: "'Montserrat', sans-serif", color: "#fff", fontWeight: 600, fontSize: "0.9rem" }}>Aayush Poudel</div>
+                  <div style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.75rem", fontFamily: "'Poppins', sans-serif" }}>Co-founder & Frontend</div>
                 </div>
               </div>
             </div>
@@ -262,7 +258,6 @@ export default function About() {
           </FadeIn>
 
           <div style={{ position: "relative" }}>
-            {/* vertical line */}
             <div style={{
               position: "absolute",
               left: "50%",
@@ -282,7 +277,6 @@ export default function About() {
                   marginBottom: "3rem",
                   position: "relative",
                 }}>
-                  {/* dot */}
                   <div style={{
                     position: "absolute",
                     left: "50%",
@@ -350,7 +344,6 @@ export default function About() {
                     e.currentTarget.style.boxShadow = "none";
                   }}
                 >
-                  {/* Avatar */}
                   <div style={{
                     width: "80px", height: "80px",
                     background: `${member.color}22`,
@@ -440,7 +433,7 @@ export default function About() {
               Ready to find your Sathi?
             </h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontFamily: "'Poppins', sans-serif", fontSize: "0.95rem", lineHeight: 1.7, fontWeight: 300, marginBottom: "2rem" }}>
-              Join thousands of travelers who have already found their adventure companions.
+              Join travelers who are finding their adventure companions through Travel Sathi.
             </p>
             <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
               <button style={{

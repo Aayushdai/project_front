@@ -1,5 +1,27 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
+import Footer from "../components/Footer";
+import {
+  Edit,
+  MapPin,
+  Plane,
+  Users,
+  Globe,
+  Star,
+  Wallet,
+  Gem,
+  Sunrise,
+  Mountain,
+  Headphones,
+  Zap,
+  Mail,
+  Calendar,
+  Home,
+  Building2,
+  Tent,
+  Camera,
+  X,
+} from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const API = "http://127.0.0.1:8000";
@@ -15,7 +37,9 @@ const ACCOMM        = ["Hostel", "Hotel", "Inn", "Camping"];
 function StatCard({ icon, label, value }) {
   return (
     <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 border border-white/8 px-5 py-4 min-w-[90px]">
-      <span className="text-xl">{icon}</span>
+      <div className="text-xl">
+        {typeof icon === 'string' ? <span>{icon}</span> : icon}
+      </div>
       <span className="text-[22px] font-bold text-white leading-none">{value ?? "—"}</span>
       <span className="text-[10px] uppercase tracking-widest text-white/40 text-center">{label}</span>
     </div>
@@ -65,6 +89,89 @@ function ChipSelect({ label, options, value, onChange }) {
   );
 }
 
+// ─── multi tag selector ──────────────────────────────────────────────────────
+function MultiTagSelect({ label, allTags, selectedIds, onChange }) {
+  const [open, setOpen] = useState(false);
+  
+  const groupedTags = allTags.reduce((acc, tag) => {
+    if (!acc[tag.category]) acc[tag.category] = [];
+    acc[tag.category].push(tag);
+    return acc;
+  }, {});
+
+  const selectedTags = allTags.filter(t => selectedIds.includes(t.id));
+
+  return (
+    <div className="flex flex-col gap-2">
+      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
+      
+      {/* Selected tags */}
+      <div className="flex flex-wrap gap-2">
+        {selectedTags.length > 0 ? (
+          selectedTags.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => onChange(selectedIds.filter(id => id !== tag.id))}
+              className="rounded-full px-3 py-1.5 text-[11px] font-semibold bg-[#1976D2] border border-[#1976D2] text-white flex items-center gap-1.5 hover:bg-[#1565c0] transition"
+            >
+              {tag.name}
+              <span className="text-xs">✕</span>
+            </button>
+          ))
+        ) : (
+          <p className="text-xs text-white/30 italic">Select tags...</p>
+        )}
+      </div>
+      
+      {/* Dropdown */}
+      <div className="relative z-50">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-white/60 hover:border-[#1976D2]/50 transition"
+        >
+          + Add tags
+        </button>
+        
+        {open && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl z-50 max-h-64 overflow-y-auto">
+            {Object.entries(groupedTags).map(([category, tags]) => (
+              <div key={category}>
+                <div className="sticky top-0 px-3 py-2 bg-white/5 border-b border-white/10 text-[10px] font-bold uppercase text-white/40">
+                  {category.replace('_', ' ')}
+                </div>
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(
+                        selectedIds.includes(tag.id)
+                          ? selectedIds.filter(id => id !== tag.id)
+                          : [...selectedIds, tag.id]
+                      );
+                    }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition border-b border-white/5 last:border-0 ${
+                      selectedIds.includes(tag.id)
+                        ? "bg-[#1976D2]/20 text-white font-semibold"
+                        : "text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      {selectedIds.includes(tag.id) ? "✓" : " "} {tag.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── edit modal ─────────────────────────────────────────────────────────────
 function EditModal({ profile, onClose, onSaved }) {
   const [form, setForm] = useState({
@@ -79,6 +186,11 @@ function EditModal({ profile, onClose, onSaved }) {
     adventure_level:          profile.adventure_level          ?? 5,
     social_level:             profile.social_level             ?? 5,
   });
+  const [allConstraintTags, setAllConstraintTags] = useState([]);
+  const [selectedConstraintTagIds, setSelectedConstraintTagIds] = useState(
+    profile.constraint_tags?.map(t => t.id) || []
+  );
+  const [tagsLoading, setTagsLoading] = useState(true);
   const [photoFile, setPhotoFile]       = useState(null);
   const [photoPreview, setPhotoPreview] = useState(avatar(profile.profile_picture));
   const [saving, setSaving]             = useState(false);
@@ -88,6 +200,22 @@ function EditModal({ profile, onClose, onSaved }) {
   const set     = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setChip = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
   const setSlider = (e) => setForm((f) => ({ ...f, [e.target.name]: Number(e.target.value) }));
+
+  // Fetch constraint tags from backend
+  useEffect(() => {
+    fetch(`${API}/users/api/constraint-tags/`, {
+      headers: { Authorization: `Bearer ${token()}` },
+    })
+      .then((r) => r.json())
+      .then((d) => {
+        setAllConstraintTags(d);
+        setTagsLoading(false);
+      })
+      .catch((e) => {
+        console.log("Could not load constraint tags:", e);
+        setTagsLoading(false);
+      });
+  }, []);
 
   const handlePhoto = (e) => {
     const file = e.target.files[0];
@@ -106,6 +234,9 @@ function EditModal({ profile, onClose, onSaved }) {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       if (photoFile) fd.append("profile_photo", photoFile);
+      
+      // Add constraint tag IDs
+      selectedConstraintTagIds.forEach((id) => fd.append("constraint_tag_ids", id));
 
       const res = await fetch(`${API}/users/api/profile/update/`, {
         method: "PATCH",
@@ -203,6 +334,22 @@ function EditModal({ profile, onClose, onSaved }) {
           <SliderField label="Adventure Level" name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel="Chill" rightLabel="Extreme" />
           <SliderField label="Social Level" name="social_level" value={form.social_level} onChange={setSlider} leftLabel="Solo" rightLabel="Group" />
 
+          {/* constraint tags */}
+          <div>
+            {tagsLoading ? (
+              <p className="text-sm text-white/40">Loading tags...</p>
+            ) : allConstraintTags.length > 0 ? (
+              <MultiTagSelect
+                label="Preferences & Tags (Diet, Lifestyle, Values)"
+                allTags={allConstraintTags}
+                selectedIds={selectedConstraintTagIds}
+                onChange={setSelectedConstraintTagIds}
+              />
+            ) : (
+              <p className="text-sm text-white/40">No tags available</p>
+            )}
+          </div>
+
           {err && (
             <p className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">{err}</p>
           )}
@@ -252,12 +399,40 @@ export default function ProfilePage() {
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username || "Traveller";
   const initial  = fullName[0]?.toUpperCase() || "T";
 
-  const styleEmoji = { budget: "🎒", luxury: "💎", adventure: "🧗" };
-  const paceEmoji  = { relaxed: "🌅", moderate: "🚶", fast_paced: "🏃" };
-  const accommEmoji = { hostel: "🏨", hotel: "🏩", inn: "🏡", camping: "⛺" };
+  // Icon components for travel styles
+  const StyleIcon = ({ style }) => {
+    switch (style) {
+      case "budget": return <Wallet className="w-8 h-8 text-yellow-400" />;
+      case "luxury": return <Gem className="w-8 h-8 text-purple-400" />;
+      case "adventure": return <Mountain className="w-8 h-8 text-orange-400" />;
+      default: return <Wallet className="w-8 h-8 text-white/40" />;
+    }
+  };
+
+  // Icon components for pace
+  const PaceIcon = ({ pace }) => {
+    switch (pace) {
+      case "relaxed": return <Sunrise className="w-8 h-8 text-indigo-400" />;
+      case "moderate": return <Zap className="w-8 h-8 text-yellow-400" />;
+      case "fast_paced": return <Zap className="w-8 h-8 text-red-400" />;
+      default: return <Zap className="w-8 h-8 text-white/40" />;
+    }
+  };
+
+  // Icon components for accommodation
+  const AccommIcon = ({ accomm }) => {
+    switch (accomm) {
+      case "hostel": return <Building2 className="w-8 h-8 text-blue-400" />;
+      case "hotel": return <Building2 className="w-8 h-8 text-cyan-400" />;
+      case "inn": return <Home className="w-8 h-8 text-green-400" />;
+      case "camping": return <Tent className="w-8 h-8 text-amber-400" />;
+      default: return <Home className="w-8 h-8 text-white/40" />;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#0a0c16] font-[Poppins,sans-serif] text-white">
+    <>
+      <div className="min-h-screen bg-[#0a0c16] font-[Poppins,sans-serif] text-white">
 
       {/* ── Banner ── */}
       <div className="relative h-48 w-full overflow-hidden md:h-60">
@@ -276,7 +451,7 @@ export default function ProfilePage() {
           onClick={() => setEditing(true)}
           className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[13px] font-semibold text-white/80 backdrop-blur transition hover:bg-white/15 hover:text-white"
         >
-          ✏️ Edit Profile
+          <Edit className="w-4 h-4" /> Edit Profile
         </button>
       </div>
 
@@ -301,7 +476,7 @@ export default function ProfilePage() {
           <p className="mt-0.5 text-sm text-white/40">@{profile.username || profile.email?.split("@")[0]}</p>
           {profile.location && (
             <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/50">
-              <span>📍</span>{profile.location}
+              <MapPin className="w-4 h-4" />{profile.location}
             </p>
           )}
           {profile.bio && (
@@ -311,10 +486,10 @@ export default function ProfilePage() {
 
         {/* ── Stats ── */}
         <div className="mt-6 flex flex-wrap gap-3">
-          <StatCard icon="✈️" label="Trips"     value={profile.trips_count    ?? 0} />
-          <StatCard icon="🤝" label="Buddies"   value={profile.buddies_count  ?? 0} />
-          <StatCard icon="🌍" label="Countries" value={profile.countries_count ?? 0} />
-          <StatCard icon="⭐" label="Rating"    value={profile.rating ? profile.rating.toFixed(1) : "—"} />
+          <StatCard icon={<Plane className="w-6 h-6 text-blue-400" />} label="Trips"     value={profile.trips_count    ?? 0} />
+          <StatCard icon={<Users className="w-6 h-6 text-green-400" />} label="Buddies"   value={profile.buddies_count  ?? 0} />
+          <StatCard icon={<Globe className="w-6 h-6 text-purple-400" />} label="Countries" value={profile.countries_count ?? 0} />
+          <StatCard icon={<Star className="w-6 h-6 text-yellow-400" />} label="Rating"    value={profile.rating ? profile.rating.toFixed(1) : "—"} />
         </div>
 
         {/* ── Travel Preferences ── */}
@@ -323,17 +498,17 @@ export default function ProfilePage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Style</p>
-              <p className="text-2xl mb-1">{styleEmoji[profile.travel_style] || "🎒"}</p>
+              <div className="text-3xl mb-1"><StyleIcon style={profile.travel_style} /></div>
               <p className="text-sm font-semibold text-white capitalize">{profile.travel_style || "Not set"}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Pace</p>
-              <p className="text-2xl mb-1">{paceEmoji[profile.pace] || "🚶"}</p>
+              <div className="text-3xl mb-1"><PaceIcon pace={profile.pace} /></div>
               <p className="text-sm font-semibold text-white capitalize">{profile.pace?.replace("_", "-") || "Not set"}</p>
             </div>
             <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
               <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Stays</p>
-              <p className="text-2xl mb-1">{accommEmoji[profile.accommodation_preference] || "🏨"}</p>
+              <div className="text-3xl mb-1"><AccommIcon accomm={profile.accommodation_preference} /></div>
               <p className="text-sm font-semibold text-white capitalize">{profile.accommodation_preference || "Not set"}</p>
             </div>
           </div>
@@ -344,9 +519,9 @@ export default function ProfilePage() {
           <h2 className="mb-5 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Traveller Vibe</h2>
           <div className="flex flex-col gap-5">
             {[
-              { label: "Budget",    left: "Budget 💸", right: "Luxury 💎",  value: profile.budget_level    ?? 5 },
-              { label: "Adventure", left: "Chill 🌅",  right: "Extreme 🧗", value: profile.adventure_level ?? 5 },
-              { label: "Social",    left: "Solo 🎧",   right: "Group 🎉",   value: profile.social_level    ?? 5 },
+              { label: "Budget",    left: <span className="flex items-center gap-1"><Wallet className="w-3 h-3" /> Budget</span>, right: <span className="flex items-center gap-1">Luxury <Gem className="w-3 h-3" /></span>, value: profile.budget_level    ?? 5 },
+              { label: "Adventure", left: <span className="flex items-center gap-1"><Sunrise className="w-3 h-3" /> Chill</span>, right: <span className="flex items-center gap-1">Extreme <Mountain className="w-3 h-3" /></span>, value: profile.adventure_level ?? 5 },
+              { label: "Social",    left: <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> Solo</span>, right: <span className="flex items-center gap-1">Group <Zap className="w-3 h-3" /></span>, value: profile.social_level    ?? 5 },
             ].map(({ label, left, right, value }) => (
               <div key={label}>
                 <div className="mb-1.5 flex items-center justify-between">
@@ -366,12 +541,12 @@ export default function ProfilePage() {
         </div>
 
         {/* ── Account Info ── */}
-        <div className="mt-8 mb-12 rounded-2xl border border-white/8 bg-white/4 p-5">
+        <div className="mt-8 rounded-2xl border border-white/8 bg-white/4 p-5">
           <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Account Info</h2>
           <div className="flex flex-col gap-3">
             {[
-              { icon: "✉️", label: "Email", value: profile.email },
-              { icon: "📅", label: "Member since", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
+              { icon: <Mail className="w-4 h-4" />, label: "Email", value: profile.email },
+              { icon: <Calendar className="w-4 h-4" />, label: "Member since", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
             ].map(({ icon, label, value }) => (
               <div key={label} className="flex items-center gap-3">
                 <span className="text-base">{icon}</span>
@@ -393,6 +568,9 @@ export default function ProfilePage() {
           onSaved={(updated) => setProfile((p) => ({ ...p, ...updated }))}
         />
       )}
-    </div>
+      </div>
+
+      <Footer />
+    </>
   );
 }
