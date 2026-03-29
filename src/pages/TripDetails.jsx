@@ -1,31 +1,63 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
-import { ArrowLeft, MapPin, Calendar, Users, User2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Users, User2, Trash2 } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
 
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [userProfileId, setUserProfileId] = useState(null);
 
   useEffect(() => {
-    const fetchTrip = async () => {
+    const fetchData = async () => {
       try {
+        // Get user's profile ID
+        const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        const userProfile = await meRes.json();
+        setUserProfileId(userProfile?.id);
+
+        // Fetch trip
         const res = await API.get(`trips/trips/${id}/`);
         console.log("Trip data:", res.data);
         setTrip(res.data);
       } catch (err) {
-        console.error("Error fetching trip:", err);
+        console.error("Error fetching data:", err);
         setError("Failed to load trip details");
       } finally {
         setLoading(false);
       }
     };
     
-    fetchTrip();
+    fetchData();
   }, [id]);
+
+  const handleDelete = async () => {
+    if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      await API.delete(`trips/trips/${id}/`);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error("Error deleting trip:", err);
+      setError(err.response?.data?.message || "Failed to delete trip");
+      setDeleting(false);
+    }
+  };
+
+  const isCreator = trip && userProfileId && trip.creator?.id === userProfileId;
+  const hasOnlyCreator = trip && trip.participants?.length === 1;
+  const canDelete = isCreator && hasOnlyCreator;
 
   if (loading) return <div className="p-6 text-center">Loading trip details...</div>;
   if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
@@ -68,9 +100,37 @@ export default function TripDetail() {
           <p className="text-gray-300 text-lg leading-relaxed">{trip.description || "No description provided"}</p>
         </div>
 
-        <div className="flex gap-3 flex-wrap">
+        {/* Constraint Tags */}
+        {trip.constraint_tags && trip.constraint_tags.length > 0 && (
+          <div className="mb-6">
+            <p className="text-sm text-gray-400 mb-3">Trip Tags (Diet, Lifestyle, Values):</p>
+            <div className="flex flex-wrap gap-2">
+              {trip.constraint_tags.map(tag => (
+                <span
+                  key={tag.id}
+                  className="px-3 py-1.5 bg-blue-500/20 text-blue-300 rounded-full text-sm border border-blue-500/30"
+                >
+                  {tag.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="flex gap-3 flex-wrap items-center">
           {trip.is_public && <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">Public Trip</span>}
           {!trip.is_public && <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm">Private Trip</span>}
+          
+          {canDelete && (
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="flex items-center gap-2 px-4 py-1.5 bg-red-500/20 text-red-400 rounded-full text-sm border border-red-500/30 hover:bg-red-500/30 transition disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              {deleting ? "Deleting..." : "Delete Trip"}
+            </button>
+          )}
         </div>
       </div>
 

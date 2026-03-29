@@ -17,12 +17,19 @@
  *    the _clearLines / removeLayer null-crash entirely)
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import {
   MapContainer, TileLayer, Marker,
   Popup, Circle, Polyline, useMap,
 } from "react-leaflet";
+import {
+  Hotel, Bed, Home, Lightbulb, Eye, Building2, Palette, Zap, 
+  Utensils, Coffee, Beef, Wine, Church, Heart, DollarSign, 
+  Pill, Landmark, Map as MapIcon, Flame, Mountain, Droplets, 
+  ShoppingCart, Building, Leaf, Trophy, MapPin, Telescope,
+  Eye as ViewIcon, MoreVertical, Navigation2, Globe, Bike
+} from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet.markercluster/dist/MarkerCluster.css";
@@ -38,50 +45,65 @@ const getNepalBounds = () =>
 const NEPAL_CENTER = [27.7172, 85.3240];
 
 /* ═══════════════════════════════════════════════════════════════
+   ICON RENDERER - Maps icon names to Lucide components
+═══════════════════════════════════════════════════════════════ */
+const IconComponent = ({ iconName, color, size = 18 }) => {
+  const icons = {
+    Hotel, Bed, Home, Lightbulb, Eye, Building2, Palette, Zap,
+    Utensils, Coffee, Beef, Wine, Church, Heart, DollarSign,
+    Pill, Landmark, MapIcon, Flame, Mountain, Droplets,
+    ShoppingCart, Building, Leaf, Trophy, MapPin, Telescope,
+    ViewIcon, Globe, Navigation2
+  };
+  const Icon = icons[iconName] || MapPin;
+  return <Icon size={size} color={color} />;
+};
+
+/* ═══════════════════════════════════════════════════════════════
    CATEGORY MAP
 ═══════════════════════════════════════════════════════════════ */
 const CATEGORY_MAP = {
-  hotel:            { label:"Hotel",          icon:"🏨", color:"#5b8dee" },
-  hostel:           { label:"Hostel",         icon:"🛏",  color:"#7b9fd4" },
-  guest_house:      { label:"Guest House",    icon:"🏡", color:"#7b9fd4" },
-  attraction:       { label:"Attraction",     icon:"🎯", color:"#f0c27a" },
-  viewpoint:        { label:"Viewpoint",      icon:"🔭", color:"#34d399" },
-  museum:           { label:"Museum",         icon:"🏛",  color:"#c084fc" },
-  artwork:          { label:"Artwork",        icon:"🎨", color:"#c084fc" },
-  theme_park:       { label:"Theme Park",     icon:"🎡", color:"#fb7185" },
-  zoo:              { label:"Zoo",            icon:"🦁", color:"#fb923c" },
-  restaurant:       { label:"Restaurant",     icon:"🍽",  color:"#f87171" },
-  cafe:             { label:"Café",           icon:"☕", color:"#fb923c" },
-  fast_food:        { label:"Fast Food",      icon:"🍔", color:"#facc15" },
-  bar:              { label:"Bar",            icon:"🍺", color:"#a78bfa" },
-  place_of_worship: { label:"Temple/Shrine",  icon:"⛩",  color:"#34d399" },
-  hospital:         { label:"Hospital",       icon:"🏥", color:"#f43f5e" },
-  bank:             { label:"Bank",           icon:"🏦", color:"#60a5fa" },
-  pharmacy:         { label:"Pharmacy",       icon:"💊", color:"#4ade80" },
-  ruins:            { label:"Ruins",          icon:"🏚",  color:"#a16207" },
-  monument:         { label:"Monument",       icon:"🗿", color:"#a16207" },
-  memorial:         { label:"Memorial",       icon:"🕯",  color:"#a16207" },
-  peak:             { label:"Peak",           icon:"🏔",  color:"#e2e8f0" },
-  waterfall:        { label:"Waterfall",      icon:"💧", color:"#38bdf8" },
-  cave_entrance:    { label:"Cave",           icon:"🕳",  color:"#94a3b8" },
-  supermarket:      { label:"Supermarket",    icon:"🛒", color:"#86efac" },
-  mall:             { label:"Mall",           icon:"🏬", color:"#fda4af" },
-  park:             { label:"Park",           icon:"🌿", color:"#4ade80" },
-  stadium:          { label:"Stadium",        icon:"🏟",  color:"#38bdf8" },
-  default:          { label:"Place",          icon:"📍", color:"#f0c27a" },
+  hotel:            { label:"Hotel",          icon:"Hotel",      color:"#C9A84C" },
+  hostel:           { label:"Hostel",         icon:"Bed",        color:"#C9A84C" },
+  guest_house:      { label:"Guest House",    icon:"Home",       color:"#C9A84C" },
+  attraction:       { label:"Attraction",     icon:"Lightbulb",  color:"#C9A84C" },
+  viewpoint:        { label:"Viewpoint",      icon:"Eye",        color:"#C9A84C" },
+  museum:           { label:"Museum",         icon:"Building2",  color:"#C9A84C" },
+  artwork:          { label:"Artwork",        icon:"Palette",    color:"#C9A84C" },
+  theme_park:       { label:"Theme Park",     icon:"Zap",        color:"#C9A84C" },
+  zoo:              { label:"Zoo",            icon:"Zap",        color:"#C9A84C" },
+  restaurant:       { label:"Restaurant",     icon:"Utensils",   color:"#C9A84C" },
+  cafe:             { label:"Café",           icon:"Coffee",     color:"#C9A84C" },
+  fast_food:        { label:"Fast Food",      icon:"Beef",       color:"#C9A84C" },
+  bar:              { label:"Bar",            icon:"Wine",       color:"#C9A84C" },
+  place_of_worship: { label:"Temple/Shrine",  icon:"Church",     color:"#C9A84C" },
+  hospital:         { label:"Hospital",       icon:"Heart",      color:"#f43f5e" },
+  bank:             { label:"Bank",           icon:"DollarSign", color:"#C9A84C" },
+  pharmacy:         { label:"Pharmacy",       icon:"Pill",       color:"#10b981" },
+  ruins:            { label:"Ruins",          icon:"Landmark",   color:"#C9A84C" },
+  monument:         { label:"Monument",       icon:"Landmark",   color:"#C9A84C" },
+  memorial:         { label:"Memorial",       icon:"Heart",      color:"#C9A84C" },
+  peak:             { label:"Peak",           icon:"Mountain",   color:"#C9A84C" },
+  waterfall:        { label:"Waterfall",      icon:"Droplets",   color:"#C9A84C" },
+  cave_entrance:    { label:"Cave",           icon:"MapIcon",    color:"#C9A84C" },
+  supermarket:      { label:"Supermarket",    icon:"ShoppingCart",color:"#C9A84C" },
+  mall:             { label:"Mall",           icon:"Building",   color:"#C9A84C" },
+  park:             { label:"Park",           icon:"Leaf",       color:"#10b981" },
+  stadium:          { label:"Stadium",        icon:"Trophy",     color:"#C9A84C" },
+  default:          { label:"Place",          icon:"MapPin",     color:"#C9A84C" },
 };
 
 const FILTERS = [
-  { key:"all",             label:"All",         icon:"🗺" },
-  { key:"Temple/Shrine",   label:"Temples",     icon:"⛩" },
-  { key:"Attraction",      label:"Attractions", icon:"🎯" },
-  { key:"Viewpoint",       label:"Viewpoints",  icon:"🔭" },
-  { key:"Restaurant",      label:"Food",        icon:"🍽" },
-  { key:"Hotel",           label:"Hotels",      icon:"🏨" },
-  { key:"Peak",            label:"Peaks",       icon:"🏔" },
-  { key:"Museum",          label:"Museums",     icon:"🏛" },
-  { key:"Waterfall",       label:"Waterfalls",  icon:"💧" },
-  { key:"Ruins",           label:"Heritage",    icon:"🏚" },
+  { key:"all",             label:"All",         icon:"MapIcon" },
+  { key:"Temple/Shrine",   label:"Temples",     icon:"Church" },
+  { key:"Attraction",      label:"Attractions", icon:"Lightbulb" },
+  { key:"Viewpoint",       label:"Viewpoints",  icon:"Eye" },
+  { key:"Restaurant",      label:"Food",        icon:"Utensils" },
+  { key:"Hotel",           label:"Hotels",      icon:"Hotel" },
+  { key:"Peak",            label:"Peaks",       icon:"Mountain" },
+  { key:"Museum",          label:"Museums",     icon:"Building2" },
+  { key:"Waterfall",       label:"Waterfalls",  icon:"Droplets" },
+  { key:"Ruins",           label:"Heritage",    icon:"Landmark" },
 ];
 
 /* ═══════════════════════════════════════════════════════════════
@@ -427,7 +449,7 @@ function PlaceClusterLayer({ places, onSetDest }) {
       chunkDelay: 50,
       iconCreateFunction: (cluster) => L.divIcon({
         className: "",
-        html: `<div style="width:38px;height:38px;border-radius:50%;background:rgba(240,194,122,0.15);border:1.5px solid rgba(240,194,122,0.45);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#f0c27a;">${cluster.getChildCount()}</div>`,
+        html: `<div style="width:38px;height:38px;border-radius:50%;background:rgba(201,168,76,0.15);border:1.5px solid rgba(201,168,76,0.45);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#C9A84C;">${cluster.getChildCount()}</div>`,
         iconSize:[38,38], iconAnchor:[19,19],
       }),
     });
@@ -435,17 +457,17 @@ function PlaceClusterLayer({ places, onSetDest }) {
     places.forEach(p => {
       const tags = p.tags || {};
       const extras = [
-        tags["opening_hours"] ? `🕐 ${tags["opening_hours"]}` : null,
-        tags.phone || tags["contact:phone"] ? `📞 ${tags.phone || tags["contact:phone"]}` : null,
+        tags["opening_hours"] ? `⏰ ${tags["opening_hours"]}` : null,
+        tags.phone || tags["contact:phone"] ? `📱 ${tags.phone || tags["contact:phone"]}` : null,
         tags.website || tags["contact:website"]
-          ? `🌐 <a href="${tags.website || tags["contact:website"]}" target="_blank" style="color:#60a5fa;">Website</a>` : null,
+          ? `🔗 <a href="${tags.website || tags["contact:website"]}" target="_blank" style="color:#60a5fa;">Website</a>` : null,
         tags.wikipedia
-          ? `📖 <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(tags.wikipedia.replace(/^en:/,""))}" target="_blank" style="color:#60a5fa;">Wikipedia</a>` : null,
-        tags.ele ? `⛰ Elevation: ${tags.ele}m` : null,
+          ? `📚 <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(tags.wikipedia.replace(/^en:/,""))}" target="_blank" style="color:#60a5fa;">Wikipedia</a>` : null,
+        tags.ele ? `⬆️ Elevation: ${tags.ele}m` : null,
       ].filter(Boolean).slice(0, 3).join("<br/>");
 
       const starsHtml = [1,2,3,4,5].map(i =>
-        `<span style="font-size:13px;color:${p.rating>=i||p.rating>=i-.5?"#f0c27a":"rgba(255,255,255,.18)"};opacity:${(!(p.rating>=i)&&p.rating>=i-.5)?".6":"1"}">★</span>`
+        `<span style="font-size:13px;color:${p.rating>=i||p.rating>=i-.5?"#C9A84C":"rgba(255,255,255,.18)"};opacity:${(!(p.rating>=i)&&p.rating>=i-.5)?".6":"1"}">★</span>`
       ).join("");
 
       L.marker([p.lat, p.lng], { icon: makePlaceIcon(p) })
@@ -487,10 +509,10 @@ function MapControls({ tracking, onToggleTrack, routeCoords }) {
       <button
         style={{ ...S.ctrlBtn, ...(tracking ? S.ctrlActive : {}) }}
         onClick={onToggleTrack} title={tracking ? "Stop tracking" : "My location"}
-      >◉</button>
-      <button style={S.ctrlBtn} onClick={() => map.fitBounds(getNepalBounds(), { padding:[20,20] })} title="Fit Nepal">🇳🇵</button>
+      ><MapPin size={18} color={tracking ? "#C9A84C" : "#f5f0e8"} /></button>
+      <button style={S.ctrlBtn} onClick={() => map.fitBounds(getNepalBounds(), { padding:[20,20] })} title="Fit Nepal"><Globe size={18} color="#C9A84C" /></button>
       {routeCoords?.length > 0 && (
-        <button style={S.ctrlBtn} onClick={() => map.fitBounds(L.latLngBounds(routeCoords), { padding:[60,60] })} title="Fit route">⤢</button>
+        <button style={S.ctrlBtn} onClick={() => map.fitBounds(L.latLngBounds(routeCoords), { padding:[60,60] })} title="Fit route"><Navigation2 size={18} color="#C9A84C" /></button>
       )}
     </div>
   );
@@ -505,13 +527,17 @@ function FilterBar({ active, onChange }) {
       {FILTERS.map(f => (
         <button key={f.key} onClick={() => onChange(f.key)} style={{
           flexShrink:0, padding:"6px 12px", borderRadius:20, cursor:"pointer",
-          border: `.5px solid ${active===f.key ? "rgba(240,194,122,.5)" : "rgba(240,194,122,.12)"}`,
-          background: active===f.key ? "rgba(240,194,122,.12)" : "transparent",
-          color: active===f.key ? "#f0c27a" : "rgba(245,240,232,.4)",
+          border: `.5px solid ${active===f.key ? "rgba(201,168,76,.5)" : "rgba(201,168,76,.12)"}`,
+          background: active===f.key ? "rgba(201,168,76,.12)" : "transparent",
+          color: active===f.key ? "#C9A84C" : "rgba(245,240,232,.4)",
           fontSize:11, fontFamily:"'DM Sans',sans-serif",
           fontWeight: active===f.key ? 600 : 400,
           whiteSpace:"nowrap", transition:"all .2s",
-        }}>{f.icon} {f.label}</button>
+          display:"flex", alignItems:"center", gap:"6px"
+        }}>
+          <IconComponent iconName={f.icon} color={active===f.key ? "#C9A84C" : "rgba(245,240,232,.4)"} size={14} />
+          {f.label}
+        </button>
       ))}
     </div>
   );
@@ -691,11 +717,11 @@ export default function NepalMap() {
       <div style={{ display:"flex", height:"100vh", width:"100vw", overflow:"hidden", background:"#07080f" }}>
 
         {/* ──────────── SIDEBAR ──────────── */}
-        <aside style={{ width:sidebarOpen?345:0, minWidth:sidebarOpen?345:0, background:"rgba(10,11,20,.98)", borderRight:".5px solid rgba(240,194,122,.1)", boxShadow:"4px 0 40px rgba(0,0,0,.5)", display:"flex", flexDirection:"column", transition:"all .35s cubic-bezier(.4,0,.2,1)", overflow:"hidden", zIndex:1001 }}>
+        <aside style={{ width:sidebarOpen?345:0, minWidth:sidebarOpen?345:0, background:"rgba(10,11,20,.98)", borderRight:".5px solid rgba(201,168,76,.1)", boxShadow:"4px 0 40px rgba(0,0,0,.5)", display:"flex", flexDirection:"column", transition:"all .35s cubic-bezier(.4,0,.2,1)", overflow:"hidden", zIndex:1001 }}>
 
-          <div style={{ padding:"22px 20px 14px", borderBottom:".5px solid rgba(240,194,122,.08)", flexShrink:0 }}>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#f5f0e8", marginBottom:6, letterSpacing:"-.5px" }}>
-              🇳🇵 Travel <span style={{ color:"#f0c27a" }}>Nepal</span>
+          <div style={{ padding:"22px 20px 14px", borderBottom:".5px solid rgba(201,168,76,.08)", flexShrink:0 }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#f5f0e8", marginBottom:6, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
+              <Globe size={20} color="#C9A84C" /> Travel <span style={{ color:"#C9A84C" }}>Nepal</span>
             </div>
             <div style={{ display:"flex", gap:5, background:"rgba(255,255,255,.03)", padding:4, borderRadius:10 }}>
               {[{id:"route",l:"Route"},{id:"nearby",l:"Nearby"},{id:"saved",l:"Saved"}].map(t => (
@@ -722,17 +748,19 @@ export default function NepalMap() {
               />
 
               <div style={{ display:"flex", gap:6 }}>
-                {[{k:"car",l:"🚗 Drive"},{k:"foot",l:"🚶 Walk"},{k:"bike",l:"🚴 Bike"}].map(m => (
+                {[{k:"car",l:"Drive",icon:Navigation2},{k:"foot",l:"Walk",icon:MapPin},{k:"bike",l:"Bike",icon:Bike}].map(m => (
                   <button key={m.k}
                     onClick={() => { setMode(m.k); setShowRoute(false); setRoutes([]); setSteps([]); }}
-                    style={{ ...S.modeBtn, ...(mode===m.k ? S.modeBtnActive : {}) }}>{m.l}</button>
+                    style={{ ...S.modeBtn, ...(mode===m.k ? S.modeBtnActive : {}), display:"flex", alignItems:"center", gap:"6px" }}>
+                    {m.icon && React.createElement(m.icon, {size:16})} {m.l}
+                    </button>
                 ))}
               </div>
 
               {origin && destination && (
                 <div style={{ display:"flex", gap:8 }}>
-                  <button style={S.btnSec}  onClick={handleSwap}>⇅ Swap</button>
-                  <button style={S.btnGold} onClick={saveFavorite}>★ Save</button>
+                  <button style={{...S.btnSec, display:"flex", alignItems:"center", gap:"6px"}}  onClick={handleSwap}><MoreVertical size={16} style={{rotate:"90deg"}} /> Swap</button>
+                  <button style={{...S.btnGold, display:"flex", alignItems:"center", gap:"6px"}} onClick={saveFavorite}><Heart size={16} /> Save</button>
                 </div>
               )}
 
@@ -907,14 +935,14 @@ export default function NepalMap() {
           </MapContainer>
 
           {/* Filter bar */}
-          <div style={{ position:"absolute", bottom:16, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.92)", border:".5px solid rgba(240,194,122,.1)", borderRadius:12, padding:"8px 12px", maxWidth:"90vw" }}>
+          <div style={{ position:"absolute", bottom:16, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.92)", border:".5px solid rgba(201,168,76,.1)", borderRadius:12, padding:"8px 12px", maxWidth:"90vw" }}>
             <FilterBar active={filterCat} onChange={setFilterCat}/>
           </div>
 
           {/* Accuracy badge */}
           {tracking && liveAcc && (
-            <div style={{ position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.88)", border:".5px solid rgba(240,194,122,.1)", borderRadius:20, padding:"6px 14px", fontSize:11, color:"rgba(245,240,232,.5)", animation:"tm-fade .2s ease", whiteSpace:"nowrap" }}>
-              📍 Accuracy: ±{liveAcc}m
+            <div style={{ position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.88)", border:".5px solid rgba(201,168,76,.1)", borderRadius:20, padding:"6px 14px", fontSize:11, color:"rgba(245,240,232,.5)", animation:"tm-fade .2s ease", whiteSpace:"nowrap" }}>
+              ↦ Accuracy: ±{liveAcc}m
             </div>
           )}
         </div>

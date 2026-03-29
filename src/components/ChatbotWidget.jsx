@@ -1,14 +1,16 @@
 import { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../API/api";
 import { Close as CloseIcon, Send as SendIcon } from "@mui/icons-material";
 import ChatIcon from "@mui/icons-material/Chat";
 
 export default function ChatbotWidget() {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
-    { id: 1, text: "Hi! How can I help you with your travel plans?", sender: "bot" }
+    { id: 1, text: "Hi! How can I help you with your travel plans?", sender: "bot", links: [] }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,18 +22,39 @@ export default function ChatbotWidget() {
 
   if (!user) return null;
 
+  // Parse response and extract bold keywords and links
+  const parseResponse = (responseText, links = []) => {
+    if (!responseText) return { parts: [], links };
+    
+    // Split by **keyword** pattern
+    const parts = responseText.split(/(\*\*[^*]+\*\*)/);
+    
+    return {
+      parts: parts.map(part => ({
+        text: part.replace(/\*\*/g, ''), // Remove ** markers
+        isBold: part.startsWith('**') && part.endsWith('**'),
+        original: part
+      })),
+      links
+    };
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim()) return;
-    const userMsg = { id: Date.now(), text: input, sender: "user" };
+    const userMsg = { id: Date.now(), text: input, sender: "user", links: [] };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
     try {
       const res = await api.post("chat/chat/", { message: input });
+      const response = res.data.response || "I didn't understand that. Can you rephrase?";
+      const links = res.data.response_metadata?.links || [];
+      
       const botMsg = {
         id: Date.now() + 1,
-        text: res.data.response || "I didn't understand that. Can you rephrase?",
-        sender: "bot"
+        text: response,
+        sender: "bot",
+        links: links
       };
       setMessages((prev) => [...prev, botMsg]);
     } catch (err) {
@@ -39,11 +62,17 @@ export default function ChatbotWidget() {
       setMessages((prev) => [...prev, {
         id: Date.now() + 1,
         text: "Sorry, I couldn't respond. Please try again.",
-        sender: "bot"
+        sender: "bot",
+        links: []
       }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLinkClick = (route) => {
+    setIsOpen(false);
+    navigate(route);
   };
 
   return (
@@ -99,7 +128,7 @@ export default function ChatbotWidget() {
             padding: "14px 16px", flexShrink: 0,
           }}>
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight: 700, fontSize: 14, color: "#0f0e0d" }}>
-              🇳🇵 Travel Assistant
+              � Travel Assistant
             </div>
             <div style={{ fontSize: 11, color: "rgba(15,14,13,.6)", marginTop: 2 }}>
               Always here to help
@@ -108,26 +137,64 @@ export default function ChatbotWidget() {
 
           {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-            {messages.map((msg) => (
-              <div key={msg.id} className="cw-msg" style={{ display: "flex", justifyContent: msg.sender === "user" ? "flex-end" : "flex-start" }}>
-                <div style={{
-                  maxWidth: "78%",
-                  padding: "9px 13px",
-                  borderRadius: msg.sender === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
-                  background: msg.sender === "user"
-                    ? "linear-gradient(135deg,#c9973a,#f0c27a)"
-                    : "rgba(255,255,255,.06)",
-                  border: msg.sender === "user"
-                    ? "none"
-                    : ".5px solid rgba(240,194,122,.12)",
-                  color: msg.sender === "user" ? "#0f0e0d" : "rgba(245,240,232,.85)",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                }}>
-                  {msg.text}
+            {messages.map((msg) => {
+              const parsed = parseResponse(msg.text, msg.links);
+              return (
+                <div key={msg.id} className="cw-msg" style={{ display: "flex", justifyContent: msg.sender === "user" ? "flex-end" : "flex-start" }}>
+                  <div style={{
+                    maxWidth: "78%",
+                    padding: "9px 13px",
+                    borderRadius: msg.sender === "user" ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
+                    background: msg.sender === "user"
+                      ? "linear-gradient(135deg,#c9973a,#f0c27a)"
+                      : "rgba(255,255,255,.06)",
+                    border: msg.sender === "user"
+                      ? "none"
+                      : ".5px solid rgba(240,194,122,.12)",
+                    color: msg.sender === "user" ? "#0f0e0d" : "rgba(245,240,232,.85)",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                  }}>
+                    {msg.sender === "bot" ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                        <div>
+                          {parsed.parts.map((part, idx) => {
+                            if (!part.isBold || !part.text.trim()) return part.text;
+                            
+                            // Find matching link
+                            const matchingLink = parsed.links.find(l => l.keyword === part.text.trim());
+                            
+                            if (matchingLink) {
+                              return (
+                                <span
+                                  key={idx}
+                                  onClick={() => handleLinkClick(matchingLink.route)}
+                                  style={{
+                                    fontWeight: "bold",
+                                    cursor: "pointer",
+                                    color: "#fff",
+                                    textDecoration: "underline",
+                                    transition: "opacity .2s",
+                                  }}
+                                  onMouseEnter={e => (e.target.style.opacity = "0.7")}
+                                  onMouseLeave={e => (e.target.style.opacity = "1")}
+                                >
+                                  {part.text}
+                                </span>
+                              );
+                            }
+                            
+                            return <strong key={idx}>{part.text}</strong>;
+                          })}
+                        </div>
+                      </div>
+                    ) : (
+                      msg.text
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {loading && (
               <div style={{ display: "flex", justifyContent: "flex-start" }}>

@@ -15,6 +15,7 @@ import {
   AlertCircle,
   Loader2,
   LogIn,
+  Clock,
 } from "lucide-react";
 
 const styles = `
@@ -329,11 +330,17 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [myTrips, setMyTrips] = useState([]);
   const [availableTrips, setAvailableTrips] = useState([]);
+  const [tripHistory, setTripHistory] = useState([]);
   const [stats, setStats] = useState({ created: 0, joined: 0, total: 0 });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("myTrips");
   const [userProfileId, setUserProfileId] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPageMyTrips, setCurrentPageMyTrips] = useState(1);
+  const [currentPageAvailable, setCurrentPageAvailable] = useState(1);
+  const [currentPageHistory, setCurrentPageHistory] = useState(1);
+  const itemsPerPage = 6;
 
   useEffect(() => {
     if (!user) { navigate("/"); return; }
@@ -350,13 +357,25 @@ export default function Dashboard() {
       const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
         headers: { Authorization: `Bearer ${token}` }
       });
+      
       const userProfile = await meRes.json();
       const userId = userProfile?.id;
+      
+      if (!meRes.ok || !userId) {
+        const errorMsg = userProfile?.detail || `Failed to fetch user profile (${meRes.status})`;
+        throw new Error(errorMsg);
+      }
+      
       setUserProfileId(userId); // Store for use in rendering
       
       const tripsRes = await api.get("trips/trips/");
       const allTrips = tripsRes.data || [];
       console.log("All trips:", allTrips);
+      
+      // Fetch trip history
+      const historyRes = await api.get("trips/trip-history/");
+      const history = historyRes.data || [];
+      console.log("Trip history:", history);
       
       const userTripsCreated = allTrips.filter(t => {
         const isCreator = t.creator?.id === userId;
@@ -394,6 +413,7 @@ export default function Dashboard() {
       
       setMyTrips(combined);
       setAvailableTrips(publicTrips);
+      setTripHistory(history);
       setStats({ created: userTripsCreated.length, joined: userTripsJoined.length, total: allTrips.length });
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -439,11 +459,52 @@ export default function Dashboard() {
     }
   };
 
+  const handleDeleteTrip = async (tripId) => {
+    if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) return;
+    try {
+      console.log("Deleting trip:", tripId);
+      await api.delete(`trips/trips/${tripId}/`);
+      console.log("Trip deleted successfully");
+      fetchDashboardData(); 
+      setError("");
+    } catch (err) { 
+      console.error("Delete trip error:", err.response?.data || err.message);
+      setError(err.response?.data?.message || "Failed to delete trip."); 
+    }
+  };
+
   const tabs = [
     { id: "myTrips",   label: "My Trips",      icon: <List size={14} /> },
     { id: "available", label: "Discover",       icon: <Compass size={14} /> },
+    { id: "history",   label: "Trip History",   icon: <Clock size={14} /> },
     { id: "create",    label: "Create Trip",    icon: <PlusCircle size={14} /> },
   ];
+
+  // Filter trips based on search query
+  const filterTrips = (trips) => {
+    if (!searchQuery.trim()) return trips;
+    return trips.filter(t =>
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      t.destination?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  };
+
+  // Get filtered and paginated trips for "My Trips"
+  const filteredMyTrips = filterTrips(myTrips);
+  const totalMyTripPages = Math.ceil(filteredMyTrips.length / itemsPerPage);
+  const paginatedMyTrips = filteredMyTrips.slice(
+    (currentPageMyTrips - 1) * itemsPerPage,
+    currentPageMyTrips * itemsPerPage
+  );
+
+  // Get filtered and paginated trips for "Available"
+  const filteredAvailableTrips = filterTrips(availableTrips);
+  const totalAvailablePages = Math.ceil(filteredAvailableTrips.length / itemsPerPage);
+  const paginatedAvailableTrips = filteredAvailableTrips.slice(
+    (currentPageAvailable - 1) * itemsPerPage,
+    currentPageAvailable * itemsPerPage
+  );
 
   return (
     <>
@@ -494,45 +555,120 @@ export default function Dashboard() {
             </div>
           ) : (
             <>
+              {/* Search Bar (visible on myTrips and available tabs) */}
+              {(activeTab === "myTrips" || activeTab === "available") && (
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: '12px',
+                    padding: '10px 14px',
+                    gap: '8px'
+                  }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input
+                      type="text"
+                      placeholder="Search trips by name, description, or destination..."
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setCurrentPageMyTrips(1);
+                        setCurrentPageAvailable(1);
+                      }}
+                      style={{
+                        flex: 1,
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#fff',
+                        fontFamily: 'Poppins',
+                        fontSize: '0.88rem',
+                        outline: 'none',
+                        padding: '0'
+                      }}
+                    />
+                    {searchQuery && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery("");
+                          setCurrentPageMyTrips(1);
+                          setCurrentPageAvailable(1);
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'rgba(255,255,255,0.4)',
+                          cursor: 'pointer',
+                          padding: '0',
+                          fontSize: '1.2rem'
+                        }}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {activeTab === "myTrips" && (
-                myTrips.length === 0
-                  ? <EmptyState icon={<List size={28} />} title="No trips yet" subtitle="Create a new trip or discover public ones to join." action={() => setActiveTab("available")} buttonText="Discover Trips" />
-                  : <div className="db-grid">
-                      {myTrips.map(trip => (
-                        <TripCard
-                          key={trip.id} trip={trip}
-                          isCreator={trip.creator?.id === userProfileId}
-                          onJoin={() => handleJoinTrip(trip.id)}
-                          onLeave={() => handleLeaveTrip(trip.id)}
-                          onView={() => navigate(`/trip/${trip.id}`)}
-                        />
-                      ))}
-                    </div>
+                <>
+                  {filteredMyTrips.length === 0
+                    ? <EmptyState icon={<List size={28} />} title={searchQuery ? "No trips found" : "No trips yet"} subtitle={searchQuery ? "Try a different search" : "Create a new trip or discover public ones to join."} action={() => searchQuery ? setSearchQuery("") : setActiveTab("available")} buttonText={searchQuery ? "Clear Search" : "Discover Trips"} />
+                    : <>
+                        <div style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>
+                          Showing {((currentPageMyTrips - 1) * itemsPerPage) + 1}–{Math.min(currentPageMyTrips * itemsPerPage, filteredMyTrips.length)} of {filteredMyTrips.length} trips
+                        </div>
+                        <div className="db-grid">
+                          {paginatedMyTrips.map(trip => (
+                            <TripCard
+                              key={trip.id} trip={trip}
+                              isCreator={trip.creator?.id === userProfileId}
+                              onJoin={() => handleJoinTrip(trip.id)}
+                              onLeave={() => handleLeaveTrip(trip.id)}
+                              onDelete={trip.participants?.length === 1 ? () => handleDeleteTrip(trip.id) : null}
+                              onView={() => navigate(`/trip/${trip.id}`)}
+                            />
+                          ))}
+                        </div>
+                        {totalMyTripPages > 1 && <PaginationControls currentPage={currentPageMyTrips} totalPages={totalMyTripPages} onPageChange={setCurrentPageMyTrips} />}
+                      </>
+                  }
+                </>
               )}
 
               {activeTab === "available" && (
-                availableTrips.length === 0
-                  ? <EmptyState icon={<Compass size={28} />} title="No public trips available" subtitle="Be the first to create a trip." action={() => setActiveTab("create")} buttonText="Create Trip" />
-                  : <>
-                      <p className="discover-tip"><Globe size={13} /> Public trips others have opened up — join one to start traveling together</p>
-                      <div className="db-grid">
-                        {availableTrips.map(trip => {
-                          // Check if user is already a participant in this trip
-                          const isParticipant = trip.participants?.some(p => 
-                            typeof p === 'object' ? p.id === userProfileId : p === userProfileId
-                          );
-                          return (
-                            <TripCard
-                              key={trip.id} trip={trip}
-                              isCreator={false}
-                              onJoin={() => handleJoinTrip(trip.id)}
-                              onLeave={isParticipant ? () => handleLeaveTrip(trip.id) : null}
-                              onView={() => navigate(`/trip/${trip.id}`)}
-                            />
-                          );
-                        })}
-                      </div>
-                    </>
+                <>
+                  {filteredAvailableTrips.length === 0
+                    ? <EmptyState icon={<Compass size={28} />} title={searchQuery ? "No trips found" : "No public trips available"} subtitle={searchQuery ? "Try a different search" : "Be the first to create a trip."} action={() => searchQuery ? setSearchQuery("") : setActiveTab("create")} buttonText={searchQuery ? "Clear Search" : "Create Trip"} />
+                    : <>
+                        <p className="discover-tip"><Globe size={13} /> Public trips others have opened up — join one to start traveling together</p>
+                        <div style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>
+                          Showing {((currentPageAvailable - 1) * itemsPerPage) + 1}–{Math.min(currentPageAvailable * itemsPerPage, filteredAvailableTrips.length)} of {filteredAvailableTrips.length} trips
+                        </div>
+                        <div className="db-grid">
+                          {paginatedAvailableTrips.map(trip => {
+                            const isParticipant = trip.participants?.some(p =>
+                              typeof p === 'object' ? p.id === userProfileId : p === userProfileId
+                            );
+                            return (
+                              <TripCard
+                                key={trip.id} trip={trip}
+                                isCreator={false}
+                                onJoin={() => handleJoinTrip(trip.id)}
+                                onLeave={isParticipant ? () => handleLeaveTrip(trip.id) : null}
+                                onView={() => navigate(`/trip/${trip.id}`)}
+                              />
+                            );
+                          })}
+                        </div>
+                        {totalAvailablePages > 1 && <PaginationControls currentPage={currentPageAvailable} totalPages={totalAvailablePages} onPageChange={setCurrentPageAvailable} />}
+                      </>
+                  }
+                </>
               )}
 
               {activeTab === "create" && (
@@ -543,6 +679,83 @@ export default function Dashboard() {
         </div>
       </div>
     </>
+  );
+}
+
+function PaginationControls({ currentPage, totalPages, onPageChange }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      marginTop: '2rem',
+      flexWrap: 'wrap'
+    }}>
+      <button
+        onClick={() => onPageChange(Math.max(currentPage - 1, 1))}
+        disabled={currentPage === 1}
+        style={{
+          padding: '8px 14px',
+          background: currentPage === 1 ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          color: 'rgba(255,255,255,0.6)',
+          cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+          fontSize: '0.82rem',
+          fontWeight: '600',
+          transition: 'all 0.2s',
+          opacity: currentPage === 1 ? 0.5 : 1
+        }}
+      >
+        ← Previous
+      </button>
+
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+          <button
+            key={page}
+            onClick={() => onPageChange(page)}
+            style={{
+              padding: '6px 12px',
+              background: currentPage === page
+                ? 'linear-gradient(135deg, #f97316, #ea580c)'
+                : 'rgba(255,255,255,0.06)',
+              border: currentPage === page
+                ? 'none'
+                : '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              color: currentPage === page ? '#fff' : 'rgba(255,255,255,0.6)',
+              cursor: 'pointer',
+              fontSize: '0.78rem',
+              fontWeight: '600',
+              transition: 'all 0.2s'
+            }}
+          >
+            {page}
+          </button>
+        ))}
+      </div>
+
+      <button
+        onClick={() => onPageChange(Math.min(currentPage + 1, totalPages))}
+        disabled={currentPage === totalPages}
+        style={{
+          padding: '8px 14px',
+          background: currentPage === totalPages ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderRadius: '8px',
+          color: 'rgba(255,255,255,0.6)',
+          cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+          fontSize: '0.82rem',
+          fontWeight: '600',
+          transition: 'all 0.2s',
+          opacity: currentPage === totalPages ? 0.5 : 1
+        }}
+      >
+        Next →
+      </button>
+    </div>
   );
 }
 
@@ -558,7 +771,7 @@ function StatCard({ icon, label, value, iconBg, iconColor }) {
   );
 }
 
-function TripCard({ trip, isCreator, onJoin, onLeave, onView }) {
+function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView }) {
   return (
     <div className="trip-card">
       <div className="trip-card-top">
@@ -577,6 +790,27 @@ function TripCard({ trip, isCreator, onJoin, onLeave, onView }) {
       )}
 
       <p className="trip-desc">{trip.description || "No description provided."}</p>
+
+      {/* Constraint Tags */}
+      {trip.constraint_tags && trip.constraint_tags.length > 0 && (
+        <div style={{ marginBottom: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {trip.constraint_tags.map(tag => (
+            <span
+              key={tag.id}
+              style={{
+                fontSize: '0.7rem',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(25, 118, 210, 0.15)',
+                color: '#64b5f6',
+                border: '1px solid rgba(25, 118, 210, 0.3)',
+              }}
+            >
+              {tag.name}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="trip-meta">
         <div className="trip-meta-item">
@@ -600,7 +834,9 @@ function TripCard({ trip, isCreator, onJoin, onLeave, onView }) {
           View <ChevronRight size={13} />
         </button>
         {isCreator
-          ? <button className="btn btn-dim">Your Trip</button>
+          ? onDelete
+            ? <button className="btn btn-danger" onClick={onDelete} style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Delete</button>
+            : <button className="btn btn-dim">Your Trip</button>
           : onLeave
             ? <button className="btn btn-gold" onClick={onLeave}>Leave</button>
             : <button className="btn btn-primary" onClick={onJoin}>Join Trip</button>

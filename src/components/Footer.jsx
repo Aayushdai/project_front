@@ -1,3 +1,5 @@
+import contentLogo from "../assets/content.png";
+
 const Footer = () => {
   return (
     <footer className="bg-black text-slate-300">
@@ -7,9 +9,7 @@ const Footer = () => {
           
           {/* BRAND */}
           <div>
-            <h3 className="text-2xl font-bold text-white">
-              Travel <span className="text-sky-400">साथी</span>
-            </h3>
+            <img src={contentLogo} alt="Travel Sathi" className="h-16" />
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
               Your trusted travel companion to find like-minded travelers,
               plan trips together, and explore the world safely.
@@ -62,7 +62,7 @@ const Footer = () => {
         {/* BOTTOM BAR */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-slate-400">
-            © {new Date().getFullYear()} Travel Sathi. All rights reserved.
+            © {new Date().getFullYear()} All rights reserved.
           </p>
 
           <div className="flex gap-6 text-slate-400">

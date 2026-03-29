@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { MapPin } from "lucide-react";
 import bg from "../assets/bg.png";
 import api from "../API/api";
 import PeopleIcon from "@mui/icons-material/People";
@@ -16,6 +17,8 @@ export default function Home() {
   const navigate = useNavigate();
   const [destinations, setDestinations] = useState([]);
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
 
   useEffect(() => {
     api.get("trips/destinations/")
@@ -26,6 +29,11 @@ export default function Home() {
   const handleDestinationClick = (destinationName) => {
     navigate("/explore", { state: { destinationName } });
   };
+
+  // Pagination logic
+  const totalPages = Math.ceil(destinations.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const paginatedDestinations = destinations.slice(startIndex, startIndex + itemsPerPage);
 
   return (
     <div className="font-[Poppins,sans-serif] bg-[#f8f6f1] text-[#1a1a2e]">
@@ -94,7 +102,7 @@ export default function Home() {
                       {d.image ? (
                         <img src={d.image} alt={d.name} className="w-10 h-10 rounded object-cover" />
                       ) : (
-                        <span className="text-lg">📍</span>
+                        <MapPin className="w-10 h-10 text-gray-400" />
                       )}
                       <div>
                         <div className="font-semibold text-gray-900">{d.name}</div>
@@ -123,38 +131,83 @@ export default function Home() {
 
       {/* ── Destinations ── */}
       <section className="mx-auto max-w-6xl px-4 py-16">
-        <h2 className="mb-6 text-3xl font-semibold">Popular Destinations</h2>
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-3xl font-semibold">Popular Destinations</h2>
+          <p className="text-sm text-gray-500">
+            Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, destinations.length)} of {destinations.length}
+          </p>
+        </div>
+
         {destinations.length === 0 ? (
           <p className="text-gray-400">No destinations found.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {destinations.map((d) => (
-              <div 
-                key={d.id} 
-                onClick={() => handleDestinationClick(d.name)}
-                className="group rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer"
-              >
-                <div className="relative h-40 bg-gradient-to-br from-orange-100 to-orange-50 overflow-hidden">
-                  {d.image ? (
-                    <img 
-                      src={d.image} 
-                      alt={d.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <span className="text-5xl">📍</span>
-                    </div>
-                  )}
+          <>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+              {paginatedDestinations.map((d) => (
+                <div 
+                  key={d.id} 
+                  onClick={() => handleDestinationClick(d.name)}
+                  className="group rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer"
+                >
+                  <div className="relative h-40 bg-gradient-to-br from-orange-100 to-orange-50 overflow-hidden">
+                    {d.image ? (
+                      <img 
+                        src={d.image} 
+                        alt={d.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <MapPin className="w-16 h-16 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-lg font-semibold text-gray-900">{d.name}</h3>
+                    <p className="text-sm text-gray-500 mt-1">{d.location}</p>
+                    {d.description && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{d.description}</p>}
+                  </div>
                 </div>
-                <div className="p-4">
-                  <h3 className="text-lg font-semibold text-gray-900">{d.name}</h3>
-                  <p className="text-sm text-gray-500 mt-1">{d.location}</p>
-                  {d.description && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{d.description}</p>}
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex items-center justify-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  ← Previous
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      className={`px-3 py-2 rounded-lg transition ${
+                        currentPage === page
+                          ? "bg-orange-500 text-white"
+                          : "border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
                 </div>
+
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Next →
+                </button>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </section>
 

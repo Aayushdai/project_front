@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
-import Footer from "../components/Footer";
+import { Link } from "react-router-dom";
 import {
-  Edit,
+  Edit3,
   MapPin,
   Plane,
   Users,
-  Globe,
   Star,
   Wallet,
   Gem,
@@ -19,8 +18,9 @@ import {
   Home,
   Building2,
   Tent,
-  Camera,
+  Check,
   X,
+  ChevronRight,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -33,54 +33,26 @@ const TRAVEL_STYLES = ["Budget", "Luxury", "Adventure"];
 const PACE_OPTIONS  = ["Relaxed", "Moderate", "Fast-paced"];
 const ACCOMM        = ["Hostel", "Hotel", "Inn", "Camping"];
 
-// ─── stat card ──────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value }) {
-  return (
-    <div className="flex flex-col items-center gap-1 rounded-2xl bg-white/5 border border-white/8 px-5 py-4 min-w-[90px]">
-      <div className="text-xl">
-        {typeof icon === 'string' ? <span>{icon}</span> : icon}
-      </div>
-      <span className="text-[22px] font-bold text-white leading-none">{value ?? "—"}</span>
-      <span className="text-[10px] uppercase tracking-widest text-white/40 text-center">{label}</span>
-    </div>
-  );
-}
-
-// ─── slider field ───────────────────────────────────────────────────────────
-function SliderField({ label, name, value, onChange, min = 0, max = 10, leftLabel, rightLabel }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
-      <input
-        type="range" min={min} max={max} name={name} value={value}
-        onChange={onChange}
-        className="accent-[#1976D2] w-full h-1.5 rounded-full"
-      />
-      <div className="flex justify-between text-[10px] text-white/30">
-        <span>{leftLabel}</span>
-        <span className="text-white/60 font-semibold">{value} / {max}</span>
-        <span>{rightLabel}</span>
-      </div>
-    </div>
-  );
-}
+const FONTS = {
+  display: "Playfair Display, Georgia, serif",
+  body: "DM Sans, system-ui, sans-serif",
+  mono: "DM Mono, monospace",
+};
 
 // ─── chip selector ──────────────────────────────────────────────────────────
 function ChipSelect({ label, options, value, onChange }) {
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
+      <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/40">{label}</label>
       <div className="flex flex-wrap gap-2">
         {options.map((o) => (
-          <button
-            key={o} type="button"
-            onClick={() => onChange(o.toLowerCase())}
-            className={`rounded-full px-3.5 py-1.5 text-[12px] font-semibold border transition-all ${
+          <button key={o} type="button" onClick={() => onChange(o.toLowerCase())}
+            style={{ fontFamily: FONTS.body }}
+            className={`rounded-full px-4 py-1.5 text-[12px] font-semibold border transition-all duration-200 ${
               value === o.toLowerCase()
-                ? "bg-[#1976D2] border-[#1976D2] text-white"
-                : "bg-white/5 border-white/10 text-white/50 hover:border-[#1976D2]/50 hover:text-white/80"
-            }`}
-          >
+                ? "bg-[#C9A84C] border-[#C9A84C] text-black"
+                : "bg-transparent border-white/15 text-white/50 hover:border-white/30 hover:text-white/80"
+            }`}>
             {o}
           </button>
         ))}
@@ -89,78 +61,81 @@ function ChipSelect({ label, options, value, onChange }) {
   );
 }
 
+// ─── slider field ───────────────────────────────────────────────────────────
+function SliderField({ label, name, value, onChange, min = 0, max = 10, leftLabel, rightLabel }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-between items-center">
+        <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/40">{label}</label>
+        <span style={{ fontFamily: FONTS.mono }} className="text-xs text-[#C9A84C]">{value}/{max}</span>
+      </div>
+      <input type="range" min={min} max={max} name={name} value={value} onChange={onChange}
+        className="accent-[#C9A84C] w-full h-[3px] rounded-full" />
+      <div className="flex justify-between text-[10px] text-white/25" style={{ fontFamily: FONTS.body }}>
+        <span>{leftLabel}</span><span>{rightLabel}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── multi tag selector ──────────────────────────────────────────────────────
 function MultiTagSelect({ label, allTags, selectedIds, onChange }) {
   const [open, setOpen] = useState(false);
-  
   const groupedTags = allTags.reduce((acc, tag) => {
     if (!acc[tag.category]) acc[tag.category] = [];
     acc[tag.category].push(tag);
     return acc;
   }, {});
-
   const selectedTags = allTags.filter(t => selectedIds.includes(t.id));
 
   return (
     <div className="flex flex-col gap-2">
-      <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</label>
-      
-      {/* Selected tags */}
-      <div className="flex flex-wrap gap-2">
-        {selectedTags.length > 0 ? (
-          selectedTags.map((tag) => (
-            <button
-              key={tag.id}
-              type="button"
-              onClick={() => onChange(selectedIds.filter(id => id !== tag.id))}
-              className="rounded-full px-3 py-1.5 text-[11px] font-semibold bg-[#1976D2] border border-[#1976D2] text-white flex items-center gap-1.5 hover:bg-[#1565c0] transition"
-            >
-              {tag.name}
-              <span className="text-xs">✕</span>
-            </button>
-          ))
-        ) : (
-          <p className="text-xs text-white/30 italic">Select tags...</p>
-        )}
+      <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/40">{label}</label>
+      <div className="flex flex-wrap gap-2 min-h-[28px]">
+        {selectedTags.map(tag => (
+          <button key={tag.id} type="button" onClick={() => onChange(selectedIds.filter(id => id !== tag.id))}
+            style={{ fontFamily: FONTS.body }}
+            className="rounded-full px-3 py-1 text-[11px] font-semibold bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] flex items-center gap-1.5 hover:bg-[#C9A84C]/25 transition">
+            {tag.name} <X className="w-3 h-3" />
+          </button>
+        ))}
+        {selectedTags.length === 0 && <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 italic self-center">None selected</p>}
       </div>
-      
-      {/* Dropdown */}
-      <div className="relative z-50">
-        <button
-          type="button"
-          onClick={() => setOpen(!open)}
-          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-left text-sm text-white/60 hover:border-[#1976D2]/50 transition"
-        >
-          + Add tags
+      <div className="relative">
+        <button type="button" onClick={() => setOpen(!open)}
+          style={{ fontFamily: FONTS.body }}
+          className="w-full rounded-xl border border-white/10 bg-white/4 px-4 py-2.5 text-left text-sm text-white/50 hover:border-white/20 transition flex items-center justify-between">
+          <span>+ Add tags</span>
+          <ChevronRight className={`w-4 h-4 transition-transform ${open ? "rotate-90" : ""}`} />
         </button>
-        
         {open && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-[#0d1117] border border-white/10 rounded-lg shadow-2xl z-50 max-h-64 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-[#111] border border-white/10 rounded-xl shadow-2xl z-50 max-h-56 overflow-y-auto">
             {Object.entries(groupedTags).map(([category, tags]) => (
               <div key={category}>
-                <div className="sticky top-0 px-3 py-2 bg-white/5 border-b border-white/10 text-[10px] font-bold uppercase text-white/40">
+                <div className="sticky top-0 px-4 py-2 bg-[#111] border-b border-white/8 text-[10px] font-bold uppercase tracking-widest text-white/30" style={{ fontFamily: FONTS.body }}>
                   {category.replace('_', ' ')}
                 </div>
-                {tags.map((tag) => (
-                  <button
-                    key={tag.id}
-                    type="button"
+                {tags.map(tag => (
+                  <button key={tag.id} type="button"
                     onClick={() => {
-                      onChange(
-                        selectedIds.includes(tag.id)
-                          ? selectedIds.filter(id => id !== tag.id)
-                          : [...selectedIds, tag.id]
-                      );
+                      if (selectedIds.includes(tag.id)) {
+                        onChange(selectedIds.filter(id => id !== tag.id));
+                      } else {
+                        const otherTags = selectedIds.filter(id => {
+                          const ot = allTags.find(t => t.id === id);
+                          return ot?.category !== tag.category;
+                        });
+                        onChange([...otherTags, tag.id]);
+                      }
                     }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition border-b border-white/5 last:border-0 ${
-                      selectedIds.includes(tag.id)
-                        ? "bg-[#1976D2]/20 text-white font-semibold"
-                        : "text-white/60 hover:bg-white/5 hover:text-white"
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      {selectedIds.includes(tag.id) ? "✓" : " "} {tag.name}
+                    style={{ fontFamily: FONTS.body }}
+                    className={`w-full text-left px-4 py-2.5 text-sm transition border-b border-white/5 last:border-0 flex items-center gap-3 ${
+                      selectedIds.includes(tag.id) ? "text-[#C9A84C] bg-[#C9A84C]/8" : "text-white/60 hover:bg-white/4 hover:text-white"
+                    }`}>
+                    <span className={`w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 ${selectedIds.includes(tag.id) ? "border-[#C9A84C] bg-[#C9A84C]" : "border-white/20"}`}>
+                      {selectedIds.includes(tag.id) && <Check className="w-2.5 h-2.5 text-black" />}
                     </span>
+                    {tag.name}
                   </button>
                 ))}
               </div>
@@ -175,46 +150,34 @@ function MultiTagSelect({ label, allTags, selectedIds, onChange }) {
 // ─── edit modal ─────────────────────────────────────────────────────────────
 function EditModal({ profile, onClose, onSaved }) {
   const [form, setForm] = useState({
-    first_name:               profile.first_name || "",
-    last_name:                profile.last_name  || "",
-    bio:                      profile.bio        || "",
-    location:                 profile.location   || "",
-    travel_style:             profile.travel_style             || "",
-    pace:                     profile.pace                     || "",
+    first_name: profile.first_name || "",
+    last_name: profile.last_name || "",
+    bio: profile.bio || "",
+    location: profile.location || "",
+    travel_style: profile.travel_style || "",
+    pace: profile.pace || "",
     accommodation_preference: profile.accommodation_preference || "",
-    budget_level:             profile.budget_level             ?? 5,
-    adventure_level:          profile.adventure_level          ?? 5,
-    social_level:             profile.social_level             ?? 5,
+    budget_level: profile.budget_level ?? 5,
+    adventure_level: profile.adventure_level ?? 5,
+    social_level: profile.social_level ?? 5,
   });
   const [allConstraintTags, setAllConstraintTags] = useState([]);
-  const [selectedConstraintTagIds, setSelectedConstraintTagIds] = useState(
-    profile.constraint_tags?.map(t => t.id) || []
-  );
+  const [selectedConstraintTagIds, setSelectedConstraintTagIds] = useState(profile.constraint_tags?.map(t => t.id) || []);
   const [tagsLoading, setTagsLoading] = useState(true);
-  const [photoFile, setPhotoFile]       = useState(null);
+  const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(avatar(profile.profile_picture));
-  const [saving, setSaving]             = useState(false);
-  const [err, setErr]                   = useState("");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
   const fileRef = useRef();
 
-  const set     = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
-  const setChip = (k) => (v) => setForm((f) => ({ ...f, [k]: v }));
-  const setSlider = (e) => setForm((f) => ({ ...f, [e.target.name]: Number(e.target.value) }));
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+  const setChip = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
+  const setSlider = (e) => setForm(f => ({ ...f, [e.target.name]: Number(e.target.value) }));
 
-  // Fetch constraint tags from backend
   useEffect(() => {
-    fetch(`${API}/users/api/constraint-tags/`, {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
-      .then((r) => r.json())
-      .then((d) => {
-        setAllConstraintTags(d);
-        setTagsLoading(false);
-      })
-      .catch((e) => {
-        console.log("Could not load constraint tags:", e);
-        setTagsLoading(false);
-      });
+    fetch(`${API}/users/api/constraint-tags/`, { headers: { Authorization: `Bearer ${token()}` } })
+      .then(r => r.json()).then(d => { setAllConstraintTags(d); setTagsLoading(false); })
+      .catch(() => setTagsLoading(false));
   }, []);
 
   const handlePhoto = (e) => {
@@ -226,351 +189,508 @@ function EditModal({ profile, onClose, onSaved }) {
     r.readAsDataURL(file);
   };
 
-  // ✅ handleSave is INSIDE EditModal
   const handleSave = async () => {
-    setSaving(true);
-    setErr("");
+    setSaving(true); setErr("");
     try {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       if (photoFile) fd.append("profile_photo", photoFile);
-      
-      // Add constraint tag IDs
-      selectedConstraintTagIds.forEach((id) => fd.append("constraint_tag_ids", id));
-
+      selectedConstraintTagIds.forEach(id => fd.append("constraint_tag_ids", id));
       const res = await fetch(`${API}/users/api/profile/update/`, {
-        method: "PATCH",
-        headers: { Authorization: `Bearer ${token()}` },
-        body: fd,
+        method: "PATCH", headers: { Authorization: `Bearer ${token()}` }, body: fd,
       });
       const data = await res.json();
       if (!res.ok) { setErr(data.message || "Failed to save."); return; }
       onSaved(data);
-      // ✅ Notify navbar to refresh profile picture
       window.dispatchEvent(new Event("profile-updated"));
       onClose();
-    } catch {
-      setErr("Could not connect to server.");
-    } finally {
-      setSaving(false);
-    }
+    } catch { setErr("Could not connect to server."); }
+    finally { setSaving(false); }
   };
 
-  // Lock body scroll while modal is open
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
   }, []);
 
-  const inp = "w-full rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition";
+  const inp = "w-full rounded-xl bg-white/4 border border-white/10 px-4 py-3 text-sm text-white placeholder-white/20 outline-none focus:border-[#C9A84C]/50 focus:ring-1 focus:ring-[#C9A84C]/20 transition";
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-[#0d1117] border border-white/10 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="relative w-full sm:max-w-lg max-h-[95vh] sm:max-h-[88vh] overflow-y-auto sm:rounded-2xl rounded-t-3xl bg-[#0e0e0e] border border-white/8 shadow-2xl">
+        <div className="sm:hidden flex justify-center pt-3 pb-1">
+          <div className="w-10 h-1 rounded-full bg-white/20" />
+        </div>
         {/* header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0d1117]/90 backdrop-blur px-6 py-4 border-b border-white/8">
-          <h2 className="text-lg font-bold text-white">Edit Profile</h2>
-          <button onClick={onClose} className="rounded-full bg-white/8 px-3 py-1 text-sm text-white/60 hover:bg-white/15 hover:text-white transition">
-            ✕ Close
+        <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0e0e0e]/95 backdrop-blur px-6 py-4 border-b border-white/8">
+          <button onClick={onClose} style={{ fontFamily: FONTS.body }} className="text-sm text-white/50 hover:text-white transition">Cancel</button>
+          <h2 style={{ fontFamily: FONTS.body }} className="text-sm font-bold text-white">Edit Profile</h2>
+          <button onClick={handleSave} disabled={saving} style={{ fontFamily: FONTS.body }}
+            className="text-sm font-bold text-[#C9A84C] hover:text-[#e8c96d] disabled:opacity-40 transition">
+            {saving ? "Saving…" : "Save"}
           </button>
         </div>
 
-        <div className="flex flex-col gap-6 px-6 py-6">
-          {/* avatar upload */}
-          <div className="flex items-center gap-4">
-            <div
-              onClick={() => fileRef.current.click()}
-              className="relative h-20 w-20 flex-shrink-0 cursor-pointer overflow-hidden rounded-full border-2 border-dashed border-[#1976D2]/50 bg-white/5 hover:border-[#1976D2] transition group"
-            >
-              {photoPreview
-                ? <img src={photoPreview} alt="" className="h-full w-full object-cover" />
-                : <span className="flex h-full items-center justify-center text-2xl">📷</span>
-              }
-              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition">
-                <span className="text-xs font-bold text-white">Change</span>
+        <div className="flex flex-col gap-7 px-6 py-6">
+          {/* avatar */}
+          <div className="flex flex-col items-center gap-2">
+            <div onClick={() => fileRef.current.click()} className="relative h-24 w-24 cursor-pointer group">
+              <div className="absolute -inset-[2px] rounded-full bg-gradient-to-br from-[#C9A84C] to-[#8b6914] opacity-60" />
+              <div className="relative h-full w-full overflow-hidden rounded-full bg-[#1a1a1a] border-[2px] border-[#0e0e0e]">
+                {photoPreview
+                  ? <img src={photoPreview} alt="" className="h-full w-full object-cover" />
+                  : <span className="flex h-full items-center justify-center text-3xl font-bold text-[#C9A84C]"
+                      style={{ fontFamily: FONTS.display }}>
+                      {(form.first_name || "T")[0].toUpperCase()}
+                    </span>
+                }
+              </div>
+              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                <Edit3 className="w-5 h-5 text-white" />
               </div>
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-            <div>
-              <p className="text-sm font-semibold text-white">Profile Photo</p>
-              <p className="text-xs text-white/40">Click to upload · JPG or PNG</p>
-            </div>
+            <button onClick={() => fileRef.current.click()} style={{ fontFamily: FONTS.body }}
+              className="text-sm font-semibold text-[#C9A84C] hover:text-[#e8c96d] transition">
+              Change photo
+            </button>
           </div>
 
           {/* name */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">First Name</label>
-              <input className={inp} value={form.first_name} onChange={set("first_name")} placeholder="Jane" />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Last Name</label>
-              <input className={inp} value={form.last_name} onChange={set("last_name")} placeholder="Doe" />
-            </div>
+            {[["First Name", "first_name", "Jane"], ["Last Name", "last_name", "Doe"]].map(([lbl, key, ph]) => (
+              <div key={key} className="flex flex-col gap-1.5">
+                <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{lbl}</label>
+                <input className={inp} style={{ fontFamily: FONTS.body }} value={form[key]} onChange={set(key)} placeholder={ph} />
+              </div>
+            ))}
           </div>
 
-          {/* bio */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Bio</label>
-            <textarea className={`${inp} resize-none`} rows={3} value={form.bio} onChange={set("bio")} placeholder="Tell travellers about yourself…" />
+            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">Bio</label>
+            <textarea className={`${inp} resize-none`} style={{ fontFamily: FONTS.body }} rows={3} value={form.bio} onChange={set("bio")} placeholder="Tell travellers about yourself…" />
           </div>
 
-          {/* location */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Location</label>
-            <input className={inp} value={form.location} onChange={set("location")} placeholder="Kathmandu, Nepal" />
+            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">Location</label>
+            <input className={inp} style={{ fontFamily: FONTS.body }} value={form.location} onChange={set("location")} placeholder="Kathmandu, Nepal" />
           </div>
 
-          {/* travel prefs */}
-          <ChipSelect label="Travel Style" options={TRAVEL_STYLES} value={form.travel_style} onChange={setChip("travel_style")} />
-          <ChipSelect label="Pace" options={PACE_OPTIONS} value={form.pace} onChange={setChip("pace")} />
-          <ChipSelect label="Accommodation" options={ACCOMM} value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
+          <div className="h-px bg-white/6" />
+          <ChipSelect label="Travel Style"  options={TRAVEL_STYLES} value={form.travel_style}             onChange={setChip("travel_style")} />
+          <ChipSelect label="Pace"          options={PACE_OPTIONS}  value={form.pace}                     onChange={setChip("pace")} />
+          <ChipSelect label="Accommodation" options={ACCOMM}        value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
 
-          {/* sliders */}
-          <SliderField label="Budget Level" name="budget_level" value={form.budget_level} onChange={setSlider} leftLabel="Budget" rightLabel="Luxury" />
-          <SliderField label="Adventure Level" name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel="Chill" rightLabel="Extreme" />
-          <SliderField label="Social Level" name="social_level" value={form.social_level} onChange={setSlider} leftLabel="Solo" rightLabel="Group" />
+          <div className="h-px bg-white/6" />
+          <SliderField label="Budget"    name="budget_level"    value={form.budget_level}    onChange={setSlider} leftLabel="Budget"  rightLabel="Luxury"  />
+          <SliderField label="Adventure" name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel="Chill"   rightLabel="Extreme" />
+          <SliderField label="Social"    name="social_level"    value={form.social_level}    onChange={setSlider} leftLabel="Solo"    rightLabel="Group"   />
 
-          {/* constraint tags */}
-          <div>
-            {tagsLoading ? (
-              <p className="text-sm text-white/40">Loading tags...</p>
-            ) : allConstraintTags.length > 0 ? (
-              <MultiTagSelect
-                label="Preferences & Tags (Diet, Lifestyle, Values)"
-                allTags={allConstraintTags}
-                selectedIds={selectedConstraintTagIds}
-                onChange={setSelectedConstraintTagIds}
-              />
-            ) : (
-              <p className="text-sm text-white/40">No tags available</p>
-            )}
-          </div>
+          <div className="h-px bg-white/6" />
+          {tagsLoading
+            ? <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/30">Loading tags…</p>
+            : allConstraintTags.length > 0
+              ? <MultiTagSelect label="Preferences & Tags" allTags={allConstraintTags} selectedIds={selectedConstraintTagIds} onChange={setSelectedConstraintTagIds} />
+              : null
+          }
 
-          {err && (
-            <p className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">{err}</p>
-          )}
-
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="w-full rounded-xl bg-[#1976D2] py-3 text-sm font-bold text-white transition hover:bg-[#1565c0] disabled:opacity-50"
-          >
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
+          {err && <p style={{ fontFamily: FONTS.body }} className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{err}</p>}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── main profile page ───────────────────────────────────────────────────────
+// ─── icon helpers ────────────────────────────────────────────────────────────
+const StyleIcon = ({ style }) => {
+  const map = { budget: [Wallet, "#C9A84C"], luxury: [Gem, "#ffffff"], adventure: [Mountain, "#C9A84C"] };
+  const [Icon, color] = map[style] || [Wallet, "#444"];
+  return <Icon style={{ color }} className="w-5 h-5" />;
+};
+const PaceIcon = ({ pace }) => {
+  const map = { relaxed: [Sunrise, "#C9A84C"], moderate: [Zap, "#ffffff"], fast_paced: [Zap, "#C9A84C"] };
+  const [Icon, color] = map[pace] || [Zap, "#444"];
+  return <Icon style={{ color }} className="w-5 h-5" />;
+};
+const AccommIcon = ({ accomm }) => {
+  const map = { hostel: [Building2, "#C9A84C"], hotel: [Building2, "#ffffff"], inn: [Home, "#C9A84C"], camping: [Tent, "#ffffff"] };
+  const [Icon, color] = map[accomm] || [Home, "#444"];
+  return <Icon style={{ color }} className="w-5 h-5" />;
+};
+
+// ─── vibe bar ────────────────────────────────────────────────────────────────
+function VibeBar({ label, value, left, right }) {
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="flex justify-between items-center">
+        <span style={{ fontFamily: FONTS.body }} className="text-xs font-medium text-white/45">{label}</span>
+        <span style={{ fontFamily: FONTS.mono }} className="text-xs text-[#C9A84C]">{value}/10</span>
+      </div>
+      <div className="h-[3px] w-full rounded-full bg-white/8 overflow-hidden">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#8b6914] via-[#C9A84C] to-[#e8c96d] transition-all" style={{ width: `${value * 10}%` }} />
+      </div>
+      <div className="flex justify-between text-[10px] text-white/20" style={{ fontFamily: FONTS.body }}>
+        <span>{left}</span><span>{right}</span>
+      </div>
+    </div>
+  );
+}
+
+// ─── pref row ────────────────────────────────────────────────────────────────
+function PrefRow({ label, value }) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-white/6 last:border-0">
+      <span style={{ fontFamily: FONTS.body }} className="text-sm text-white/40">{label}</span>
+      <span style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white capitalize">
+        {value || <span className="text-white/20 font-normal">Not set</span>}
+      </span>
+    </div>
+  );
+}
+
+// ─── main profile page ───────────────────────────────────
 export default function ProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [pendingRequests, setPendingRequests] = useState([]);
+  const [requestAction, setRequestAction] = useState({});
+  const [friends, setFriends] = useState([]);
+  const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    fetch(`${API}/users/api/me/`, {
-      headers: { Authorization: `Bearer ${token()}` },
-    })
-      .then((r) => r.json())
-      .then((d) => { setProfile(d); setLoading(false); })
+    fetch(`${API}/users/api/me/`, { headers: { Authorization: `Bearer ${token()}` } })
+      .then(r => r.json()).then(d => { setProfile(d); setLoading(false); })
       .catch(() => setLoading(false));
+
+    const fetchPending = () => {
+      fetch(`${API}/users/api/friend-requests/pending/`, { headers: { Authorization: `Bearer ${token()}` } })
+        .then(r => r.json()).then(d => setPendingRequests(d.pending_requests || []))
+        .catch(() => setPendingRequests([]));
+    };
+    fetchPending();
+    const i1 = setInterval(fetchPending, 3000);
+    return () => clearInterval(i1);
   }, []);
 
+  useEffect(() => {
+    const fetchFriends = () => {
+      fetch(`${API}/users/api/friends/`, { headers: { Authorization: `Bearer ${token()}` } })
+        .then(r => r.json()).then(d => setFriends(d.friends || []))
+        .catch(() => setFriends([]));
+    };
+    fetchFriends();
+    const i2 = setInterval(fetchFriends, 5000);
+    return () => clearInterval(i2);
+  }, []);
+
+  const handleFriendRequestResponse = async (requestId, action) => {
+    setRequestAction(p => ({ ...p, [requestId]: true }));
+    try {
+      const res = await fetch(`${API}/users/api/friend-request/${requestId}/respond/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) setPendingRequests(p => p.filter(r => r.id !== requestId));
+    } catch {}
+    finally { setRequestAction(p => ({ ...p, [requestId]: false })); }
+  };
+
   if (loading) return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0c16]">
-      <div className="h-10 w-10 animate-spin rounded-full border-2 border-white/10 border-t-[#1976D2]" />
+    <div className="flex min-h-screen items-center justify-center bg-[#080808]">
+      <div className="h-8 w-8 animate-spin rounded-full border-[1.5px] border-white/10 border-t-[#C9A84C]" />
     </div>
   );
-
   if (!profile) return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0c16] text-white/50">
+    <div className="flex min-h-screen items-center justify-center bg-[#080808] text-white/30" style={{ fontFamily: FONTS.body }}>
       Could not load profile.
     </div>
   );
 
-  const pic      = avatar(profile.profile_picture);
+  const pic = avatar(profile.profile_picture);
   const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username || "Traveller";
   const initial  = fullName[0]?.toUpperCase() || "T";
-
-  // Icon components for travel styles
-  const StyleIcon = ({ style }) => {
-    switch (style) {
-      case "budget": return <Wallet className="w-8 h-8 text-yellow-400" />;
-      case "luxury": return <Gem className="w-8 h-8 text-purple-400" />;
-      case "adventure": return <Mountain className="w-8 h-8 text-orange-400" />;
-      default: return <Wallet className="w-8 h-8 text-white/40" />;
-    }
-  };
-
-  // Icon components for pace
-  const PaceIcon = ({ pace }) => {
-    switch (pace) {
-      case "relaxed": return <Sunrise className="w-8 h-8 text-indigo-400" />;
-      case "moderate": return <Zap className="w-8 h-8 text-yellow-400" />;
-      case "fast_paced": return <Zap className="w-8 h-8 text-red-400" />;
-      default: return <Zap className="w-8 h-8 text-white/40" />;
-    }
-  };
-
-  // Icon components for accommodation
-  const AccommIcon = ({ accomm }) => {
-    switch (accomm) {
-      case "hostel": return <Building2 className="w-8 h-8 text-blue-400" />;
-      case "hotel": return <Building2 className="w-8 h-8 text-cyan-400" />;
-      case "inn": return <Home className="w-8 h-8 text-green-400" />;
-      case "camping": return <Tent className="w-8 h-8 text-amber-400" />;
-      default: return <Home className="w-8 h-8 text-white/40" />;
-    }
-  };
+  const handle   = profile.username || profile.email?.split("@")[0];
 
   return (
     <>
-      <div className="min-h-screen bg-[#0a0c16] font-[Poppins,sans-serif] text-white">
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-      {/* ── Banner ── */}
-      <div className="relative h-48 w-full overflow-hidden md:h-60">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0d2137] via-[#0a0c16] to-[#0d1b2a]" />
-        <svg className="absolute inset-0 h-full w-full opacity-10" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1976D2" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#grid)" />
-        </svg>
-        <div className="absolute -left-10 -top-10 h-60 w-60 rounded-full bg-[#1976D2]/20 blur-3xl" />
-        <div className="absolute right-0 bottom-0 h-40 w-80 rounded-full bg-[#1976D2]/10 blur-2xl" />
-        <button
-          onClick={() => setEditing(true)}
-          className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-4 py-2 text-[13px] font-semibold text-white/80 backdrop-blur transition hover:bg-white/15 hover:text-white"
-        >
-          <Edit className="w-4 h-4" /> Edit Profile
-        </button>
-      </div>
+      <div className="min-h-screen bg-[#080808] text-white">
 
-      <div className="mx-auto max-w-3xl px-5">
+        {/* ── Cover banner ── */}
+        <div className="relative h-52 w-full bg-[#0c0c0c] overflow-hidden">
+          <div className="absolute inset-0"
+            style={{ background: "radial-gradient(ellipse 70% 100% at 15% 50%, rgba(201,168,76,0.07) 0%, transparent 65%), radial-gradient(ellipse 50% 80% at 85% 60%, rgba(201,168,76,0.04) 0%, transparent 60%)" }} />
+          {/* subtle cross-hatch */}
+          <svg className="absolute inset-0 w-full h-full opacity-[0.025]" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="ch" width="24" height="24" patternUnits="userSpaceOnUse">
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#C9A84C" strokeWidth="0.5"/>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#ch)" />
+          </svg>
+          {/* bottom fade into page bg */}
+          <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#080808] to-transparent" />
+        </div>
 
-        {/* ── Avatar ── */}
-        <div className="-mt-14 flex items-end justify-between">
-          <div className="relative">
-            <div className="h-28 w-28 overflow-hidden rounded-full border-4 border-[#0a0c16] bg-[#1976D2] shadow-xl shadow-[#1976D2]/20">
-              {pic
-                ? <img src={pic} alt={fullName} className="h-full w-full object-cover" onError={(e) => { e.target.style.display = "none"; }} />
-                : <span className="flex h-full items-center justify-center text-4xl font-bold text-white">{initial}</span>
-              }
+        {/* ── Content ── */}
+        <div className="max-w-2xl mx-auto px-4 sm:px-6">
+
+          {/* Avatar + actions row */}
+          <div className="flex items-end justify-between -mt-[52px] mb-4">
+            {/* Avatar with gold ring */}
+            <div className="relative flex-shrink-0">
+              <div className="absolute -inset-[2.5px] rounded-full"
+                style={{ background: "linear-gradient(135deg, #C9A84C 0%, #e8c96d 40%, #8b6914 100%)" }} />
+              <div className="relative h-[100px] w-[100px] rounded-full overflow-hidden bg-[#111] border-[3px] border-[#080808]">
+                {pic
+                  ? <img src={pic} alt={fullName} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
+                  : <span className="flex h-full items-center justify-center text-4xl font-bold text-[#C9A84C]"
+                      style={{ fontFamily: FONTS.display }}>{initial}</span>
+                }
+              </div>
+              <span className="absolute bottom-2 right-2 h-3.5 w-3.5 rounded-full bg-emerald-400 border-2 border-[#080808]" />
             </div>
-            <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-[#0a0c16] bg-emerald-400" />
+
+            {/* Edit button */}
+            <button onClick={() => setEditing(true)} style={{ fontFamily: FONTS.body }}
+              className="mb-1 rounded-xl border border-white/12 bg-white/5 px-5 py-2 text-[13px] font-semibold text-white hover:bg-white/10 hover:border-white/20 transition flex items-center gap-2">
+              <Edit3 className="w-3.5 h-3.5" /> Edit profile
+            </button>
           </div>
-        </div>
 
-        {/* ── Name / meta ── */}
-        <div className="mt-4">
-          <h1 className="text-2xl font-bold text-white md:text-3xl">{fullName}</h1>
-          <p className="mt-0.5 text-sm text-white/40">@{profile.username || profile.email?.split("@")[0]}</p>
-          {profile.location && (
-            <p className="mt-1.5 flex items-center gap-1.5 text-sm text-white/50">
-              <MapPin className="w-4 h-4" />{profile.location}
-            </p>
-          )}
-          {profile.bio && (
-            <p className="mt-3 max-w-lg text-[14px] leading-relaxed text-white/65">{profile.bio}</p>
-          )}
-        </div>
-
-        {/* ── Stats ── */}
-        <div className="mt-6 flex flex-wrap gap-3">
-          <StatCard icon={<Plane className="w-6 h-6 text-blue-400" />} label="Trips"     value={profile.trips_count    ?? 0} />
-          <StatCard icon={<Users className="w-6 h-6 text-green-400" />} label="Buddies"   value={profile.buddies_count  ?? 0} />
-          <StatCard icon={<Globe className="w-6 h-6 text-purple-400" />} label="Countries" value={profile.countries_count ?? 0} />
-          <StatCard icon={<Star className="w-6 h-6 text-yellow-400" />} label="Rating"    value={profile.rating ? profile.rating.toFixed(1) : "—"} />
-        </div>
-
-        {/* ── Travel Preferences ── */}
-        <div className="mt-8">
-          <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Travel Preferences</h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Style</p>
-              <div className="text-3xl mb-1"><StyleIcon style={profile.travel_style} /></div>
-              <p className="text-sm font-semibold text-white capitalize">{profile.travel_style || "Not set"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Pace</p>
-              <div className="text-3xl mb-1"><PaceIcon pace={profile.pace} /></div>
-              <p className="text-sm font-semibold text-white capitalize">{profile.pace?.replace("_", "-") || "Not set"}</p>
-            </div>
-            <div className="rounded-2xl border border-white/8 bg-white/4 p-4">
-              <p className="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-2">Stays</p>
-              <div className="text-3xl mb-1"><AccommIcon accomm={profile.accommodation_preference} /></div>
-              <p className="text-sm font-semibold text-white capitalize">{profile.accommodation_preference || "Not set"}</p>
-            </div>
+          {/* Name / handle / bio */}
+          <div className="mb-5">
+            <h1 className="text-[22px] font-bold text-white leading-tight" style={{ fontFamily: FONTS.display }}>{fullName}</h1>
+            <p className="text-sm text-[#C9A84C]/60 mt-0.5" style={{ fontFamily: FONTS.mono }}>@{handle}</p>
+            {profile.location && (
+              <p className="flex items-center gap-1.5 text-sm text-white/35 mt-1.5" style={{ fontFamily: FONTS.body }}>
+                <MapPin className="w-3.5 h-3.5 text-[#C9A84C]/50" />{profile.location}
+              </p>
+            )}
+            {profile.bio && (
+              <p className="mt-3 text-sm text-white/55 leading-relaxed" style={{ fontFamily: FONTS.body }}>{profile.bio}</p>
+            )}
+            {/* inline constraint tags */}
+            {profile.constraint_tags?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {profile.constraint_tags.map(tag => (
+                  <span key={tag.id} style={{ fontFamily: FONTS.body }}
+                    className="text-[11px] px-2.5 py-0.5 rounded-full bg-white/5 border border-white/10 text-white/35">
+                    {tag.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
 
-        {/* ── Vibe bars ── */}
-        <div className="mt-8 rounded-2xl border border-white/8 bg-white/4 p-5">
-          <h2 className="mb-5 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Traveller Vibe</h2>
-          <div className="flex flex-col gap-5">
+          {/* ── Stats (Instagram-style 3-col) ── */}
+          <div className="flex border-y border-white/8 mb-6">
             {[
-              { label: "Budget",    left: <span className="flex items-center gap-1"><Wallet className="w-3 h-3" /> Budget</span>, right: <span className="flex items-center gap-1">Luxury <Gem className="w-3 h-3" /></span>, value: profile.budget_level    ?? 5 },
-              { label: "Adventure", left: <span className="flex items-center gap-1"><Sunrise className="w-3 h-3" /> Chill</span>, right: <span className="flex items-center gap-1">Extreme <Mountain className="w-3 h-3" /></span>, value: profile.adventure_level ?? 5 },
-              { label: "Social",    left: <span className="flex items-center gap-1"><Headphones className="w-3 h-3" /> Solo</span>, right: <span className="flex items-center gap-1">Group <Zap className="w-3 h-3" /></span>, value: profile.social_level    ?? 5 },
-            ].map(({ label, left, right, value }) => (
-              <div key={label}>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/40">{label}</span>
-                  <span className="text-xs font-semibold text-[#1976D2]">{value}/10</span>
-                </div>
-                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/8">
-                  <div className="h-full rounded-full bg-gradient-to-r from-[#1976D2] to-[#42a5f5] transition-all"
-                    style={{ width: `${value * 10}%` }} />
-                </div>
-                <div className="mt-1 flex justify-between text-[10px] text-white/25">
-                  <span>{left}</span><span>{right}</span>
-                </div>
+              { value: profile.trips_count ?? 0,                              label: "Trips"   },
+              { value: profile.buddies_count ?? 0,                            label: "Buddies" },
+              { value: profile.rating ? profile.rating.toFixed(1) : "—",     label: "Rating"  },
+            ].map(({ value, label }, i) => (
+              <div key={label} className={`flex-1 flex flex-col items-center py-4 gap-0.5 ${i < 2 ? "border-r border-white/8" : ""}`}>
+                <span className="text-[22px] font-bold text-white" style={{ fontFamily: FONTS.display }}>{value}</span>
+                <span className="text-[10px] uppercase tracking-[0.15em] text-white/30" style={{ fontFamily: FONTS.body }}>{label}</span>
               </div>
             ))}
           </div>
-        </div>
 
-        {/* ── Account Info ── */}
-        <div className="mt-8 rounded-2xl border border-white/8 bg-white/4 p-5">
-          <h2 className="mb-4 text-[11px] font-bold uppercase tracking-[3px] text-white/30">Account Info</h2>
-          <div className="flex flex-col gap-3">
-            {[
-              { icon: <Mail className="w-4 h-4" />, label: "Email", value: profile.email },
-              { icon: <Calendar className="w-4 h-4" />, label: "Member since", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
-            ].map(({ icon, label, value }) => (
-              <div key={label} className="flex items-center gap-3">
-                <span className="text-base">{icon}</span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-white/30">{label}</p>
-                  <p className="text-sm text-white/70">{value || "—"}</p>
-                </div>
+          {/* ── Pending requests ── */}
+          {pendingRequests.length > 0 && (
+            <div className="mb-6">
+              <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">
+                Requests - {pendingRequests.length}
+              </p>
+              <div className="flex flex-col gap-2">
+                {pendingRequests.map(req => (
+                  <div key={req.id} className="flex items-center gap-3 rounded-2xl bg-white/3 border border-white/8 px-4 py-3">
+                    <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
+                      {req.profile_picture
+                        ? <img src={req.profile_picture} alt={req.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
+                        : <span className="text-sm font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{req.username[0].toUpperCase()}</span>
+                      }
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white truncate">
+                        {req.first_name && req.last_name ? `${req.first_name} ${req.last_name}` : req.username}
+                      </p>
+                      <p style={{ fontFamily: FONTS.mono }} className="text-xs text-white/35 truncate">@{req.username}</p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => handleFriendRequestResponse(req.id, "accept")} disabled={requestAction[req.id]}
+                        style={{ fontFamily: FONTS.body }}
+                        className="rounded-xl bg-[#C9A84C] px-4 py-1.5 text-xs font-semibold text-black hover:bg-[#e8c96d] disabled:opacity-40 transition">
+                        Confirm
+                      </button>
+                      <button onClick={() => handleFriendRequestResponse(req.id, "reject")} disabled={requestAction[req.id]}
+                        style={{ fontFamily: FONTS.body }}
+                        className="rounded-xl bg-white/8 px-4 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/12 disabled:opacity-40 transition">
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
+            </div>
+          )}
+
+          {/* ── Tabs ── */}
+          <div className="flex border-b border-white/8 mb-6 -mx-1">
+            {["overview", "preferences", "friends"].map(tab => (
+              <button key={tab} onClick={() => setActiveTab(tab)}
+                style={{ fontFamily: FONTS.body }}
+                className={`flex-1 py-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all ${
+                  activeTab === tab
+                    ? "text-[#C9A84C] border-b-2 border-[#C9A84C] -mb-px"
+                    : "text-white/28 hover:text-white/50"
+                }`}>
+                {tab}
+              </button>
             ))}
           </div>
+
+          {/* ── Overview tab ── */}
+          {activeTab === "overview" && (
+            <div className="flex flex-col gap-4 pb-20">
+              {/* Pref cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "Style", icon: <StyleIcon style={profile.travel_style} />,  value: profile.travel_style },
+                  { label: "Pace",  icon: <PaceIcon  pace={profile.pace} />,            value: profile.pace?.replace("_", "-") },
+                  { label: "Stays", icon: <AccommIcon accomm={profile.accommodation_preference} />, value: profile.accommodation_preference },
+                ].map(({ label, icon, value }) => (
+                  <div key={label} className="rounded-2xl bg-white/3 border border-white/8 p-4 flex flex-col gap-3 hover:border-[#C9A84C]/20 transition">
+                    <div className="flex items-center justify-between">
+                      <span style={{ fontFamily: FONTS.body }} className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/28">{label}</span>
+                      {icon}
+                    </div>
+                    <p style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white capitalize leading-tight">
+                      {value || <span className="text-white/20 font-normal">—</span>}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Vibe */}
+              <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">Traveller Vibe</p>
+                <div className="flex flex-col gap-5">
+                  <VibeBar label="Budget to Luxury"   value={profile.budget_level    ?? 5} left="Budget"  right="Luxury"  />
+                  <VibeBar label="Chill to Extreme"   value={profile.adventure_level ?? 5} left="Chill"   right="Extreme" />
+                  <VibeBar label="Solo to Group"      value={profile.social_level    ?? 5} left="Solo"    right="Group"   />
+                </div>
+              </div>
+
+              {/* Account */}
+              <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden">
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-5 pt-4 pb-2">Account</p>
+                <div className="px-5 pb-2">
+                  {[
+                    { icon: <Mail className="w-4 h-4 text-[#C9A84C]/50" />, label: "Email", value: profile.email },
+                    { icon: <Calendar className="w-4 h-4 text-[#C9A84C]/50" />, label: "Joined", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="flex items-center gap-3 py-3 border-b border-white/6 last:border-0">
+                      {icon}
+                      <div className="flex-1 min-w-0">
+                        <p style={{ fontFamily: FONTS.body }} className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/25 mb-0.5">{label}</p>
+                        <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/60 truncate">{value || "—"}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Preferences tab ── */}
+          {activeTab === "preferences" && (
+            <div className="flex flex-col gap-4 pb-20">
+              <div className="rounded-2xl bg-white/3 border border-white/8 px-5">
+                <PrefRow label="Travel Style"  value={profile.travel_style} />
+                <PrefRow label="Pace"          value={profile.pace?.replace("_", "-")} />
+                <PrefRow label="Accommodation" value={profile.accommodation_preference} />
+              </div>
+
+              <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">Vibe Scores</p>
+                <div className="flex flex-col gap-5">
+                  <VibeBar label="Budget to Luxury"  value={profile.budget_level    ?? 5} left="Budget" right="Luxury"  />
+                  <VibeBar label="Chill to Extreme"  value={profile.adventure_level ?? 5} left="Chill"  right="Extreme" />
+                  <VibeBar label="Solo to Group"     value={profile.social_level    ?? 5} left="Solo"   right="Group"   />
+                </div>
+              </div>
+
+              {profile.constraint_tags?.length > 0 && (
+                <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
+                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">Tags</p>
+                  <div className="flex flex-wrap gap-2">
+                    {profile.constraint_tags.map(tag => (
+                      <span key={tag.id} style={{ fontFamily: FONTS.body }}
+                        className="text-[12px] px-3 py-1 rounded-full bg-[#C9A84C]/10 border border-[#C9A84C]/25 text-[#C9A84C]/80">
+                        {tag.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Friends tab ── */}
+          {activeTab === "friends" && (
+            <div className="pb-20">
+              {friends.length > 0 ? (
+                <div className="flex flex-col">
+                  {friends.map(friend => {
+                    const name = friend.first_name && friend.last_name
+                      ? `${friend.first_name} ${friend.last_name}` : friend.username;
+                    return (
+                      <Link key={friend.id} to={`/user/${friend.username}`}
+                        className="flex items-center gap-3 py-3.5 border-b border-white/6 last:border-0 hover:bg-white/3 rounded-xl px-3 -mx-3 transition no-underline">
+                        <div className="h-11 w-11 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
+                          {friend.profile_picture
+                            ? <img src={friend.profile_picture} alt={friend.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
+                            : <span className="text-base font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{friend.username[0].toUpperCase()}</span>
+                          }
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white truncate">{name}</p>
+                          <p style={{ fontFamily: FONTS.mono }} className="text-xs text-white/35 truncate">@{friend.username}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-white/15 flex-shrink-0" />
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-24 gap-3">
+                  <div className="h-16 w-16 rounded-full bg-white/4 flex items-center justify-center">
+                    <Users className="w-7 h-7 text-white/15" />
+                  </div>
+                  <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/25">No friends yet</p>
+                  <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/15">Find travel buddies to connect with</p>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
-      </div>
 
-      {/* ── Edit Modal ── */}
-      {editing && (
-        <EditModal
-          profile={profile}
-          onClose={() => setEditing(false)}
-          onSaved={(updated) => setProfile((p) => ({ ...p, ...updated }))}
-        />
-      )}
+        {editing && (
+          <EditModal profile={profile} onClose={() => setEditing(false)}
+            onSaved={updated => setProfile(p => ({ ...p, ...updated }))} />
+        )}
       </div>
-
-      <Footer />
     </>
   );
 }

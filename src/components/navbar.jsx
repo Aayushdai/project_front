@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import logo from "../assets/content.png";
+import UserSearchBar from "./UserSearchBar";
 
 const navLinks = [
   { to: "/home", label: "Home" },
@@ -14,6 +15,7 @@ export default function NavbarComponent() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
 
@@ -37,14 +39,34 @@ export default function NavbarComponent() {
       .catch(() => setProfilePic(null));
   };
 
+  // Fetch pending friend requests count
+  const fetchPendingRequests = () => {
+    const token = localStorage.getItem("access_token");
+    if (!token) return;
+    fetch("http://127.0.0.1:8000/users/api/friend-requests/pending/", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setPendingRequestsCount(data.pending_requests?.length || 0);
+      })
+      .catch(() => setPendingRequestsCount(0));
+  };
+
   // Fetch on mount / user change
-  useEffect(() => { fetchProfilePic(); }, [user]);
+  useEffect(() => { fetchProfilePic(); fetchPendingRequests(); }, [user]);
 
   // ✅ Re-fetch whenever ProfilePage fires "profile-updated"
   useEffect(() => {
-    const handler = () => fetchProfilePic();
+    const handler = () => { fetchProfilePic(); fetchPendingRequests(); };
     window.addEventListener("profile-updated", handler);
     return () => window.removeEventListener("profile-updated", handler);
+  }, []);
+
+  // ✅ Auto-refresh pending requests every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchPendingRequests, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -59,13 +81,18 @@ export default function NavbarComponent() {
   const handleLogout = () => { logout(); navigate("/"); };
   const initial = user?.first_name?.[0] || user?.username?.[0] || "U";
 
-  // Reusable avatar component
-  const Avatar = ({ size = "h-9 w-9", textSize = "text-sm" }) => (
-    <div className={`${size} flex-shrink-0 overflow-hidden rounded-full bg-[#1976D2] flex items-center justify-center ring-2 ring-white/10`}>
+  // Reusable avatar component with notification badge
+  const Avatar = ({ size = "h-9 w-9", textSize = "text-sm", showBadge = false }) => (
+    <div className={`${size} flex-shrink-0 overflow-hidden rounded-full bg-[#1976D2] flex items-center justify-center ring-2 ring-white/10 relative`}>
       {profilePic
         ? <img src={profilePic} alt="avatar" className="h-full w-full object-cover" onError={() => setProfilePic(null)} />
         : <span className={`${textSize} font-bold text-white`}>{initial.toUpperCase()}</span>
       }
+      {showBadge && pendingRequestsCount > 0 && (
+        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#0a0c16]">
+          {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
+        </span>
+      )}
     </div>
   );
 
@@ -76,10 +103,12 @@ export default function NavbarComponent() {
         {/* Logo */}
         <Link to="/home" className="flex items-center gap-2 no-underline">
           <img src={logo} alt="logo" className="h-10" />
-          <span className="text-[1.1rem] font-bold text-white">
-            Travel <span className="text-[#1976D2]">Sathi</span>
-          </span>
         </Link>
+
+        {/* Search Bar */}
+        <div className="hidden lg:block flex-1 max-w-sm mx-4">
+          <UserSearchBar />
+        </div>
 
         {/* Center Links */}
         <div className="hidden items-center gap-6 md:flex">
@@ -101,7 +130,7 @@ export default function NavbarComponent() {
         <div className="flex items-center gap-3">
           <div ref={dropdownRef} className="relative">
             <button onClick={() => setDropdownOpen((p) => !p)} className="transition hover:brightness-110">
-              <Avatar size="h-9 w-9" textSize="text-sm" />
+              <Avatar size="h-9 w-9" textSize="text-sm" showBadge={true} />
             </button>
 
             {dropdownOpen && (
@@ -139,6 +168,9 @@ export default function NavbarComponent() {
       {/* Mobile menu */}
       {mobileOpen && (
         <div className="border-t border-white/10 px-6 py-4 md:hidden">
+          <div className="mb-4">
+            <UserSearchBar />
+          </div>
           {navLinks.map(({ to, label }) => (
             <Link key={to} to={to} onClick={() => setMobileOpen(false)}
               className="block py-2 text-sm text-white/80 no-underline hover:text-white">

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -6,6 +6,7 @@ const STEPS = [
   { id: 1, label: "Personal Info", sub: "Name, photo, date of birth" },
   { id: 2, label: "Passport / ID", sub: "Citizenship & document details" },
   { id: 3, label: "Contact", sub: "Address, phone & email" },
+  { id: 4, label: "Security", sub: "Answer security questions" },
 ];
 
 const VALIDATORS = {
@@ -106,15 +107,60 @@ const VALIDATORS = {
     if (!v.trim()) return "Email is required";
     const emailLower = v.trim().toLowerCase();
     if (emailLower.length > 100) return "Email must be less than 100 characters";
+    
+    // Basic email format validation
     const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
     if (!re.test(emailLower)) return "Enter a valid email address";
+    
     // Check for consecutive dots
     if (/\.\./.test(emailLower)) return "Email cannot contain consecutive dots";
-    // Check for valid domain
+    
+    // Extract domain
     const domain = emailLower.split("@")[1];
     if (!domain || domain.length > 50) return "Email domain is invalid";
-    const typos = ["gail.com", "gmial.com", "gamil.com", "yaho.com", "hotnail.com", "outloo.com", "yahooo.com"];
-    if (typos.includes(domain)) return `Did you mean a different domain? "${domain}" looks like a typo`;
+    
+    // List of allowed legitimate email domains
+    const allowedDomains = [
+      "gmail.com",
+      "yahoo.com",
+      "hotmail.com",
+      "outlook.com",
+      "protonmail.com",
+      "icloud.com",
+      "mail.com",
+      "yandex.com",
+      "zoho.com",
+      "gmx.com",
+      "aol.com",
+      "tutanota.com",
+      "mailbox.org",
+      "fastmail.com",
+      "posteo.de",
+      "hey.com",
+    ];
+    
+    // Check if domain is in allowed list
+    if (!allowedDomains.includes(domain)) {
+      return `We only accept emails from: Gmail, Yahoo, Hotmail, Outlook, ProtonMail, iCloud, and other standard providers`;
+    }
+    
+    // Check for common typos
+    const commonTypos = {
+      "gail.com": "gmail",
+      "gmial.com": "gmail",
+      "gamil.com": "gmail",
+      "yaho.com": "yahoo",
+      "hotnail.com": "hotmail",
+      "outloo.com": "outlook",
+      "yahooo.com": "yahoo",
+      "amil.com": "gmail", // Common typo from request
+      "amail.com": "gmail", // Another variation
+    };
+    
+    if (commonTypos[domain]) {
+      return `Did you mean ${commonTypos[domain]}.com? "${domain}" looks like a typo`;
+    }
+    
     return "";
   },
   password: (v) => {
@@ -138,6 +184,7 @@ const STEP_FIELDS = {
   1: ["firstName", "lastName", "dob", "gender"],
   2: ["citizenship", "passportNo", "passportExpiry"],
   3: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
+  4: ["security_questions"], // Security questions validation done separately
 };
 
 
@@ -147,6 +194,8 @@ export default function RegisterFull() {
   const { login } = useAuth(); // ✅ Get login function from AuthContext
   const [step, setStep]           = useState(1);
   const [loading, setLoading]     = useState(false);
+  const [allSecurityQuestions, setAllSecurityQuestions] = useState([]); // Available questions from API
+  const [selectedSecurityAnswers, setSelectedSecurityAnswers] = useState({}); // {question_id: answer}
 
   const [globalError, setGlobalError] = useState("");
 
@@ -169,6 +218,20 @@ export default function RegisterFull() {
   const [focused, setFocused] = useState(null);
   const [pwVisible, setPwVisible] = useState(false);
   const [agreed, setAgreed]   = useState(false);
+
+  // ✅ Fetch security questions on mount
+  useEffect(() => {
+    const fetchSecurityQuestions = async () => {
+      try {
+        const response = await fetch("http://127.0.0.1:8000/users/api/security-questions/");
+        const data = await response.json();
+        setAllSecurityQuestions(data);
+      } catch (err) {
+        console.error("Failed to load security questions:", err);
+      }
+    };
+    fetchSecurityQuestions();
+  }, []);
 
   const validate = (field, value) => {
     const fn = VALIDATORS[field];
@@ -241,6 +304,13 @@ export default function RegisterFull() {
   const handleNext = (e) => {
     e.preventDefault();
     if (!validateStep(step)) return;
+    
+    // Validate security questions on Step 4 before submission
+    if (step === 4) {
+      // Should not reach here as Step 4 submit calls handleSubmit directly
+      return;
+    }
+    
     setStep(step + 1);
   };
 
@@ -248,6 +318,19 @@ export default function RegisterFull() {
     e.preventDefault();
     if (!validateStep(3)) return;
     if (!agreed) { setGlobalError("Please agree to the Terms of Service."); return; }
+    
+    // ✅ Validate security questions
+    const selectedQuestionIds = Object.keys(selectedSecurityAnswers).map(Number);
+    if (selectedQuestionIds.length < 2) {
+      setGlobalError("Please select and answer at least 2 security questions");
+      return;
+    }
+    
+    const allAnswered = selectedQuestionIds.every(qId => selectedSecurityAnswers[qId]?.trim());
+    if (!allAnswered) {
+      setGlobalError("Please answer all selected security questions");
+      return;
+    }
 
     setLoading(true);
     setGlobalError("");
@@ -267,6 +350,10 @@ export default function RegisterFull() {
       formData.append("phone",           form.phone);
       formData.append("email",           form.email.trim().toLowerCase());
       formData.append("password",        form.password);
+      
+      // ✅ Append security questions and answers
+      formData.append("security_questions", JSON.stringify(selectedSecurityAnswers));
+      
       if (profileFile)  formData.append("profile_photo",  profileFile);
       if (passportFile) formData.append("passport_photo", passportFile);
 
@@ -360,24 +447,26 @@ export default function RegisterFull() {
 
           <div className="mb-6 h-[3px] overflow-hidden rounded-full bg-[#e2ddd6]">
             <div className="h-full rounded-full bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 transition-all duration-500"
-              style={{ width: `${(step / 3) * 100}%` }} />
+              style={{ width: `${(step / 4) * 100}%` }} />
           </div>
 
           <span className="mb-3 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[2.5px] text-orange-500">
-            Step {step} of 3
+            Step {step} of 4
           </span>
           <h1 className="font-['Montserrat'] text-3xl font-light italic text-[#111827] leading-tight mb-1">
             {step === 1 && <>Tell us about <strong className="font-semibold text-orange-500">yourself</strong></>}
             {step === 2 && <>Your <strong className="font-semibold text-orange-500">travel documents</strong></>}
             {step === 3 && <>How to <strong className="font-semibold text-orange-500">reach you</strong></>}
+            {step === 4 && <>Secure your <strong className="font-semibold text-orange-500">account</strong></>}
           </h1>
           <p className="mb-7 text-[13px] text-slate-400">
             {step === 1 && "Your name, date of birth, and a clear profile photo."}
             {step === 2 && "We keep your passport info secure and fully encrypted."}
             {step === 3 && "Your address, phone number, email and account password."}
+            {step === 4 && "Set up security questions for password recovery."}
           </p>
 
-          <form onSubmit={step < 3 ? handleNext : handleSubmit} noValidate>
+          <form onSubmit={step < 3 ? handleNext : (step === 3 ? handleNext : handleSubmit)} noValidate>
 
             {/* Step 1 */}
             {step === 1 && (
@@ -573,6 +662,59 @@ export default function RegisterFull() {
               </>
             )}
 
+            {/* Step 4 - Security Questions */}
+            {step === 4 && (
+              <>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Security Setup</p>
+                <p className="mb-4 text-[13px] text-gray-600">
+                  Select 2-3 security questions and answer them. You'll use these to reset your password if you forget it.
+                </p>
+
+                <div className="space-y-4">
+                  {allSecurityQuestions.slice(0, 5).map((q) => (
+                    <div key={q.id} className="rounded-xl border border-[#e5e0d8] p-4 hover:border-orange-500 transition">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={!!selectedSecurityAnswers[q.id]}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedSecurityAnswers((prev) => ({ ...prev, [q.id]: "" }));
+                            } else {
+                              const updated = { ...selectedSecurityAnswers };
+                              delete updated[q.id];
+                              setSelectedSecurityAnswers(updated);
+                            }
+                          }}
+                          className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500"
+                        />
+                        <span className="text-[13px] font-semibold text-[#374151]">{q.question}</span>
+                      </label>
+
+                      {selectedSecurityAnswers[q.id] !== undefined && (
+                        <input
+                          type="text"
+                          value={selectedSecurityAnswers[q.id] || ""}
+                          onChange={(e) =>
+                            setSelectedSecurityAnswers((prev) => ({
+                              ...prev,
+                              [q.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Your answer..."
+                          className="mt-3 w-full bg-white border border-[#e2ddd6] rounded-xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <p className="mt-4 text-[12px] text-gray-500">
+                  You have selected: <strong>{Object.keys(selectedSecurityAnswers).length} question(s)</strong> (minimum 2 required)
+                </p>
+              </>
+            )}
+
             {globalError && (
               <div className="mt-4 rounded-xl border border-red-300/20 bg-red-400/8 px-4 py-3 text-[13px] text-red-400">
                 {globalError}
@@ -590,7 +732,7 @@ export default function RegisterFull() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-orange-400 py-3.5 text-[14px] font-bold text-white shadow-[0_4px_18px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(249,115,22,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-65">
                 {loading
                   ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Submitting...</>
-                  : step < 3 ? "Continue" : "Submit for Verification"
+                  : step < 4 ? "Continue" : "Complete Registration"
                 }
               </button>
             </div>
