@@ -99,8 +99,7 @@ const VALIDATORS = {
     if (!v.trim()) return "Phone number is required";
     const cleaned = v.replace(/[\s\-().+]/g, "");
     if (!/^\d{10}$/.test(cleaned)) return "Phone number must be exactly 10 digits";
-    if (cleaned[0] === "0") return "Phone number cannot start with 0";
-    if (!/^[6-9]\d{9}$/.test(cleaned)) return "Phone number must start with 6, 7, 8, or 9";
+    if (!/^(984|985|986|974)\d{7}$/.test(cleaned)) return "Phone number must start with 984, 985, 986, or 974";
     return "";
   },
   email: (v) => {
