@@ -21,6 +21,7 @@ import {
   Check,
   X,
   ChevronRight,
+  Clock,
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -612,10 +613,70 @@ export default function ProfilePage() {
                   ))}
                 </div>
               </div>
+
+              {/* Register for Full Access - KYC */}
+              <div className={`rounded-2xl border-2 p-5 overflow-hidden transition-all ${
+                profile.status === 'approved'
+                  ? 'bg-emerald-500/10 border-emerald-500/30'
+                  : profile.status === 'rejected'
+                  ? 'bg-red-500/10 border-red-500/30'
+                  : profile.status === 'pending'
+                  ? 'bg-amber-500/10 border-amber-500/30'
+                  : 'bg-[#C9A84C]/8 border-[#C9A84C]/30 hover:border-[#C9A84C]/50'
+              }`}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {profile.status === 'approved' ? (
+                        <>
+                          <Check className="w-5 h-5 text-emerald-400" />
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-emerald-300">✓ Verified User</p>
+                        </>
+                      ) : profile.status === 'rejected' ? (
+                        <>
+                          <X className="w-5 h-5 text-red-400" />
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-red-300">Verification Rejected</p>
+                        </>
+                      ) : profile.status === 'pending' ? (
+                        <>
+                          <Clock className="w-5 h-5 text-amber-400" />
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-amber-300">Verification Pending</p>
+                        </>
+                      ) : (
+                        <>
+                          <Gem className="w-5 h-5 text-[#C9A84C]" />
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-[#C9A84C]">Register for Full Access</p>
+                        </>
+                      )}
+                    </div>
+                    <p style={{ fontFamily: FONTS.body }} className={`text-[12px] ${
+                      profile.status === 'approved'
+                        ? 'text-emerald-200/70'
+                        : profile.status === 'rejected'
+                        ? 'text-red-200/70'
+                        : profile.status === 'pending'
+                        ? 'text-amber-200/70'
+                        : 'text-white/50'
+                    }`}>
+                      {profile.status === 'approved'
+                        ? 'Your identity is verified. You have full access to all features and can interact with trips, chat, and more.'
+                        : profile.status === 'rejected'
+                        ? profile.rejection_reason ? `Rejected: ${profile.rejection_reason}. Please submit again.` : 'Your KYC verification was rejected. Please submit again.'
+                        : profile.status === 'pending'
+                        ? 'Your KYC submission is under review by our admin team. You will be notified within 24-48 hours.'
+                        : 'Verify your identity with KYC to unlock full access to all features.'}
+                    </p>
+                  </div>
+                  {profile.status !== 'approved' && (
+                    <Link to="/kyc" style={{ fontFamily: FONTS.body }}
+                      className="px-4 py-2 rounded-xl bg-[#C9A84C] text-black font-semibold text-xs hover:bg-[#e8c96d] transition flex-shrink-0 flex items-center gap-1">
+                      {profile.status === 'rejected' ? 'Resubmit' : profile.status === 'pending' ? 'View Status' : 'Register'} <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  )}
+                </div>
+              </div>
             </div>
           )}
-
-          {/* ── Preferences tab ── */}
           {activeTab === "preferences" && (
             <div className="flex flex-col gap-4 pb-20">
               <div className="rounded-2xl bg-white/3 border border-white/8 px-5">

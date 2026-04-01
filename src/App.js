@@ -19,6 +19,8 @@ import TripDetails from "./pages/TripDetails";
 import TripPlanner from "./pages/TripPlanner";
 import About from "./pages/About";
 import AdminDashboard from "./pages/AdminDashboard";
+import KYCForm from "./pages/KYCForm";
+import KYCAdminDashboard from "./pages/KYCAdminDashboard";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -48,6 +50,7 @@ function Layout() {
         <Route path="/home" element={<PrivateRoute><Home /></PrivateRoute>} />
         <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
+        <Route path="/kyc" element={<PrivateRoute><KYCForm /></PrivateRoute>} />
         <Route path="/user/:username" element={<PrivateRoute><UserProfile /></PrivateRoute>} />
         <Route path="/search" element={<PrivateRoute><SearchResults /></PrivateRoute>} />
         <Route path="/create-trip" element={<PrivateRoute><CreateTrip /></PrivateRoute>} />
@@ -58,6 +61,7 @@ function Layout() {
         <Route path="/explore" element={<PrivateRoute><ExploreDestination /></PrivateRoute>} />
 
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+        <Route path="/admin/kyc" element={<AdminRoute><KYCAdminDashboard /></AdminRoute>} />
       </Routes>
       {!hideNav && <Footer />}
     </>

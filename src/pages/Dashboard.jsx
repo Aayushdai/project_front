@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../API/api";
+import KYCBanner from "../components/KYCBanner";
 import {
   PlusCircle,
   Compass,
@@ -340,6 +341,8 @@ export default function Dashboard() {
   const [currentPageMyTrips, setCurrentPageMyTrips] = useState(1);
   const [currentPageAvailable, setCurrentPageAvailable] = useState(1);
   const [currentPageHistory, setCurrentPageHistory] = useState(1);
+  const [userProfile, setUserProfile] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -358,14 +361,15 @@ export default function Dashboard() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      const userProfile = await meRes.json();
-      const userId = userProfile?.id;
+      const profile = await meRes.json();
+      const userId = profile?.id;
       
       if (!meRes.ok || !userId) {
-        const errorMsg = userProfile?.detail || `Failed to fetch user profile (${meRes.status})`;
+        const errorMsg = profile?.detail || `Failed to fetch user profile (${meRes.status})`;
         throw new Error(errorMsg);
       }
       
+      setUserProfile(profile); // Store profile data for KYC status
       setUserProfileId(userId); // Store for use in rendering
       
       const tripsRes = await api.get("trips/trips/");
@@ -421,7 +425,10 @@ export default function Dashboard() {
       console.error("Response data:", err.response?.data);
       const msg = err.response?.data?.detail || err.message || "Failed to load trips";
       setError(msg);
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false);
+      setKycLoading(false);
+    }
   };
 
   const handleJoinTrip = async (tripId) => {
@@ -509,6 +516,66 @@ export default function Dashboard() {
   return (
     <>
       <style>{styles}</style>
+      
+      {/* KYC Blocking Screen */}
+      {kycLoading ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", width: "100vw", background: "linear-gradient(135deg, #07080f 0%, #0d0e1a 100%)", fontFamily: "'Syne',sans-serif" }}>
+          <div style={{ textAlign: "center", animation: "fadeIn 0.4s ease" }}>
+            <div style={{ fontSize: 48, marginBottom: 20, animation: "spin 2s linear infinite" }}>⌛</div>
+            <div style={{ fontSize: 18, color: "#f5f0e8", marginBottom: 10, fontWeight: 700, letterSpacing: "-.5px" }}>Loading...</div>
+            <div style={{ fontSize: 13, color: "rgba(245,240,232,.4)" }}>Verifying access permissions</div>
+          </div>
+        </div>
+      ) : userProfile && userProfile.status && userProfile.status !== "approved" ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", width: "100vw", background: "linear-gradient(135deg, #07080f 0%, #0d0e1a 100%)", fontFamily: "'Syne',sans-serif" }}>
+          <div style={{ textAlign: "center", maxWidth: 420, padding: "40px 30px", background: "rgba(255,255,255,.03)", border: ".5px solid rgba(240,194,122,.15)", borderRadius: 20, animation: "fadeIn 0.4s ease", boxShadow: "0 20px 60px rgba(0,0,0,.4)" }}>
+            <div style={{ fontSize: 64, marginBottom: 20 }}>🔐</div>
+            <div style={{ fontSize: 22, color: "#f5f0e8", marginBottom: 12, fontWeight: 700, letterSpacing: "-.5px" }}>
+              {userProfile.status === "pending"
+                ? "KYC Verification Pending"
+                : userProfile.status === "under_review"
+                ? "KYC Under Review"
+                : "KYC Verification Required"}
+            </div>
+            <div style={{ fontSize: 13, color: "rgba(245,240,232,.5)", lineHeight: 1.8, marginBottom: 24 }}>
+              {userProfile.status === "pending"
+                ? "Your KYC verification is pending. Please submit your documents to unlock Trip Dashboard features."
+                : userProfile.status === "under_review"
+                ? "Your KYC verification is currently under review. We'll notify you once it's approved."
+                : "You need to complete KYC verification to access your trips."}
+            </div>
+            <a
+              href="/kyc"
+              style={{
+                display: "inline-block",
+                padding: "11px 28px",
+                borderRadius: 10,
+                background: "linear-gradient(135deg,#c9973a,#f0c27a)",
+                color: "#0f0e0d",
+                textDecoration: "none",
+                fontWeight: 700,
+                fontSize: 13,
+                letterSpacing: ".5px",
+                boxShadow: "0 4px 16px rgba(240,194,122,.3)",
+                transition: "all .2s",
+                cursor: "pointer",
+                border: "none"
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)", e.currentTarget.style.boxShadow = "0 6px 24px rgba(240,194,122,.4)")}
+              onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 16px rgba(240,194,122,.3)")}
+            >
+              {userProfile.status === "under_review" ? "View Status" : "Complete KYC"}
+            </a>
+            <div style={{ fontSize: 12, color: "rgba(245,240,232,.3)", marginTop: 16 }}>
+              KYC is required for safety & security
+            </div>
+          </div>
+          <style>{`
+            @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+            @keyframes spin { to { transform: rotate(360deg); } }
+          `}</style>
+        </div>
+      ) : (
       <div className="db-root">
         <div className="db-inner">
 
@@ -526,6 +593,9 @@ export default function Dashboard() {
             <StatCard icon={<Users size={18} />}      label="Groups Joined"  value={stats.joined}  iconBg="rgba(147,197,253,0.12)" iconColor="#93c5fd" />
             <StatCard icon={<Globe size={18} />}      label="Total Trips"    value={stats.total}   iconBg="rgba(134,239,172,0.12)" iconColor="#86efac" />
           </div>
+
+          {/* KYC Banner */}
+          {userProfile && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
 
           {/* Error */}
           {error && (
@@ -631,6 +701,7 @@ export default function Dashboard() {
                               onLeave={() => handleLeaveTrip(trip.id)}
                               onDelete={trip.participants?.length === 1 ? () => handleDeleteTrip(trip.id) : null}
                               onView={() => navigate(`/trip/${trip.id}`)}
+                              kycApproved={userProfile?.status === 'approved'}
                             />
                           ))}
                         </div>
@@ -678,6 +749,7 @@ export default function Dashboard() {
           )}
         </div>
       </div>
+      )}
     </>
   );
 }
@@ -771,7 +843,7 @@ function StatCard({ icon, label, value, iconBg, iconColor }) {
   );
 }
 
-function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView }) {
+function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView, kycApproved }) {
   return (
     <div className="trip-card">
       <div className="trip-card-top">
@@ -830,16 +902,16 @@ function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView }) {
       </div>
 
       <div className="trip-actions">
-        <button className="btn btn-outline" onClick={onView}>
+        <button className="btn btn-outline" onClick={onView} disabled={!kycApproved} style={!kycApproved ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>
           View <ChevronRight size={13} />
         </button>
         {isCreator
           ? onDelete
-            ? <button className="btn btn-danger" onClick={onDelete} style={{ backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444' }}>Delete</button>
+            ? <button className="btn btn-danger" onClick={onDelete} disabled={!kycApproved} style={{ backgroundColor: !kycApproved ? 'rgba(100,100,100,0.2)' : 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.5)', color: '#ef4444', opacity: !kycApproved ? 0.5 : 1, cursor: !kycApproved ? 'not-allowed' : 'pointer' }}>Delete</button>
             : <button className="btn btn-dim">Your Trip</button>
           : onLeave
-            ? <button className="btn btn-gold" onClick={onLeave}>Leave</button>
-            : <button className="btn btn-primary" onClick={onJoin}>Join Trip</button>
+            ? <button className="btn btn-gold" onClick={onLeave} disabled={!kycApproved} style={!kycApproved ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>Leave</button>
+            : <button className="btn btn-primary" onClick={onJoin} disabled={!kycApproved} style={!kycApproved ? { opacity: 0.5, cursor: 'not-allowed' } : {}}>Join Trip</button>
         }
       </div>
     </div>

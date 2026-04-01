@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import api from "../API/api";
+import KYCBanner from "./KYCBanner";
 import { Close as CloseIcon, Send as SendIcon } from "@mui/icons-material";
 import ChatIcon from "@mui/icons-material/Chat";
 
@@ -9,12 +10,32 @@ export default function ChatbotWidget() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
+  const [userProfile, setUserProfile] = useState(null);
   const [messages, setMessages] = useState([
     { id: 1, text: "Hi! How can I help you with your travel plans?", sender: "bot", links: [] }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef(null);
+
+  // Fetch user profile for KYC status
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        const response = await fetch("http://127.0.0.1:8000/users/api/me/", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data);
+        }
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+    if (user) fetchProfile();
+  }, [user]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -134,7 +155,12 @@ export default function ChatbotWidget() {
               Always here to help
             </div>
           </div>
-
+          {/* KYC Banner */}
+          {userProfile && userProfile.status !== 'approved' && (
+            <div style={{ padding: "8px 12px", flexShrink: 0 }}>
+              <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />
+            </div>
+          )}
           {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
             {messages.map((msg) => {
@@ -221,32 +247,41 @@ export default function ChatbotWidget() {
             borderTop: ".5px solid rgba(240,194,122,.1)",
             padding: "10px 12px",
             background: "rgba(255,255,255,.02)",
-            display: "flex", gap: 8, alignItems: "center", flexShrink: 0,
+            display: "flex", flexDirection: "column", gap: 8, flexShrink: 0,
           }}>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Ask me something…"
-              style={{
-                flex: 1, padding: "9px 13px", fontSize: 13,
-                background: "rgba(255,255,255,.05)",
-                border: ".5px solid rgba(240,194,122,.15)",
-                borderRadius: 10, color: "#f5f0e8", outline: "none",
-                fontFamily: "'DM Sans', sans-serif",
-                transition: "border-color .2s",
-              }}
-              onFocus={e  => (e.target.style.borderColor = "rgba(240,194,122,.5)")}
-              onBlur={e   => (e.target.style.borderColor = "rgba(240,194,122,.15)")}
-            />
-            <button
-              onClick={handleSendMessage}
-              disabled={loading || !input.trim()}
-              style={{
-                width: 36, height: 36, borderRadius: 9, border: "none",
-                background: loading || !input.trim()
-                  ? "rgba(255,255,255,.07)"
+            {(!userProfile || userProfile.status !== 'approved') && (
+              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
+                Complete KYC to use chat
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && !(!userProfile || userProfile.status !== 'approved') && handleSendMessage()}
+                placeholder={!userProfile || userProfile.status !== 'approved' ? "Complete KYC first..." : "Ask me something…"}
+                disabled={!userProfile || userProfile.status !== 'approved'}
+                style={{
+                  flex: 1, padding: "9px 13px", fontSize: 13,
+                  background: "rgba(255,255,255,.05)",
+                  border: ".5px solid rgba(240,194,122,.15)",
+                  borderRadius: 10, color: "#f5f0e8", outline: "none",
+                  fontFamily: "'DM Sans', sans-serif",
+                  transition: "border-color .2s",
+                  opacity: !userProfile || userProfile.status !== 'approved' ? 0.5 : 1,
+                  cursor: !userProfile || userProfile.status !== 'approved' ? 'not-allowed' : 'text'
+                }}
+                onFocus={e  => !(!userProfile || userProfile.status !== 'approved') && (e.target.style.borderColor = "rgba(240,194,122,.5)")}
+                onBlur={e   => (e.target.style.borderColor = "rgba(240,194,122,.15)")}
+              />
+              <button
+                onClick={handleSendMessage}
+                disabled={loading || !input.trim() || !userProfile || userProfile.status !== 'approved'}
+                style={{
+                  width: 36, height: 36, borderRadius: 9, border: "none",
+                  background: loading || !input.trim() || !userProfile || userProfile.status !== 'approved'
+                    ? "rgba(255,255,255,.07)"
                   : "linear-gradient(135deg,#c9973a,#f0c27a)",
                 color: loading || !input.trim() ? "rgba(255,255,255,.2)" : "#0f0e0d",
                 cursor: loading || !input.trim() ? "not-allowed" : "pointer",
@@ -257,6 +292,7 @@ export default function ChatbotWidget() {
               <SendIcon sx={{ fontSize: 16 }}/>
             </button>
           </div>
+        </div>
         </div>
       )}
     </>

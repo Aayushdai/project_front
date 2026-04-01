@@ -1,14 +1,17 @@
 import { useState, useEffect } from "react";
 import API from "../services/api";
 import Sidebar from "../components/Sidebar";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import { X } from "lucide-react";
+import KYCBanner from "../components/KYCBanner";
 
 const API_URL = "http://127.0.0.1:8000";
 const token = () => localStorage.getItem("access_token");
 
 export default function CreateTrip() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const [form, setForm] = useState({
     title: "",
@@ -28,8 +31,10 @@ export default function CreateTrip() {
   const [tagsLoading, setTagsLoading] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [userProfile, setUserProfile] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
 
-  // Fetch cities and constraint tags
+  // Fetch cities, constraint tags, and user profile
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -41,10 +46,18 @@ export default function CreateTrip() {
         });
         const tagsData = await tagsRes.json();
         setAllConstraintTags(tagsData);
+        
+        // Fetch user profile for KYC status
+        const profileRes = await fetch(`${API_URL}/users/api/me/`, {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
+        const profileData = await profileRes.json();
+        setUserProfile(profileData);
       } catch (err) {
         console.error("Error fetching data:", err);
       } finally {
         setTagsLoading(false);
+        setKycLoading(false);
       }
     };
     fetchData();
@@ -107,12 +120,61 @@ export default function CreateTrip() {
 
   const inp = "w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition";
 
+  // KYC blocking screen
+  if (kycLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-[#07080f] to-[#0d0e1a] font-['Syne']">
+        <div className="text-center animate-pulse">
+          <div className="text-5xl mb-6 animate-spin">⌛</div>
+          <div className="text-lg text-white mb-3 font-bold tracking-tight">Loading...</div>
+          <div className="text-sm text-white/40">Verifying access permissions</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (userProfile && userProfile.status && userProfile.status !== "approved") {
+    return (
+      <div className="flex items-center justify-center min-h-screen w-full bg-gradient-to-br from-[#07080f] to-[#0d0e1a] font-['Syne']">
+        <div className="text-center max-w-sm p-10 bg-white/3 border border-[#f0c27a]/15 rounded-2xl animate-fadeIn shadow-2xl">
+          <div className="text-6xl mb-5">🔐</div>
+          <div className="text-2xl text-white mb-3 font-bold tracking-tight">
+            {userProfile.status === "pending"
+              ? "KYC Verification Pending"
+              : userProfile.status === "under_review"
+              ? "KYC Under Review"
+              : "KYC Verification Required"}
+          </div>
+          <div className="text-sm text-white/50 leading-relaxed mb-6">
+            {userProfile.status === "pending"
+              ? "Your KYC verification is pending. Please submit your documents to unlock trip creation."
+              : userProfile.status === "under_review"
+              ? "Your KYC verification is currently under review. We'll notify you once it's approved."
+              : "You need to complete KYC verification to create trips."}
+          </div>
+          <Link
+            to="/kyc"
+            className="inline-block px-6 py-3 rounded-lg bg-gradient-to-r from-[#c9973a] to-[#f0c27a] text-[#0f0e0d] font-bold text-sm tracking-wider hover:shadow-lg hover:-translate-y-0.5 transition-all"
+          >
+            {userProfile.status === "under_review" ? "View Status" : "Complete KYC"}
+          </Link>
+          <div className="text-xs text-white/30 mt-4">
+            KYC is required for safety & security
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#0a0c16]">
       <Sidebar />
 
       <div className="flex-1 p-6 md:p-10">
-        <div className="max-w-2xl">
+        {/* KYC Banner */}
+        {userProfile && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
+
+        <div className="max-w-2xl mt-6">
           <h2 className="text-3xl font-bold text-white mb-8">Create a New Trip</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -272,11 +334,15 @@ export default function CreateTrip() {
             {/* Submit button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !userProfile || userProfile.status !== 'approved'}
               className="w-full rounded-lg bg-[#1976D2] py-3 text-sm font-bold text-white transition hover:bg-[#1565c0] disabled:opacity-50 disabled:cursor-not-allowed"
+              title={!userProfile || userProfile.status !== 'approved' ? 'Complete KYC verification to create trips' : ''}
             >
               {loading ? "Creating..." : "Create Trip"}
             </button>
+            {(!userProfile || userProfile.status !== 'approved') && (
+              <p className="text-center text-xs text-amber-400 mt-2">Complete KYC verification to create trips</p>
+            )}
           </form>
         </div>
       </div>

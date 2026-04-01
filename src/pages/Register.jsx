@@ -4,9 +4,8 @@ import { useAuth } from "../context/AuthContext";
 
 const STEPS = [
   { id: 1, label: "Personal Info", sub: "Name, photo, date of birth" },
-  { id: 2, label: "Passport / ID", sub: "Citizenship & document details" },
-  { id: 3, label: "Contact", sub: "Address, phone & email" },
-  { id: 4, label: "Security", sub: "Answer security questions" },
+  { id: 2, label: "Contact", sub: "Address, phone & email" },
+  { id: 3, label: "Security", sub: "Answer security questions" },
 ];
 
 const VALIDATORS = {
@@ -38,32 +37,7 @@ const VALIDATORS = {
     return "";
   },
   gender: (v) => (!v ? "Please select a gender" : ""),
-  citizenship: (v) => {
-    if (!v.trim()) return "Citizenship is required";
-    if (/\d/.test(v)) return "Citizenship cannot contain numbers";
-    const trimmed = v.trim();
-    if (trimmed.length < 2) return "Citizenship must be at least 2 characters";
-    if (trimmed.length > 50) return "Citizenship must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Citizenship can only contain letters and spaces";
-    return "";
-  },
-  passportNo: (v) => {
-    if (!v.trim()) return "Passport / ID number is required";
-    const trimmed = v.trim();
-    if (trimmed.length < 6) return "Passport number must be at least 6 characters";
-    if (trimmed.length > 20) return "Passport number must be less than 20 characters";
-    if (!/^[A-Z0-9]{6,20}$/.test(trimmed.toUpperCase())) return "Passport number can only contain letters and numbers (no spaces or special chars)";
-    return "";
-  },
-  passportExpiry: (v) => {
-    if (!v) return "Expiry date is required";
-    const expiryDate = new Date(v);
-    const sixMonthsFromNow = new Date();
-    sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
-    if (expiryDate < new Date()) return "Passport has already expired";
-    if (expiryDate < sixMonthsFromNow) return "Passport must be valid for at least 6 more months";
-    return "";
-  },
+
   address: (v) => {
     if (!v.trim()) return "Street address is required";
     const trimmed = v.trim();
@@ -181,9 +155,8 @@ const VALIDATORS = {
 
 const STEP_FIELDS = {
   1: ["firstName", "lastName", "dob", "gender"],
-  2: ["citizenship", "passportNo", "passportExpiry"],
-  3: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
-  4: ["security_questions"], // Security questions validation done separately
+  2: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
+  3: ["security_questions"], // Security questions validation done separately
 };
 
 
@@ -199,16 +172,12 @@ export default function RegisterFull() {
   const [globalError, setGlobalError] = useState("");
 
   const [profilePhoto, setProfilePhoto] = useState(null);
-  const [passportPhoto, setPassportPhoto] = useState(null);
   const [profileFile, setProfileFile]   = useState(null);
-  const [passportFile, setPassportFile] = useState(null);
-  const [photoErrors, setPhotoErrors]   = useState({ profile: "", passport: "" });
+  const [photoErrors, setPhotoErrors]   = useState({ profile: "" });
   const profileRef  = useRef();
-  const passportRef = useRef();
 
   const [form, setForm] = useState({
     firstName: "", lastName: "", dob: "", gender: "",
-    citizenship: "", passportNo: "", passportExpiry: "",
     address: "", city: "", country: "", zip: "",
     phone: "", email: "", password: "", confirm: "",
   });
@@ -262,7 +231,6 @@ export default function RegisterFull() {
     }
     const newPhotoErrors = { ...photoErrors };
     if (s === 1 && !profileFile) { newPhotoErrors.profile = "Profile photo is required"; valid = false; }
-    if (s === 2 && !passportFile) { newPhotoErrors.passport = "Passport photo is required"; valid = false; }
     setErrors((er) => ({ ...er, ...newErrors }));
     setTouched((t) => ({ ...t, ...newTouched }));
     setPhotoErrors(newPhotoErrors);
@@ -315,7 +283,7 @@ export default function RegisterFull() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateStep(3)) return;
+    if (!validateStep(2)) return;
     if (!agreed) { setGlobalError("Please agree to the Terms of Service."); return; }
     
     // ✅ Validate security questions
@@ -339,9 +307,6 @@ export default function RegisterFull() {
       formData.append("last_name",       form.lastName);
       formData.append("dob",             form.dob);
       formData.append("gender",          form.gender.toLowerCase());
-      formData.append("citizenship",     form.citizenship);
-      formData.append("passport_no",     form.passportNo);
-      formData.append("passport_expiry", form.passportExpiry);
       formData.append("address",         form.address);
       formData.append("city",            form.city);
       formData.append("zip_code",        form.zip);
@@ -354,7 +319,6 @@ export default function RegisterFull() {
       formData.append("security_questions", JSON.stringify(selectedSecurityAnswers));
       
       if (profileFile)  formData.append("profile_photo",  profileFile);
-      if (passportFile) formData.append("passport_photo", passportFile);
 
       const response = await fetch("http://127.0.0.1:8000/users/api/register/", {
         method: "POST",
@@ -446,26 +410,24 @@ export default function RegisterFull() {
 
           <div className="mb-6 h-[3px] overflow-hidden rounded-full bg-[#e2ddd6]">
             <div className="h-full rounded-full bg-gradient-to-r from-orange-600 via-orange-500 to-amber-400 transition-all duration-500"
-              style={{ width: `${(step / 4) * 100}%` }} />
+              style={{ width: `${(step / 3) * 100}%` }} />
           </div>
 
           <span className="mb-3 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[2.5px] text-orange-500">
-            Step {step} of 4
+            Step {step} of 3
           </span>
           <h1 className="font-['Montserrat'] text-3xl font-light italic text-[#111827] leading-tight mb-1">
             {step === 1 && <>Tell us about <strong className="font-semibold text-orange-500">yourself</strong></>}
-            {step === 2 && <>Your <strong className="font-semibold text-orange-500">travel documents</strong></>}
-            {step === 3 && <>How to <strong className="font-semibold text-orange-500">reach you</strong></>}
-            {step === 4 && <>Secure your <strong className="font-semibold text-orange-500">account</strong></>}
+            {step === 2 && <>How to <strong className="font-semibold text-orange-500">reach you</strong></>}
+            {step === 3 && <>Secure your <strong className="font-semibold text-orange-500">account</strong></>}
           </h1>
           <p className="mb-7 text-[13px] text-slate-400">
             {step === 1 && "Your name, date of birth, and a clear profile photo."}
-            {step === 2 && "We keep your passport info secure and fully encrypted."}
-            {step === 3 && "Your address, phone number, email and account password."}
-            {step === 4 && "Set up security questions for password recovery."}
+            {step === 2 && "Your address, phone number, email and account password."}
+            {step === 3 && "Set up security questions for password recovery."}
           </p>
 
-          <form onSubmit={step < 3 ? handleNext : (step === 3 ? handleNext : handleSubmit)} noValidate>
+          <form onSubmit={step < 2 ? handleNext : (step === 2 ? handleNext : handleSubmit)} noValidate>
 
             {/* Step 1 */}
             {step === 1 && (
@@ -530,52 +492,6 @@ export default function RegisterFull() {
 
             {/* Step 2 */}
             {step === 2 && (
-              <>
-                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Passport / ID Photo *</p>
-                <div
-                  onClick={() => passportRef.current.click()}
-                  className={`mb-1 flex h-28 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed bg-white transition hover:border-orange-500 hover:bg-orange-50 ${
-                    photoErrors.passport ? "border-red-400" : "border-[#d0c9be]"
-                  }`}
-                >
-                  {passportPhoto
-                    ? <img src={passportPhoto} alt="passport" className="h-full w-full rounded-2xl object-cover" />
-                    : <>
-                        <p className="text-[13px] font-semibold text-[#374151]">Upload passport or ID photo</p>
-                        <p className="text-[11px] text-gray-400">JPG or PNG — clear, unobstructed scan</p>
-                      </>
-                  }
-                </div>
-                {photoErrors.passport && <p className="mb-4 text-[11px] text-red-400">{photoErrors.passport}</p>}
-                <input ref={passportRef} type="file" accept="image/*" className="hidden"
-                  onChange={handlePhoto(setPassportPhoto, setPassportFile, "passport")} />
-
-                <p className="mb-3.5 mt-5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Document Details</p>
-                <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
-                  <div className="flex flex-col gap-1">
-                    <label className={lbl("citizenship")}>Citizenship *</label>
-                    <input className={inp("citizenship")} value={form.citizenship} onChange={set("citizenship")}
-                      onFocus={() => setFocused("citizenship")} onBlur={blur("citizenship")} placeholder="e.g. Nepali" />
-                    {errMsg("citizenship")}
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label className={lbl("passportNo")}>Passport / ID No *</label>
-                    <input className={inp("passportNo")} value={form.passportNo} onChange={set("passportNo")}
-                      onFocus={() => setFocused("passportNo")} onBlur={blur("passportNo")} placeholder="A12345678" />
-                    {errMsg("passportNo")}
-                  </div>
-                  <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
-                    <label className={lbl("passportExpiry")}>Expiry Date *</label>
-                    <input type="date" className={inp("passportExpiry")} value={form.passportExpiry}
-                      onChange={set("passportExpiry")} onFocus={() => setFocused("passportExpiry")} onBlur={blur("passportExpiry")} />
-                    {errMsg("passportExpiry")}
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Step 3 */}
-            {step === 3 && (
               <>
                 <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Address</p>
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
@@ -661,8 +577,8 @@ export default function RegisterFull() {
               </>
             )}
 
-            {/* Step 4 - Security Questions */}
-            {step === 4 && (
+            {/* Step 3 - Security Questions */}
+            {step === 3 && (
               <>
                 <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Security Setup</p>
                 <p className="mb-4 text-[13px] text-gray-600">
@@ -731,7 +647,7 @@ export default function RegisterFull() {
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-orange-400 py-3.5 text-[14px] font-bold text-white shadow-[0_4px_18px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(249,115,22,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-65">
                 {loading
                   ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Submitting...</>
-                  : step < 4 ? "Continue" : "Complete Registration"
+                  : step < 3 ? "Continue" : "Complete Registration"
                 }
               </button>
             </div>

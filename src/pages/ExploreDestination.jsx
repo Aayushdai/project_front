@@ -18,7 +18,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, Link } from "react-router-dom";
 import {
   MapContainer, TileLayer, Marker,
   Popup, Circle, Polyline, useMap,
@@ -28,7 +28,7 @@ import {
   Utensils, Coffee, Beef, Wine, Church, Heart, DollarSign, 
   Pill, Landmark, Map as MapIcon, Flame, Mountain, Droplets, 
   ShoppingCart, Building, Leaf, Trophy, MapPin, Telescope,
-  Eye as ViewIcon, MoreVertical, Navigation2, Globe, Bike
+  Eye as ViewIcon, MoreVertical, Navigation2, Globe, Bike, ChevronRight
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -43,68 +43,6 @@ const getNepalBounds = () =>
   L.latLngBounds(L.latLng(26.347, 80.058), L.latLng(30.447, 88.201));
 
 const NEPAL_CENTER = [27.7172, 85.3240];
-
-/* ═══════════════════════════════════════════════════════════════
-   ICON RENDERER - Maps icon names to Lucide components
-═══════════════════════════════════════════════════════════════ */
-const IconComponent = ({ iconName, color, size = 18 }) => {
-  const icons = {
-    Hotel, Bed, Home, Lightbulb, Eye, Building2, Palette, Zap,
-    Utensils, Coffee, Beef, Wine, Church, Heart, DollarSign,
-    Pill, Landmark, MapIcon, Flame, Mountain, Droplets,
-    ShoppingCart, Building, Leaf, Trophy, MapPin, Telescope,
-    ViewIcon, Globe, Navigation2
-  };
-  const Icon = icons[iconName] || MapPin;
-  return <Icon size={size} color={color} />;
-};
-
-/* ═══════════════════════════════════════════════════════════════
-   CATEGORY MAP
-═══════════════════════════════════════════════════════════════ */
-const CATEGORY_MAP = {
-  hotel:            { label:"Hotel",          icon:"Hotel",      color:"#C9A84C" },
-  hostel:           { label:"Hostel",         icon:"Bed",        color:"#C9A84C" },
-  guest_house:      { label:"Guest House",    icon:"Home",       color:"#C9A84C" },
-  attraction:       { label:"Attraction",     icon:"Lightbulb",  color:"#C9A84C" },
-  viewpoint:        { label:"Viewpoint",      icon:"Eye",        color:"#C9A84C" },
-  museum:           { label:"Museum",         icon:"Building2",  color:"#C9A84C" },
-  artwork:          { label:"Artwork",        icon:"Palette",    color:"#C9A84C" },
-  theme_park:       { label:"Theme Park",     icon:"Zap",        color:"#C9A84C" },
-  zoo:              { label:"Zoo",            icon:"Zap",        color:"#C9A84C" },
-  restaurant:       { label:"Restaurant",     icon:"Utensils",   color:"#C9A84C" },
-  cafe:             { label:"Café",           icon:"Coffee",     color:"#C9A84C" },
-  fast_food:        { label:"Fast Food",      icon:"Beef",       color:"#C9A84C" },
-  bar:              { label:"Bar",            icon:"Wine",       color:"#C9A84C" },
-  place_of_worship: { label:"Temple/Shrine",  icon:"Church",     color:"#C9A84C" },
-  hospital:         { label:"Hospital",       icon:"Heart",      color:"#f43f5e" },
-  bank:             { label:"Bank",           icon:"DollarSign", color:"#C9A84C" },
-  pharmacy:         { label:"Pharmacy",       icon:"Pill",       color:"#10b981" },
-  ruins:            { label:"Ruins",          icon:"Landmark",   color:"#C9A84C" },
-  monument:         { label:"Monument",       icon:"Landmark",   color:"#C9A84C" },
-  memorial:         { label:"Memorial",       icon:"Heart",      color:"#C9A84C" },
-  peak:             { label:"Peak",           icon:"Mountain",   color:"#C9A84C" },
-  waterfall:        { label:"Waterfall",      icon:"Droplets",   color:"#C9A84C" },
-  cave_entrance:    { label:"Cave",           icon:"MapIcon",    color:"#C9A84C" },
-  supermarket:      { label:"Supermarket",    icon:"ShoppingCart",color:"#C9A84C" },
-  mall:             { label:"Mall",           icon:"Building",   color:"#C9A84C" },
-  park:             { label:"Park",           icon:"Leaf",       color:"#10b981" },
-  stadium:          { label:"Stadium",        icon:"Trophy",     color:"#C9A84C" },
-  default:          { label:"Place",          icon:"MapPin",     color:"#C9A84C" },
-};
-
-const FILTERS = [
-  { key:"all",             label:"All",         icon:"MapIcon" },
-  { key:"Temple/Shrine",   label:"Temples",     icon:"Church" },
-  { key:"Attraction",      label:"Attractions", icon:"Lightbulb" },
-  { key:"Viewpoint",       label:"Viewpoints",  icon:"Eye" },
-  { key:"Restaurant",      label:"Food",        icon:"Utensils" },
-  { key:"Hotel",           label:"Hotels",      icon:"Hotel" },
-  { key:"Peak",            label:"Peaks",       icon:"Mountain" },
-  { key:"Museum",          label:"Museums",     icon:"Building2" },
-  { key:"Waterfall",       label:"Waterfalls",  icon:"Droplets" },
-  { key:"Ruins",           label:"Heritage",    icon:"Landmark" },
-];
 
 /* ═══════════════════════════════════════════════════════════════
    OVERPASS QUERY
@@ -177,20 +115,15 @@ function deriveReviews(node, rating) {
 
 function parseNode(node) {
   const tags = node.tags || {};
-  let catKey = "default";
-  for (const key of ["tourism","amenity","historic","natural","leisure","shop"]) {
-    if (tags[key] && CATEGORY_MAP[tags[key]]) { catKey = tags[key]; break; }
-  }
-  const cat = CATEGORY_MAP[catKey];
   const rating  = deriveRating(node);
   const reviews = deriveReviews(node, rating);
   return {
     id:       node.id,
     name:     tags.name || tags["name:en"] || "Unnamed Place",
     nameNe:   tags["name:ne"] || null,
-    category: cat.label,
-    icon:     cat.icon,
-    color:    cat.color,
+    category: "Place",
+    icon:     "MapPin",
+    color:    "#C9A84C",
     rating, reviews,
     lat: node.lat,
     lng: node.lon,
@@ -369,13 +302,14 @@ function RouteLayer({ routes, selectedIndex }) {
 /* ═══════════════════════════════════════════════════════════════
    SEARCH BOX  (Nepal-only Nominatim)
 ═══════════════════════════════════════════════════════════════ */
-function SearchBox({ value, onChange, onSelect, placeholder, dotColor }) {
+function SearchBox({ value, onChange, onSelect, placeholder, dotColor, disabled }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const timer = useRef(null);
 
   useEffect(() => {
     if (!value.trim()) { setResults([]); return; }
+    if (disabled) { setResults([]); return; }
     setLoading(true);
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
@@ -393,21 +327,22 @@ function SearchBox({ value, onChange, onSelect, placeholder, dotColor }) {
       finally { setLoading(false); }
     }, 420);
     return () => clearTimeout(timer.current);
-  }, [value]);
+  }, [value, disabled]);
 
   return (
     <div style={{ position:"relative" }}>
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", width:9, height:9, borderRadius:"50%", background:dotColor, boxShadow:`0 0 6px ${dotColor}`, zIndex:2 }}/>
         <input
+          disabled={disabled}
           value={value} onChange={e => onChange(e.target.value)}
-          placeholder={placeholder} autoComplete="off" style={S.input}
-          onFocus={e => (e.target.style.borderColor = "rgba(240,194,122,.45)")}
+          placeholder={placeholder} autoComplete="off" style={{...S.input, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'text'}}
+          onFocus={e => !disabled && (e.target.style.borderColor = "rgba(240,194,122,.45)")}
           onBlur={e  => (e.target.style.borderColor = "rgba(240,194,122,.1)")}
         />
         {loading && <div style={S.spinner}/>}
       </div>
-      {results.length > 0 && (
+      {results.length > 0 && !disabled && (
         <div style={S.dropdown}>
           {results.map((r,i) => (
             <div key={i} style={S.dropItem}
@@ -518,30 +453,7 @@ function MapControls({ tracking, onToggleTrack, routeCoords }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   FILTER BAR
-═══════════════════════════════════════════════════════════════ */
-function FilterBar({ active, onChange }) {
-  return (
-    <div style={{ display:"flex", gap:6, overflowX:"auto", paddingBottom:2 }}>
-      {FILTERS.map(f => (
-        <button key={f.key} onClick={() => onChange(f.key)} style={{
-          flexShrink:0, padding:"6px 12px", borderRadius:20, cursor:"pointer",
-          border: `.5px solid ${active===f.key ? "rgba(201,168,76,.5)" : "rgba(201,168,76,.12)"}`,
-          background: active===f.key ? "rgba(201,168,76,.12)" : "transparent",
-          color: active===f.key ? "#C9A84C" : "rgba(245,240,232,.4)",
-          fontSize:11, fontFamily:"'DM Sans',sans-serif",
-          fontWeight: active===f.key ? 600 : 400,
-          whiteSpace:"nowrap", transition:"all .2s",
-          display:"flex", alignItems:"center", gap:"6px"
-        }}>
-          <IconComponent iconName={f.icon} color={active===f.key ? "#C9A84C" : "rgba(245,240,232,.4)"} size={14} />
-          {f.label}
-        </button>
-      ))}
-    </div>
-  );
-}
+
 
 /* ═══════════════════════════════════════════════════════════════
    MAIN COMPONENT
@@ -550,7 +462,59 @@ export default function NepalMap() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab,   setActiveTab]   = useState("route");
-  const [filterCat,   setFilterCat]   = useState("all");
+
+  // KYC state
+  const [kycStatus, setKycStatus] = useState(null);
+  const [kycLoading, setKycLoading] = useState(true);
+  const [refetchTrigger, setRefetchTrigger] = useState(0);
+
+  // Fetch KYC status on mount and when refetchTrigger changes
+  useEffect(() => {
+    const fetchKycStatus = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.error("No access token found - redirecting to login");
+          setKycStatus("no_token");
+          setKycLoading(false);
+          return;
+        }
+        const response = await fetch("http://127.0.0.1:8000/users/api/me/", {
+          headers: { "Authorization": `Bearer ${token}` },
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setKycStatus(data.status || null);
+          console.log("KYC Status updated:", data.status);
+          setKycLoading(false);
+        } else {
+          console.error("Failed to fetch KYC status:", response.status);
+          setKycStatus("fetch_error");
+          setKycLoading(false);
+        }
+      } catch (error) {
+        console.error("Failed to fetch KYC status:", error);
+        setKycStatus("fetch_error");
+        setKycLoading(false);
+      }
+    };
+    fetchKycStatus();
+  }, [refetchTrigger]);
+
+  // Refetch KYC status when returning from KYC form
+  useEffect(() => {
+    const handleRefreshKYC = () => {
+      console.log("Refetching KYC status...");
+      setRefetchTrigger(prev => prev + 1);
+    };
+    
+    // Listen for custom event
+    window.addEventListener("kyc-form-submitted", handleRefreshKYC);
+    
+    return () => {
+      window.removeEventListener("kyc-form-submitted", handleRefreshKYC);
+    };
+  }, []);
 
   // Route state
   const [mode,          setMode]        = useState("car");
@@ -601,9 +565,7 @@ export default function NepalMap() {
     );
   }, [livePos, allPlaces]);
 
-  const visiblePlaces = filterCat === "all"
-    ? allPlaces
-    : allPlaces.filter(p => p.category === filterCat);
+  const visiblePlaces = allPlaces;
 
   /* ── OSRM fetch — triggered when showRoute becomes true ── */
   useEffect(() => {
@@ -714,12 +676,13 @@ export default function NepalMap() {
         .tm-popup .leaflet-popup-tip-container { display:none!important; }
       `}</style>
 
-      <div style={{ display:"flex", height:"100vh", width:"100vw", overflow:"hidden", background:"#07080f" }}>
+      {/* ════════════════════════════════════════ MAP INTERFACE ════════════════════════════════════════ */}
+          <div style={{ display:"flex", height:"100vh", width:"100vw", overflow:"hidden", background:"#07080f" }}>
 
-        {/* ──────────── SIDEBAR ──────────── */}
-        <aside style={{ width:sidebarOpen?345:0, minWidth:sidebarOpen?345:0, background:"rgba(10,11,20,.98)", borderRight:".5px solid rgba(201,168,76,.1)", boxShadow:"4px 0 40px rgba(0,0,0,.5)", display:"flex", flexDirection:"column", transition:"all .35s cubic-bezier(.4,0,.2,1)", overflow:"hidden", zIndex:1001 }}>
+            {/* ──────────── SIDEBAR ──────────── */}
+            <aside style={{ width:sidebarOpen?345:0, minWidth:sidebarOpen?345:0, background:"rgba(10,11,20,.98)", borderRight:".5px solid rgba(201,168,76,.1)", boxShadow:"4px 0 40px rgba(0,0,0,.5)", display:"flex", flexDirection:"column", transition:"all .35s cubic-bezier(.4,0,.2,1)", overflow:"hidden", zIndex:1001 }}>
 
-          <div style={{ padding:"22px 20px 14px", borderBottom:".5px solid rgba(201,168,76,.08)", flexShrink:0 }}>
+          <div style={{ padding:"22px 20px 14px", marginTop:"8px", borderBottom:".5px solid rgba(201,168,76,.08)", flexShrink:0 }}>
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#f5f0e8", marginBottom:6, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
               <Globe size={20} color="#C9A84C" /> Travel <span style={{ color:"#C9A84C" }}>Nepal</span>
             </div>
@@ -730,22 +693,86 @@ export default function NepalMap() {
             </div>
           </div>
 
-          <div style={{ flex:1, overflowY:"auto", padding:"14px 18px", display:"flex", flexDirection:"column", gap:11 }}>
+          <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:13 }}>
 
             {/* ── ROUTE TAB ── */}
-            {activeTab === "route" && <>
-              <SearchBox
-                value={originText} onChange={setOriginText}
-                onSelect={p => { setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
-                placeholder="Start — search anywhere in Nepal…"
-                dotColor="#34d399"
-              />
-              <SearchBox
-                value={destText} onChange={setDestText}
-                onSelect={p => { setDest(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
-                placeholder="Destination — search Nepal…"
-                dotColor="#f0c27a"
-              />
+            {activeTab === "route" && (
+              <>
+                {/* KYC Registration Box */}
+                {kycStatus && kycStatus !== "approved" && (
+                  <div style={{ background: "rgba(240,194,122,.08)", border: ".5px solid rgba(240,194,122,.25)", borderRadius: 12, padding: "16px 14px", marginBottom: 16, animation: "tm-fade .3s ease", textAlign: "center" }}>
+                    <div style={{ fontSize: 32, marginBottom: 10 }}>🔐</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0c27a", marginBottom: 6, letterSpacing: "-.5px" }}>
+                      {kycStatus === "pending" ? "KYC Pending" : kycStatus === "under_review" ? "KYC Under Review" : "Complete Registration"}
+                    </div>
+                    <div style={{ fontSize: 11, color: "rgba(245,240,232,.5)", lineHeight: 1.6, marginBottom: 12 }}>
+                      {kycStatus === "pending" 
+                        ? "Your KYC is submitted and pending verification. You'll be notified once approved!"
+                        : kycStatus === "under_review"
+                        ? "Your KYC is being reviewed. Check back soon!"
+                        : "Complete your KYC to start exploring routes across Nepal."}
+                    </div>
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
+                      <Link 
+                        to="/kyc"
+                        style={{
+                          display: "inline-block",
+                          padding: "8px 16px",
+                          borderRadius: 8,
+                          background: "linear-gradient(135deg,#c9973a,#f0c27a)",
+                          color: "#0f0e0d",
+                          textDecoration: "none",
+                          fontWeight: 700,
+                          fontSize: 12,
+                          letterSpacing: ".5px",
+                          border: "none",
+                          cursor: "pointer",
+                          transition: "all .2s"
+                        }}
+                        onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(240,194,122,.3)")}
+                        onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "none")}
+                      >
+                        {kycStatus === "under_review" ? "View Status" : kycStatus === "pending" ? "Update KYC" : "Complete KYC"}
+                      </Link>
+                      {(kycStatus === "pending" || kycStatus === "under_review") && (
+                        <button
+                          onClick={() => setRefetchTrigger(prev => prev + 1)}
+                          style={{
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            border: ".5px solid rgba(240,194,122,.3)",
+                            background: "rgba(240,194,122,.05)",
+                            color: "#f0c27a",
+                            fontWeight: 600,
+                            fontSize: 12,
+                            cursor: "pointer",
+                            transition: "all .2s"
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,194,122,.1)")}
+                          onMouseLeave={e => (e.currentTarget.style.background = "rgba(240,194,122,.05)")}
+                          title="Refresh KYC status"
+                        >
+                          🔄 Refresh
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Route Controls - Disabled if KYC not approved */}
+                <div style={{ opacity: kycStatus && kycStatus !== "approved" ? 0.5 : 1, pointerEvents: kycStatus && kycStatus !== "approved" ? "none" : "auto" }}>
+                  <SearchBox
+                    value={originText} onChange={setOriginText}
+                    onSelect={p => { setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
+                    placeholder="Start — search anywhere in Nepal…"
+                    dotColor="#34d399"
+                  />
+                  <SearchBox
+                    value={destText} onChange={setDestText}
+                    onSelect={p => { setDest(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
+                    placeholder="Destination — search Nepal…"
+                    dotColor="#f0c27a"
+                  />
 
               <div style={{ display:"flex", gap:6 }}>
                 {[{k:"car",l:"Drive",icon:Navigation2},{k:"foot",l:"Walk",icon:MapPin},{k:"bike",l:"Bike",icon:Bike}].map(m => (
@@ -812,7 +839,9 @@ export default function NepalMap() {
                   </div>
                 </div>
               )}
-            </>}
+                </div>
+              </>
+            )}
 
             {/* ── NEARBY TAB ── */}
             {activeTab === "nearby" && (
@@ -855,98 +884,93 @@ export default function NepalMap() {
                   ))
             )}
           </div>
-        </aside>
+          </aside>
 
-        {/* Toggle */}
-        <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 361 : 16 }}>
-          {sidebarOpen ? "✕" : "☰"}
-        </button>
+          {/* Toggle */}
+          <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 361 : 16 }}>
+            {sidebarOpen ? "✕" : "☰"}
+          </button>
 
-        {/* ──────────── MAP ──────────── */}
-        <div style={{ flex:1, position:"relative" }}>
-          <MapContainer
-            center={NEPAL_CENTER}
-            zoom={7}
-            style={{ height:"100%", width:"100%" }}
-            zoomControl={false}
-            maxBounds={getNepalBounds()}
-            maxBoundsViscosity={1.0}
-            minZoom={7}
-          >
-            <TileLayer
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-              attribution='&copy; <a href="https://carto.com/">CARTO</a>'
-              maxZoom={19}
-            />
+          {/* ──────────── MAP ──────────── */}
+            <div style={{ flex:1, position:"relative" }}>
+            <MapContainer
+              center={NEPAL_CENTER}
+              zoom={7}
+              style={{ height:"100%", width:"100%" }}
+              zoomControl={false}
+              maxBounds={getNepalBounds()}
+              maxBoundsViscosity={1.0}
+              minZoom={7}
+            >
+              <TileLayer
+                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://carto.com/">CARTO</a>'
+                maxZoom={19}
+              />
 
-            <NepalBoundsEnforcer/>
-            <PlaceClusterLayer places={visiblePlaces} onSetDest={handleSetDest}/>
+              <NepalBoundsEnforcer/>
+              <PlaceClusterLayer places={visiblePlaces} onSetDest={handleSetDest}/>
 
-            {/* Route polylines — pure React-Leaflet, no LRM, no crashes */}
-            {routes.length > 0 && (
-              <RouteLayer routes={routes} selectedIndex={selectedRoute}/>
-            )}
-
-            {/* Origin marker */}
-            {origin && (
-              <Marker position={[origin.lat, origin.lng]} icon={makeRouteIcon("#34d399")}>
-                <Popup className="tm-popup">
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#34d399", marginBottom:4 }}>Origin</div>
-                    <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{origin.name}</div>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
-            {/* Destination marker */}
-            {destination && (
-              <Marker position={[destination.lat, destination.lng]} icon={makeRouteIcon("#f0c27a")}>
-                <Popup className="tm-popup">
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f0c27a", marginBottom:4 }}>Destination</div>
-                    <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{destination.name}</div>
-                  </div>
-                </Popup>
-              </Marker>
-            )}
-
-            {/* Live location */}
-            {livePos && <>
-              <Marker position={[livePos.lat, livePos.lng]} icon={getLiveIcon()} zIndexOffset={1000}>
-                <Popup className="tm-popup">
-                  <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
-                    <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#4285f4", marginBottom:4 }}>Your Location</div>
-                    <div style={{ fontSize:11, color:"rgba(245,240,232,.35)" }}>Accuracy: ±{liveAcc}m</div>
-                  </div>
-                </Popup>
-              </Marker>
-              {liveAcc && (
-                <Circle center={[livePos.lat, livePos.lng]} radius={liveAcc}
-                  pathOptions={{ color:"#4285f4", fillColor:"#4285f4", fillOpacity:.1, weight:1 }}/>
+              {/* Route polylines — pure React-Leaflet, no LRM, no crashes */}
+              {routes.length > 0 && (
+                <RouteLayer routes={routes} selectedIndex={selectedRoute}/>
               )}
-            </>}
 
-            <MapControls
-              tracking={tracking}
-              onToggleTrack={() => tracking ? stopTracking() : startTracking()}
-              routeCoords={selectedCoords}
-            />
-          </MapContainer>
+              {/* Origin marker */}
+              {origin && (
+                <Marker position={[origin.lat, origin.lng]} icon={makeRouteIcon("#34d399")}>
+                  <Popup className="tm-popup">
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#34d399", marginBottom:4 }}>Origin</div>
+                      <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{origin.name}</div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
 
-          {/* Filter bar */}
-          <div style={{ position:"absolute", bottom:16, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.92)", border:".5px solid rgba(201,168,76,.1)", borderRadius:12, padding:"8px 12px", maxWidth:"90vw" }}>
-            <FilterBar active={filterCat} onChange={setFilterCat}/>
+              {/* Destination marker */}
+              {destination && (
+                <Marker position={[destination.lat, destination.lng]} icon={makeRouteIcon("#f0c27a")}>
+                  <Popup className="tm-popup">
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f0c27a", marginBottom:4 }}>Destination</div>
+                      <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{destination.name}</div>
+                    </div>
+                  </Popup>
+                </Marker>
+              )}
+
+              {/* Live location */}
+              {livePos && <>
+                <Marker position={[livePos.lat, livePos.lng]} icon={getLiveIcon()} zIndexOffset={1000}>
+                  <Popup className="tm-popup">
+                    <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#4285f4", marginBottom:4 }}>Your Location</div>
+                      <div style={{ fontSize:11, color:"rgba(245,240,232,.35)" }}>Accuracy: ±{liveAcc}m</div>
+                    </div>
+                  </Popup>
+                </Marker>
+                {liveAcc && (
+                  <Circle center={[livePos.lat, livePos.lng]} radius={liveAcc}
+                    pathOptions={{ color:"#4285f4", fillColor:"#4285f4", fillOpacity:.1, weight:1 }}/>
+                )}
+              </>}
+
+              <MapControls
+                tracking={tracking}
+                onToggleTrack={() => tracking ? stopTracking() : startTracking()}
+                routeCoords={selectedCoords}
+              />
+            </MapContainer>
+
+            {/* Accuracy badge */}
+            {tracking && liveAcc && (
+              <div style={{ position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.88)", border:".5px solid rgba(201,168,76,.1)", borderRadius:20, padding:"6px 14px", fontSize:11, color:"rgba(245,240,232,.5)", animation:"tm-fade .2s ease", whiteSpace:"nowrap" }}>
+                ↦ Accuracy: ±{liveAcc}m
+              </div>
+            )}
           </div>
-
-          {/* Accuracy badge */}
-          {tracking && liveAcc && (
-            <div style={{ position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:"rgba(10,11,20,.88)", border:".5px solid rgba(201,168,76,.1)", borderRadius:20, padding:"6px 14px", fontSize:11, color:"rgba(245,240,232,.5)", animation:"tm-fade .2s ease", whiteSpace:"nowrap" }}>
-              ↦ Accuracy: ±{liveAcc}m
-            </div>
-          )}
-        </div>
-      </div>
+          </div>
     </>
   );
 }
@@ -972,7 +996,7 @@ const S = {
   favItem:      { background:"rgba(255,255,255,.03)", borderRadius:10, padding:12, border:".5px solid rgba(240,194,122,.08)", animation:"tm-fade .15s ease" },
   btnUse:       { padding:"5px 12px", borderRadius:6, border:"none", background:"linear-gradient(135deg,#c9973a,#f0c27a)", color:"#0f0e0d", fontSize:11, fontWeight:600, cursor:"pointer" },
   btnRemove:    { padding:"5px 10px", borderRadius:6, border:".5px solid rgba(255,100,100,.2)", background:"rgba(255,80,80,.07)", color:"#f87171", fontSize:11, fontWeight:600, cursor:"pointer" },
-  toggleBtn:    { position:"absolute", zIndex:1002, top:16, background:"linear-gradient(135deg,#c9973a,#f0c27a)", border:"none", borderRadius:10, padding:"10px 15px", color:"#0f0e0d", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", boxShadow:"0 4px 16px rgba(240,194,122,.3)", transition:"left .35s cubic-bezier(.4,0,.2,1)" },
+  toggleBtn:    { position:"absolute", zIndex:1002, top:76, background:"linear-gradient(135deg,#c9973a,#f0c27a)", border:"none", borderRadius:10, padding:"10px 15px", color:"#0f0e0d", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", boxShadow:"0 4px 16px rgba(240,194,122,.3)", transition:"left .35s cubic-bezier(.4,0,.2,1)" },
   ctrlBtn:      { width:42, height:42, borderRadius:10, border:".5px solid rgba(240,194,122,.15)", background:"rgba(10,11,20,.92)", color:"#f5f0e8", fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 14px rgba(0,0,0,.4)", transition:"background .2s", fontFamily:"'DM Sans',sans-serif" },
   ctrlActive:   { background:"rgba(52,211,153,.15)", borderColor:"rgba(52,211,153,.4)", color:"#34d399" },
   empty:        { textAlign:"center", padding:"50px 0", color:"rgba(245,240,232,.25)", fontSize:13, lineHeight:1.7 },
