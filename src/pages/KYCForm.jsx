@@ -56,7 +56,7 @@ export default function KYCForm() {
   const [focused, setFocused] = useState(null);
 
   useEffect(() => {
-    if (!user) navigate("/login");
+    if (!user) navigate("/");
     else fetchKYCStatus();
   }, [user, navigate]);
 

@@ -732,6 +732,7 @@ export default function Dashboard() {
                                 onJoin={() => handleJoinTrip(trip.id)}
                                 onLeave={isParticipant ? () => handleLeaveTrip(trip.id) : null}
                                 onView={() => navigate(`/trip/${trip.id}`)}
+                                kycApproved={userProfile?.status === 'approved'}
                               />
                             );
                           })}

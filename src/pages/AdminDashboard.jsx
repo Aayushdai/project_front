@@ -25,7 +25,7 @@ export default function AdminDashboard() {
   // Check if user is admin
   useEffect(() => {
     if (!user || !user.is_staff) {
-      navigate("/login");
+      navigate("/");
     }
   }, [user, navigate]);
 

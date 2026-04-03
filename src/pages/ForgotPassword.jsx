@@ -582,7 +582,12 @@ export default function ForgotPassword() {
                     </button>
                   </div>
                   <div className="fp-back">
-                    <a href="/login">← Back to login</a>
+                    <button
+                      onClick={() => navigate("/")}
+                      className="text-[#C9A84C] hover:text-[#d4b76a] transition font-semibold flex items-center gap-1"
+                    >
+                      ← Back to login
+                    </button>
                   </div>
                 </form>
               )}

@@ -1,9 +1,433 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
 
 const API_URL = "http://127.0.0.1:8000";
 
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  .chat-root *, .chat-root *::before, .chat-root *::after {
+    box-sizing: border-box; margin: 0; padding: 0;
+  }
+  .chat-root {
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    height: calc(100vh - 70px);
+    overflow: hidden;
+    background: var(--bg-page);
+    --bg-page:       #0f1219;
+    --bg-surface:    #1a1f2e;
+    --bg-muted:      #252d3d;
+    --bg-hover:      #2d3541;
+    --border:        rgba(255,255,255,0.1);
+    --border-strong: rgba(201,168,76,0.3);
+    --text-primary:  #ffffff;
+    --text-secondary:#d0d0d0;
+    --text-muted:    #999999;
+    --accent:        #C9A84C;
+    --accent-hover:  #d4b76a;
+    --bubble-in-bg:  #252d3d;
+    --bubble-out-bg: #C9A84C;
+    --bubble-out-tx: #0f1219;
+    --unread:        #C9A84C;
+    --online:        #22c55e;
+  }
+
+  /* ── Scrollbar ── */
+  .chat-root ::-webkit-scrollbar { width: 3px; }
+  .chat-root ::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, 0.4); border-radius: 3px; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 272px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+  }
+  .sidebar-header {
+    padding: 20px 18px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+  }
+  .search-wrap {
+    padding: 10px 12px;
+    flex-shrink: 0;
+  }
+  .search-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 7px 11px;
+    transition: border-color 0.15s;
+  }
+  .search-row:focus-within { border-color: var(--accent); }
+  .search-row input {
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+  }
+  .search-row input::placeholder { color: var(--text-muted); }
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 8px 18px 4px;
+    flex-shrink: 0;
+  }
+  .conv-list { flex: 1; overflow-y: auto; padding: 4px 8px 8px; }
+  .conv-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border: 1px solid transparent;
+    margin-bottom: 2px;
+  }
+  .conv-item:hover { background: var(--bg-hover); }
+  .conv-item.active {
+    background: var(--bg-muted);
+    border-color: var(--border-strong);
+  }
+
+  /* ── Avatar ── */
+  .avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    background: rgba(201, 168, 76, 0.2);
+    color: #C9A84C;
+    letter-spacing: -0.3px;
+  }
+  .avatar.group {
+    border-radius: 10px;
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    font-size: 16px;
+  }
+  .avatar.sm {
+    width: 28px;
+    height: 28px;
+    font-size: 10px;
+    align-self: flex-end;
+  }
+  .avatar-colors { background: rgba(168, 85, 247, 0.2); color: #a855f7; }
+  .avatar-warm   { background: rgba(201, 168, 76, 0.2); color: #C9A84C; }
+
+  /* ── Conv meta ── */
+  .conv-meta { flex: 1; min-width: 0; }
+  .conv-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .conv-preview {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+  .conv-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .conv-time { font-size: 11px; color: var(--text-muted); }
+  .unread-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--unread);
+  }
+
+  /* ── Empty state ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    color: var(--text-muted);
+    gap: 8px;
+  }
+  .empty-icon { font-size: 32px; }
+  .empty-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+  .empty-sub { font-size: 12px; }
+  .error-box {
+    font-size: 11px;
+    color: #ff6b6b;
+    margin-top: 10px;
+    padding: 10px;
+    background: rgba(255, 107, 107, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 107, 107, 0.3);
+  }
+
+  /* ── Thread ── */
+  .thread {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--bg-page);
+  }
+  .thread-header {
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+  }
+  .thread-info { flex: 1; min-width: 0; }
+  .thread-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+  .thread-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-top: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .online-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--online);
+    flex-shrink: 0;
+  }
+  .thread-actions { display: flex; gap: 6px; }
+  .icon-btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: background 0.12s, border-color 0.12s;
+  }
+  .icon-btn:hover { background: var(--bg-muted); border-color: var(--border-strong); }
+
+  /* ── Messages ── */
+  .messages-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .date-divider { text-align: center; margin: 14px 0 10px; }
+  .date-pill {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 3px 12px;
+  }
+  .msg-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1px;
+  }
+  .msg-row.sent { flex-direction: row-reverse; }
+  .bubble-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-width: 68%;
+  }
+  .msg-row.sent .bubble-group { align-items: flex-end; }
+  .bubble {
+    padding: 9px 13px;
+    border-radius: 16px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--text-primary);
+    background: var(--bubble-in-bg);
+    border: 1px solid var(--border);
+    word-break: break-word;
+  }
+  .bubble.sent {
+    background: var(--bubble-out-bg);
+    border-color: var(--bubble-out-bg);
+    color: var(--bubble-out-tx);
+  }
+  .bubble.first-in  { border-top-left-radius: 4px; }
+  .bubble.last-in   { border-bottom-left-radius: 4px; }
+  .bubble.first-out { border-top-right-radius: 4px; }
+  .bubble.last-out  { border-bottom-right-radius: 4px; }
+  .msg-time {
+    font-size: 10px;
+    color: var(--text-muted);
+    padding: 0 4px;
+    margin-top: 3px;
+  }
+  .msg-time.right { text-align: right; }
+
+  /* ── Spinner ── */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-strong);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  /* ── Empty thread ── */
+  .thread-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .thread-empty-icon { font-size: 36px; }
+  .thread-empty-title { font-size: 15px; font-weight: 500; color: var(--text-secondary); }
+  .thread-empty-sub { font-size: 13px; }
+
+  /* ── Input area ── */
+  .input-area {
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg-surface);
+  }
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-muted);
+    border: 1px solid var(--border-strong);
+    border-radius: 22px;
+    padding: 6px 6px 6px 16px;
+    transition: border-color 0.15s;
+  }
+  .input-row:focus-within { border-color: var(--accent); }
+  .input-row input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+    outline: none;
+    font-family: inherit;
+  }
+  .input-row input::placeholder { color: var(--text-muted); }
+  .send-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+// ── Helper: get avatar initials ──────────────────────────────────────────────
+function initials(name = "") {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+}
+
+// ── Helper: reliably get sender ID from message ─────────────────────
+function getSenderId(msg) {
+  // Backend sends 'sender' directly as an ID number
+  return msg?.sender || msg?.sender_id || msg?.user?.id || msg?.user_id;
+}
+
+// ── Helper: avatar color class by index ─────────────────────────────────────
+const AVATAR_COLORS = [
+  { bg: "#dbeafe", color: "#1d4ed8" },
+  { bg: "#fce7f3", color: "#be185d" },
+  { bg: "#fef3c7", color: "#b45309" },
+  { bg: "#dcfce7", color: "#15803d" },
+  { bg: "#ede9fe", color: "#6d28d9" },
+];
+function avatarStyle(idx) {
+  const c = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+  return { background: c.bg, color: c.color };
+}
+
+// ── SendIcon ─────────────────────────────────────────────────────────────────
+function SendIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="white">
+      <path d="M14.5 8L2 2l3 6-3 6z" />
+    </svg>
+  );
+}
+
+// ── SearchIcon ───────────────────────────────────────────────────────────────
+function SearchIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none"
+      stroke="currentColor" strokeWidth="1.5" style={{ color: "#a09e9a", flexShrink: 0 }}>
+      <circle cx="6.5" cy="6.5" r="4.5" />
+      <line x1="10.5" y1="10.5" x2="14" y2="14" />
+    </svg>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Chat() {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
@@ -13,42 +437,41 @@ export default function Chat() {
   const [chatError, setChatError] = useState(null);
   const [messageInput, setMessageInput] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef(null);
 
-  // Fetch conversations (friends + groups from trips)
+  // Fetch conversations
   useEffect(() => {
     const fetchConversations = async () => {
       try {
         const token = localStorage.getItem("access_token");
-        if (!token) {
-          navigate("/login");
-          return;
-        }
+        if (!token) { navigate("/"); return; }
 
         setChatLoading(true);
         setChatError(null);
 
-        // Fetch friends and trips
         const [friendsRes, tripsRes] = await Promise.all([
           fetch(`${API_URL}/users/api/friends/`, {
-            headers: { "Authorization": `Bearer ${token}` },
+            headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_URL}/api/trips/trips/`, {
-            headers: { "Authorization": `Bearer ${token}` },
-          }).catch(() => ({ ok: false })),  // Gracefully handle trips fetch failure
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => ({ ok: false })),
         ]);
 
         let convos = [];
-        let friendsData = null;
-        let tripsData = null;
 
-        // Add direct message conversations with friends
         if (friendsRes.ok) {
-          friendsData = await friendsRes.json();
-          const friends = Array.isArray(friendsData) ? friendsData : friendsData.friends || friendsData.results || [];
+          const friendsData = await friendsRes.json();
+          const friends = Array.isArray(friendsData)
+            ? friendsData
+            : friendsData.friends || friendsData.results || [];
           convos = friends.map(friend => ({
             id: `friend-${friend.id}`,
             type: "direct",
-            name: friend.first_name || friend.username || "Friend",
+            name: friend.first_name
+              ? `${friend.first_name} ${friend.last_name || ""}`.trim()
+              : friend.username || "Friend",
             avatar: friend.profile_pic || null,
             userId: friend.id,
             unread: 0,
@@ -57,11 +480,12 @@ export default function Chat() {
           }));
         }
 
-        // Add group conversations from joined trips
         if (tripsRes?.ok) {
           try {
-            tripsData = await tripsRes.json();
-            const trips = Array.isArray(tripsData) ? tripsData : tripsData.results || tripsData.trips || [];
+            const tripsData = await tripsRes.json();
+            const trips = Array.isArray(tripsData)
+              ? tripsData
+              : tripsData.results || tripsData.trips || [];
             const groupConvos = trips.map(trip => ({
               id: `group-${trip.id}`,
               type: "group",
@@ -74,35 +498,25 @@ export default function Chat() {
               lastMessageTime: null,
             }));
             convos = [...convos, ...groupConvos];
-          } catch (error) {
-            console.warn("Failed to parse trips data:", error);
-            // Continue without trips - not critical for messaging
+          } catch (e) {
+            console.warn("Failed to parse trips data:", e);
           }
-        } else {
-          console.warn("Trips API unavailable - group chat features disabled");
         }
 
-        console.log("Friends API response:", friendsRes.status, friendsData);
-        console.log("Trips API response:", tripsRes.status, tripsData);
-        console.log("Total conversations created:", convos.length);
-        
         setConversations(convos);
         setChatLoading(false);
 
-        // Auto-select friend conversation if coming from friend profile
-        const selectedFriendId = sessionStorage.getItem('selectedFriendId');
+        // Auto-select from sessionStorage
+        const selectedFriendId = sessionStorage.getItem("selectedFriendId");
         if (selectedFriendId) {
-          const friendConvo = convos.find(c => c.userId?.toString() === selectedFriendId);
-          if (friendConvo) {
-            setSelectedConversation(friendConvo);
-          }
-          // Clear the stored friend ID
-          sessionStorage.removeItem('selectedFriendId');
-          sessionStorage.removeItem('selectedFriendName');
+          const friendConvo = convos.find(
+            c => c.userId?.toString() === selectedFriendId
+          );
+          if (friendConvo) setSelectedConversation(friendConvo);
+          sessionStorage.removeItem("selectedFriendId");
+          sessionStorage.removeItem("selectedFriendName");
         }
       } catch (error) {
-        console.error("Failed to fetch conversations:", error);
-        console.error("Error details:", error.message);
         setChatError("Could not load conversations: " + error.message);
         setChatLoading(false);
       }
@@ -111,7 +525,7 @@ export default function Chat() {
     fetchConversations();
   }, [navigate]);
 
-  // Fetch messages for selected conversation
+  // Fetch messages for selected conversation (with polling)
   useEffect(() => {
     if (!selectedConversation) return;
 
@@ -120,67 +534,113 @@ export default function Chat() {
         const token = localStorage.getItem("access_token");
         if (!token) return;
 
-        setChatLoading(true);
-        const recipientId = selectedConversation.userId || selectedConversation.tripId;
-        const type = selectedConversation.type;
+        // Get current user ID fresh each time
+        let userId = null;
+        try {
+          const user = JSON.parse(localStorage.getItem("user") || "{}");
+          userId = user?.id;
+          console.log("🔵 Current user ID:", userId, "Type:", typeof userId);
+        } catch (e) {
+          console.error("Failed to get user ID:", e);
+        }
 
-        const actionName = type === "direct" ? "direct_messages" : "group_messages";
+        const recipientId =
+          selectedConversation.userId || selectedConversation.tripId;
+        const type = selectedConversation.type;
+        const actionName =
+          type === "direct" ? "direct_messages" : "group_messages";
         const paramName = type === "direct" ? "recipient_id" : "trip_id";
-        const messageRes = await fetch(
+
+        const res = await fetch(
           `${API_URL}/api/chat/messages/${actionName}/?${paramName}=${recipientId}`,
-          {
-            headers: { "Authorization": `Bearer ${token}` },
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
-        if (messageRes.ok) {
-          const data = await messageRes.json();
-          setMessages(Array.isArray(data) ? data : data.results || []);
+        if (res.ok) {
+          const data = await res.json();
+          const messagesData = Array.isArray(data) ? data : data.results || [];
+          console.log("📨 Fetched messages:", messagesData.length);
+          
+          // Mark each message with isSent based on current user ID
+          const messagesWithSender = messagesData.map((msg, idx) => {
+            // Backend sends 'isSent' (camelCase) as a boolean field
+            let isSent = msg.isSent;
+            const senderId = getSenderId(msg);
+            
+            if (isSent === undefined) {
+              // Fallback: compare sender ID with current user ID
+              isSent = Number(senderId) === Number(userId);
+            }
+            
+            console.log(`[Message ${idx}]`, {
+              content: msg.content?.slice(0, 20),
+              backendIsSent: msg.isSent,
+              senderId,
+              userId,
+              finalIsSent: isSent,
+            });
+            
+            return {
+              ...msg,
+              isSent,
+            };
+          });
+          setMessages(messagesWithSender);
         }
-        setChatLoading(false);
       } catch (error) {
         console.error("Failed to fetch messages:", error);
-        setChatLoading(false);
       }
     };
 
-    fetchMessages();
-    // Poll for new messages every 3 seconds
+    setChatLoading(true);
+    fetchMessages().finally(() => setChatLoading(false));
     const interval = setInterval(fetchMessages, 3000);
     return () => clearInterval(interval);
   }, [selectedConversation]);
 
-  // Send message function
+  // Send message
   const handleSendMessage = async () => {
-    if (!messageInput.trim() || !selectedConversation) return;
+    if (!messageInput.trim() || !selectedConversation || sendingMessage) return;
 
     setSendingMessage(true);
     try {
       const token = localStorage.getItem("access_token");
       if (!token) return;
 
-      const recipientId = selectedConversation.userId || selectedConversation.tripId;
+      const recipientId =
+        selectedConversation.userId || selectedConversation.tripId;
       const type = selectedConversation.type;
 
       const res = await fetch(`${API_URL}/api/chat/messages/`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           content: messageInput,
-          ...(type === "direct" ? { receiver_id: recipientId } : { trip_id: recipientId }),
+          ...(type === "direct"
+            ? { receiver_id: recipientId }
+            : { trip_id: recipientId }),
         }),
       });
 
       if (res.ok) {
         const newMessage = await res.json();
-        setMessages([...messages, newMessage]);
+        console.log("✅ Message sent! Backend response:", {
+          id: newMessage.id,
+          content: newMessage.content?.slice(0, 30),
+          sender: newMessage.sender,
+          isSent: newMessage.isSent,
+          timestamp: newMessage.timestamp
+        });
+        // Always mark newly sent messages as sent (from current user)
+        setMessages(prev => [...prev, { ...newMessage, isSent: true }]);
         setMessageInput("");
       } else {
-        const error = await res.json();
-        console.error("Error response:", error);
+        const err = await res.json();
+        console.error("Send error:", err);
+        setChatError("Could not send message");
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -189,269 +649,270 @@ export default function Chat() {
     setSendingMessage(false);
   };
 
-  return (
-    <div style={{ display:"flex", height:"100vh", overflow:"hidden", background:"#07080f" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-        @keyframes tm-spin   { to{transform:rotate(360deg)} }
-        @keyframes tm-fade   { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes tm-slide  { from{transform:translateX(-8px);opacity:0} to{transform:translateX(0);opacity:1} }
-        *,*::before,*::after { box-sizing:border-box;margin:0;padding:0; }
-        body { font-family:'DM Sans',sans-serif; }
-        ::-webkit-scrollbar { width:3px; }
-        ::-webkit-scrollbar-thumb { background:rgba(240,194,122,.25);border-radius:3px; }
-        input::placeholder { color:rgba(245,240,232,.2)!important; }
-      `}</style>
+  // Search filter
+  const filteredConversations = conversations.filter(c =>
+    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const directConvos = filteredConversations.filter(c => c.type === "direct");
+  const groupConvos  = filteredConversations.filter(c => c.type === "group");
 
-      {/* Left: Conversations List */}
-      <div style={{ width:320, borderRight:".5px solid rgba(201,168,76,.1)", display:"flex", flexDirection:"column", background:"rgba(10,11,20,.6)" }}>
-        <div style={{ padding:"20px 18px", borderBottom:".5px solid rgba(240,194,122,.1)", flexShrink:0 }}>
-          <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:16, color:"#f5f0e8", letterSpacing:"-.5px" }}>Messages</div>
+  // Group consecutive messages for cleaner bubble rendering
+  const groupedMessages = messages.reduce((groups, msg, i) => {
+    const prev = messages[i - 1];
+    // Use same sender ID extraction for consistency
+    const isSameAuthor =
+      prev && getSenderId(prev) === getSenderId(msg);
+    if (!isSameAuthor) {
+      groups.push([msg]);
+    } else {
+      groups[groups.length - 1].push(msg);
+    }
+    return groups;
+  }, []);
+
+  return (
+    <div className="chat-root">
+      <style>{styles}</style>
+
+      {/* ── Sidebar ── */}
+      <div className="sidebar">
+        <div className="sidebar-header">
+          <div className="sidebar-title">Messages</div>
         </div>
 
-        {chatLoading ? (
-          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(240,194,122,.6)", fontSize:12 }}>
-            <div style={{ ...S.spinner, position:"static", display:"inline-block", marginRight:8 }}/>
-            <div>Loading…</div>
+        <div className="search-wrap">
+          <div className="search-row">
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder="Search…"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {chatLoading && conversations.length === 0 ? (
+          <div className="empty-state">
+            <div className="spinner" />
           </div>
         ) : conversations.length === 0 ? (
-          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", textAlign:"center", padding:20, color:"rgba(245,240,232,.25)", fontSize:13 }}>
-            <div>
-              <div style={{ fontSize:28, marginBottom:10 }}>💬</div>
-              <p>No conversations yet</p>
-              <p style={{ fontSize:11, marginTop:6, opacity:.6 }}>Add friends or join trips to start chatting</p>
-              {chatError && <div style={{ fontSize:10, color:"#f87171", marginTop:12, padding:10, background:"rgba(248,113,113,.08)", borderRadius:8 }}>Error: {chatError}</div>}
+          <div className="empty-state">
+            <div className="empty-icon">💬</div>
+            <div className="empty-title">No conversations yet</div>
+            <div className="empty-sub">
+              Add friends or join trips to start chatting
             </div>
+            {chatError && <div className="error-box">{chatError}</div>}
           </div>
         ) : (
-          <div style={{ flex:1, overflowY:"auto", padding:"8px 8px" }}>
-            {conversations.map(conv => (
-              <div
-                key={conv.id}
-                onClick={() => setSelectedConversation(conv)}
-                style={{
-                  padding:"12px 12px",
-                  borderRadius:10,
-                  background:selectedConversation?.id === conv.id?"rgba(240,194,122,.15)":"transparent",
-                  border:selectedConversation?.id === conv.id?".5px solid rgba(240,194,122,.3)":"transparent",
-                  cursor:"pointer",
-                  marginBottom:4,
-                  transition:"all .2s",
-                }}
-                onMouseEnter={e => {
-                  if(selectedConversation?.id !== conv.id) {
-                    e.currentTarget.style.background = "rgba(240,194,122,.08)";
-                  }
-                }}
-                onMouseLeave={e => {
-                  if(selectedConversation?.id !== conv.id) {
-                    e.currentTarget.style.background = "transparent";
-                  }
-                }}
-              >
-                <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                  <div style={{
-                    width:48,
-                    height:48,
-                    borderRadius:"50%",
-                    background:conv.avatar?"":"rgba(240,194,122,.2)",
-                    backgroundImage:conv.avatar?`url(${conv.avatar})`:undefined,
-                    backgroundSize:"cover",
-                    backgroundPosition:"center",
-                    display:"flex",
-                    alignItems:"center",
-                    justifyContent:"center",
-                    flexShrink:0,
-                    fontSize:22,
-                    fontWeight:600,
-                  }}>
-                    {!conv.avatar && (conv.type === "group" ? "👥" : "👤")}
-                  </div>
-                  <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:600, color:"#f5f0e8", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{conv.name}</div>
-                    {conv.type === "group" && (
-                      <div style={{ fontSize:11, color:"rgba(245,240,232,.4)", marginTop:2 }}>
-                        {conv.memberCount} members
-                      </div>
-                    )}
-                    {conv.lastMessage && (
-                      <div style={{ fontSize:11, color:"rgba(245,240,232,.35)", marginTop:4, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>
-                        {conv.lastMessage}
-                      </div>
-                    )}
-                  </div>
-                  {conv.unread > 0 && (
-                    <div style={{
-                      minWidth:24,
-                      height:24,
-                      borderRadius:"50%",
-                      background:"#f0c27a",
-                      color:"#0f0e0d",
-                      display:"flex",
-                      alignItems:"center",
-                      justifyContent:"center",
-                      fontSize:11,
-                      fontWeight:700,
-                      flexShrink:0,
-                    }}>
-                      {conv.unread}
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div className="conv-list">
+            {directConvos.length > 0 && (
+              <>
+                <div className="section-label">Direct</div>
+                {directConvos.map((conv, idx) => (
+                  <ConvItem
+                    key={conv.id}
+                    conv={conv}
+                    idx={idx}
+                    active={selectedConversation?.id === conv.id}
+                    onClick={() => {
+                      setSelectedConversation(conv);
+                      setMessages([]);
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            {groupConvos.length > 0 && (
+              <>
+                <div className="section-label">Groups</div>
+                {groupConvos.map((conv, idx) => (
+                  <ConvItem
+                    key={conv.id}
+                    conv={conv}
+                    idx={idx}
+                    active={selectedConversation?.id === conv.id}
+                    onClick={() => {
+                      setSelectedConversation(conv);
+                      setMessages([]);
+                    }}
+                  />
+                ))}
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Right: Message Thread */}
-      <div style={{ flex:1, display:"flex", flexDirection:"column", background:"#07080f" }}>
+      {/* ── Thread ── */}
+      <div className="thread">
         {!selectedConversation ? (
-          <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", textAlign:"center", color:"rgba(245,240,232,.25)" }}>
-            <div>
-              <div style={{ fontSize:48, marginBottom:16 }}>👋</div>
-              <div style={{ fontSize:18, fontWeight:600, color:"rgba(245,240,232,.5)", marginBottom:8 }}>Select a conversation</div>
-              <div style={{ fontSize:13 }}>to start chatting</div>
-            </div>
+          <div className="thread-empty">
+            <div className="thread-empty-icon">👋</div>
+            <div className="thread-empty-title">Select a conversation</div>
+            <div className="thread-empty-sub">to start chatting</div>
           </div>
         ) : (
           <>
-            {/* Message Header */}
-            <div style={{
-              display:"flex",
-              alignItems:"center",
-              gap:12,
-              padding:"18px 24px",
-              borderBottom:".5px solid rgba(240,194,122,.1)",
-              background:"rgba(10,11,20,.4)",
-              flexShrink:0,
-            }}>
-              <button
-                onClick={() => {
-                  setSelectedConversation(null);
-                  setMessages([]);
-                }}
-                style={{
-                  background:"transparent",
-                  border:"none",
-                  color:"#f0c27a",
-                  cursor:"pointer",
-                  fontSize:20,
-                  padding:0,
-                  display:"flex",
-                  alignItems:"center",
-                }}
-                title="Back to conversations"
+            {/* Header */}
+            <div className="thread-header">
+              <div
+                className="avatar"
+                style={
+                  selectedConversation.type === "group"
+                    ? { borderRadius: 10, background: "#dcfce7", color: "#15803d" }
+                    : avatarStyle(0)
+                }
               >
-                ←
-              </button>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:15, fontWeight:600, color:"#f5f0e8" }}>{selectedConversation.name}</div>
-                {selectedConversation.type === "group" && (
-                  <div style={{ fontSize:12, color:"rgba(245,240,232,.4)", marginTop:2 }}>
-                    {selectedConversation.memberCount} members
-                  </div>
-                )}
+                {selectedConversation.type === "group"
+                  ? "👥"
+                  : initials(selectedConversation.name)}
+              </div>
+              <div className="thread-info">
+                <div className="thread-name">{selectedConversation.name}</div>
+                <div className="thread-sub">
+                  {selectedConversation.type === "group" ? (
+                    `${selectedConversation.memberCount} members`
+                  ) : (
+                    <>
+                      <span className="online-dot" />
+                      Online
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="thread-actions">
+                <button className="icon-btn" title="Info" onClick={() => {}}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                    stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="8" cy="8" r="6" />
+                    <line x1="8" y1="7" x2="8" y2="11" />
+                    <circle cx="8" cy="5" r="0.6" fill="currentColor" />
+                  </svg>
+                </button>
+                <button className="icon-btn" title="More" onClick={() => {}}>
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none"
+                    stroke="currentColor" strokeWidth="1.5">
+                    <circle cx="8" cy="3.5" r="1.1" fill="currentColor" stroke="none" />
+                    <circle cx="8" cy="8"   r="1.1" fill="currentColor" stroke="none" />
+                    <circle cx="8" cy="12.5" r="1.1" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
               </div>
             </div>
 
-            {/* Messages Area */}
-            <div style={{
-              flex:1,
-              overflowY:"auto",
-              display:"flex",
-              flexDirection:"column",
-              padding:"20px 24px",
-              gap:12,
-            }}>
-              {messages.length === 0 ? (
-                <div style={{ flex:1, display:"flex", alignItems:"center", justifyContent:"center", color:"rgba(245,240,232,.25)", textAlign:"center" }}>
-                  <div>
-                    <div style={{ fontSize:32, marginBottom:12 }}>💌</div>
-                    <div>No messages yet</div>
-                    <div style={{ fontSize:12, marginTop:4, opacity:.6 }}>Start the conversation!</div>
-                  </div>
+            {/* Messages */}
+            <div className="messages-area">
+              {chatLoading && messages.length === 0 ? (
+                <div style={{ display: "flex", justifyContent: "center", paddingTop: 32 }}>
+                  <div className="spinner" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="thread-empty">
+                  <div style={{ fontSize: 28 }}>💌</div>
+                  <div className="thread-empty-title">No messages yet</div>
+                  <div className="thread-empty-sub">Say hi!</div>
                 </div>
               ) : (
-                messages.map((msg, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      display:"flex",
-                      justifyContent:msg.isSent?"flex-end":"flex-start",
-                      animation:"tm-slide .2s ease",
-                    }}
-                  >
-                    <div style={{
-                      maxWidth:"70%",
-                      padding:"12px 16px",
-                      borderRadius:16,
-                      background:msg.isSent?"linear-gradient(135deg,rgba(201,152,58,.3),rgba(240,194,122,.25))":"rgba(255,255,255,.08)",
-                      border:`.5px solid ${msg.isSent?"rgba(240,194,122,.3)":"rgba(255,255,255,.08)"}`,
-                      color:"#f5f0e8",
-                      fontSize:13,
-                      lineHeight:1.6,
-                      wordBreak:"break-word",
-                    }}>
-                      <div>{msg.content || msg.message}</div>
-                      <div style={{ fontSize:10, color:"rgba(245,240,232,.35)", marginTop:6, textAlign:msg.isSent?"right":"left" }}>
-                        {new Date(msg.created_at || msg.timestamp).toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})}
-                      </div>
-                    </div>
+                <>
+                  <div className="date-divider">
+                    <span className="date-pill">Today</span>
                   </div>
-                ))
+                  {groupedMessages.map((group, gi) => {
+                    const first = group[0];
+                    const isSent = first.isSent || first.is_sender;
+                    return (
+                      <div
+                        key={gi}
+                        className={`msg-row${isSent ? " sent" : ""}`}
+                        style={{ marginBottom: 8 }}
+                      >
+                        {!isSent && (
+                          <div className="avatar sm" style={avatarStyle(gi)}>
+                            {initials(
+                              first.sender?.username ||
+                              first.sender_name ||
+                              selectedConversation.name
+                            )}
+                          </div>
+                        )}
+                        <div className="bubble-group">
+                          {group.map((msg, mi) => {
+                            const isFirst = mi === 0;
+                            const isLast = mi === group.length - 1;
+                            const cls = [
+                              "bubble",
+                              isSent ? "sent" : "",
+                              isFirst && !isSent ? "first-in" : "",
+                              isLast  && !isSent ? "last-in"  : "",
+                              isFirst && isSent  ? "first-out" : "",
+                              isLast  && isSent  ? "last-out"  : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ");
+                            return (
+                              <div key={mi} className={cls}>
+                                {msg.content || msg.message}
+                              </div>
+                            );
+                          })}
+                          <div className={`msg-time${isSent ? " right" : ""}`}>
+                            {new Date(
+                              group[group.length - 1].created_at ||
+                              group[group.length - 1].timestamp
+                            ).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
+                </>
               )}
             </div>
 
-            {/* Input Area */}
-            <div style={{
-              display:"flex",
-              gap:10,
-              padding:"16px 24px",
-              borderTop:".5px solid rgba(240,194,122,.1)",
-              background:"rgba(10,11,20,.4)",
-              flexShrink:0,
-            }}>
-              <input
-                value={messageInput}
-                onChange={e => setMessageInput(e.target.value)}
-                onKeyPress={e => e.key === "Enter" && !e.shiftKey && handleSendMessage()}
-                placeholder="Type a message…"
-                maxLength={1000}
-                style={{
-                  flex:1,
-                  padding:"12px 16px",
-                  border:".5px solid rgba(240,194,122,.1)",
-                  borderRadius:24,
-                  fontSize:13,
-                  fontFamily:"'DM Sans',sans-serif",
-                  background:"rgba(255,255,255,.04)",
-                  color:"#f5f0e8",
-                  outline:"none",
-                  transition:"border-color .2s",
-                }}
-                onFocus={e => (e.currentTarget.style.borderColor = "rgba(240,194,122,.3)")}
-                onBlur={e => (e.currentTarget.style.borderColor = "rgba(240,194,122,.1)")}
-                disabled={sendingMessage}
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={!messageInput.trim() || sendingMessage}
-                style={{
-                  padding:"12px 22px",
-                  borderRadius:24,
-                  border:"none",
-                  background:messageInput.trim() && !sendingMessage?"linear-gradient(135deg,#c9973a,#f0c27a)":"rgba(240,194,122,.1)",
-                  color:messageInput.trim() && !sendingMessage?"#0f0e0d":"rgba(240,194,122,.4)",
-                  cursor:messageInput.trim() && !sendingMessage?"pointer":"not-allowed",
-                  fontWeight:600,
-                  fontSize:13,
-                  transition:"all .2s",
-                  whiteSpace:"nowrap",
-                }}
-              >
-                {sendingMessage ? "↻" : "Send"}
-              </button>
+            {/* Input */}
+            <div className="input-area">
+              {chatError && (
+                <div style={{
+                  fontSize: 11, color: "#dc2626", marginBottom: 8,
+                  padding: "6px 12px", background: "#fef2f2",
+                  borderRadius: 8, border: "1px solid #fecaca"
+                }}>
+                  {chatError}
+                </div>
+              )}
+              <div className="input-row">
+                <input
+                  type="text"
+                  placeholder={`Message ${selectedConversation.name}…`}
+                  value={messageInput}
+                  maxLength={1000}
+                  onChange={e => setMessageInput(e.target.value)}
+                  onKeyDown={e =>
+                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
+                  }
+                  disabled={sendingMessage}
+                />
+                <button
+                  className="send-btn"
+                  onClick={handleSendMessage}
+                  disabled={!messageInput.trim() || sendingMessage}
+                >
+                  {sendingMessage ? (
+                    <div
+                      className="spinner"
+                      style={{ width: 14, height: 14, borderColor: "rgba(255,255,255,0.4)", borderTopColor: "#fff" }}
+                    />
+                  ) : (
+                    <SendIcon />
+                  )}
+                </button>
+              </div>
             </div>
           </>
         )}
@@ -460,6 +921,60 @@ export default function Chat() {
   );
 }
 
-const S = {
-  spinner: { position:"absolute", right:11, top:"50%", transform:"translateY(-50%)", width:14, height:14, border:"2px solid #f0c27a", borderTopColor:"transparent", borderRadius:"50%", animation:"tm-spin .7s linear infinite" },
-};
+// ── ConvItem sub-component ────────────────────────────────────────────────────
+function ConvItem({ conv, idx, active, onClick }) {
+  const AVATAR_COLORS = [
+    { bg: "#dbeafe", color: "#1d4ed8" },
+    { bg: "#fce7f3", color: "#be185d" },
+    { bg: "#fef3c7", color: "#b45309" },
+    { bg: "#dcfce7", color: "#15803d" },
+    { bg: "#ede9fe", color: "#6d28d9" },
+  ];
+  const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+
+  return (
+    <div className={`conv-item${active ? " active" : ""}`} onClick={onClick}>
+      {conv.avatar ? (
+        <div
+          className={`avatar${conv.type === "group" ? " group" : ""}`}
+          style={{
+            backgroundImage: `url(${conv.avatar})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+          }}
+        />
+      ) : (
+        <div
+          className={`avatar${conv.type === "group" ? " group" : ""}`}
+          style={conv.type === "group" ? {} : { background: ac.bg, color: ac.color }}
+        >
+          {conv.type === "group"
+            ? "👥"
+            : conv.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+        </div>
+      )}
+
+      <div className="conv-meta">
+        <div className="conv-name">{conv.name}</div>
+        <div className="conv-preview">
+          {conv.lastMessage ||
+            (conv.type === "group"
+              ? `${conv.memberCount} members`
+              : "Start a conversation")}
+        </div>
+      </div>
+
+      <div className="conv-right">
+        {conv.lastMessageTime && (
+          <div className="conv-time">
+            {new Date(conv.lastMessageTime).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </div>
+        )}
+        {conv.unread > 0 && <div className="unread-dot" />}
+      </div>
+    </div>
+  );
+}

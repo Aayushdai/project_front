@@ -69,6 +69,7 @@ export default function UserProfile() {
   const [actionLoading, setActionLoading] = useState(false);
   const [friendUserFriends, setFriendUserFriends] = useState([]);
   const [userKycStatus, setUserKycStatus] = useState(null);
+  const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
 
   useEffect(() => {
     fetchUserProfile();
@@ -252,6 +253,32 @@ export default function UserProfile() {
     }
   };
 
+  const unfriendUser = async () => {
+    if (!userData) return;
+    try {
+      setActionLoading(true);
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/users/api/unfriend/${userData.id}/`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setFriendStatus({ status: 'none' });
+        setShowUnfriendConfirm(false);
+      } else {
+        console.error("Error unfriending user:", result);
+      }
+    } catch (err) {
+      console.error("Error unfriending user:", err);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] flex items-center justify-center">
@@ -388,6 +415,19 @@ export default function UserProfile() {
                       >
                         <MessageCircle className="w-4 h-4" />
                         Chat
+                      </button>
+                      <button
+                        onClick={() => setShowUnfriendConfirm(true)}
+                        disabled={actionLoading}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold bg-red-600/20 border border-red-600 text-red-400 hover:bg-red-600/30 transition disabled:opacity-50"
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        {actionLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <X className="w-4 h-4" />
+                        )}
+                        Unfriend
                       </button>
                     </>
                   ) : friendStatus?.status === "pending" &&
@@ -704,6 +744,49 @@ export default function UserProfile() {
             )}
           </div>
         </div>
+
+        {/* Unfriend Confirmation Modal */}
+        {showUnfriendConfirm && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-[#0f1219] border border-[#C9A84C]/20 rounded-2xl p-8 max-w-md mx-4">
+              <h3
+                className="text-xl font-bold text-white mb-4"
+                style={{ fontFamily: FONTS.display }}
+              >
+                Remove Friend?
+              </h3>
+              <p
+                className="text-white/80 mb-6"
+                style={{ fontFamily: FONTS.body }}
+              >
+                Are you sure you want to unfriend {userData.first_name || userData.username}? You can always add them back later.
+              </p>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setShowUnfriendConfirm(false)}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white bg-white/10 hover:bg-white/20 transition disabled:opacity-50"
+                  style={{ fontFamily: FONTS.body }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={unfriendUser}
+                  disabled={actionLoading}
+                  className="flex-1 px-4 py-2.5 rounded-xl font-semibold text-white bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ fontFamily: FONTS.body }}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <X className="w-4 h-4" />
+                  )}
+                  {actionLoading ? "Unfriending..." : "Unfriend"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
