@@ -68,10 +68,29 @@ export default function UserProfile() {
   const [friendStatus, setFriendStatus] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [friendUserFriends, setFriendUserFriends] = useState([]);
+  const [userKycStatus, setUserKycStatus] = useState(null);
 
   useEffect(() => {
     fetchUserProfile();
+    fetchUserKycStatus();
   }, [username]);
+
+  const fetchUserKycStatus = async () => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://127.0.0.1:8000/users/api/me/`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserKycStatus(data.status);
+      }
+    } catch (err) {
+      console.error("Error fetching KYC status:", err);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -172,6 +191,14 @@ export default function UserProfile() {
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const handleStartChat = () => {
+    if (!userData) return;
+    // Store the friend ID temporarily so Chat.jsx can auto-select the conversation
+    sessionStorage.setItem('selectedFriendId', userData.id);
+    sessionStorage.setItem('selectedFriendName', userData.username);
+    navigate('/chat');
   };
 
   const respondToFriendRequest = async (action) => {
@@ -335,15 +362,34 @@ export default function UserProfile() {
 
               {/* Action Buttons */}
               {!isOwnProfile && (
-                <div className="flex gap-3 flex-wrap">
+                <>
+                  {userKycStatus && userKycStatus !== 'approved' && (
+                    <div className="mb-4 p-3 rounded-lg bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] text-sm flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      <span style={{ fontFamily: FONTS.body }}>Complete KYC to send friend requests and messages</span>
+                    </div>
+                  )}
+                  <div className="flex gap-3 flex-wrap">
                   {friendStatus?.status === "friends" ? (
-                    <button
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
-                      style={{ fontFamily: FONTS.body }}
-                    >
-                      <Users className="w-4 h-4" />
-                      Friends
-                    </button>
+                    <>
+                      <button
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        <Users className="w-4 h-4" />
+                        Friends
+                      </button>
+                      <button
+                        onClick={handleStartChat}
+                        disabled={actionLoading || (userKycStatus && userKycStatus !== 'approved')}
+                        className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50 disabled:cursor-not-allowed"
+                        style={{ fontFamily: FONTS.body }}
+                        title={userKycStatus && userKycStatus !== 'approved' ? 'Complete KYC to chat' : ''}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        Chat
+                      </button>
+                    </>
                   ) : friendStatus?.status === "pending" &&
                     friendStatus?.type === "outgoing" ? (
                     <button
@@ -387,9 +433,10 @@ export default function UserProfile() {
                   ) : (
                     <button
                       onClick={sendFriendRequest}
-                      disabled={actionLoading}
-                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-[#0a0c16] transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50"
+                      disabled={actionLoading || (userKycStatus && userKycStatus !== 'approved')}
+                      className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-[#0a0c16] transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ fontFamily: FONTS.body }}
+                      title={userKycStatus && userKycStatus !== 'approved' ? 'Complete KYC to send friend request' : ''}
                     >
                       {actionLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -400,6 +447,7 @@ export default function UserProfile() {
                     </button>
                   )}
                 </div>
+                </>
               )}
             </div>
           </div>

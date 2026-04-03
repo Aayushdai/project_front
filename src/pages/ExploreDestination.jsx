@@ -657,6 +657,8 @@ export default function NepalMap() {
 
   const selectedCoords = routes[selectedRoute]?.coords || routes[0]?.coords || [];
 
+
+
   /* ══════════════════════════════════════ RENDER ══════════════════════════════════════ */
   return (
     <>
@@ -686,13 +688,15 @@ export default function NepalMap() {
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#f5f0e8", marginBottom:6, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
               <Globe size={20} color="#C9A84C" /> Travel <span style={{ color:"#C9A84C" }}>Nepal</span>
             </div>
-            <div style={{ display:"flex", gap:5, background:"rgba(255,255,255,.03)", padding:4, borderRadius:10 }}>
-              {[{id:"route",l:"Route"},{id:"nearby",l:"Nearby"},{id:"saved",l:"Saved"}].map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?"#f0c27a":"transparent", color:activeTab===t.id?"#0f0e0d":"rgba(255,255,255,.3)" }}>{t.l}</button>
+            <div style={{ display:"flex", gap:5, background:"rgba(255,255,255,.03)", padding:4, borderRadius:10, flexWrap:"wrap" }}>
+              {[{id:"route",l:"Route"},{id:"nearby",l:"Nearby"},{id:"saved",l:"Saved"},{id:"chat",l:"Chat"}].map(t => (
+                <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?"#f0c27a":"transparent", color:activeTab===t.id?"#0f0e0d":"rgba(255,255,255,.3)", flex:"1 1 auto", minWidth:"60px" }}>{t.l}</button>
               ))}
             </div>
           </div>
 
+          {/* Only show tab content in sidebar if not Chat tab */}
+          {activeTab !== "chat" && (
           <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:13 }}>
 
             {/* ── ROUTE TAB ── */}
@@ -883,7 +887,11 @@ export default function NepalMap() {
                     </div>
                   ))
             )}
+
+            {/* Chat removed - now displayed in main area */}
           </div>
+          )}
+
           </aside>
 
           {/* Toggle */}
@@ -891,8 +899,8 @@ export default function NepalMap() {
             {sidebarOpen ? "✕" : "☰"}
           </button>
 
-          {/* ──────────── MAP ──────────── */}
-            <div style={{ flex:1, position:"relative" }}>
+          {/* ──────────── MAIN CONTENT AREA ──────────── */}
+          <div style={{ flex:1, position:"relative" }}>
             <MapContainer
               center={NEPAL_CENTER}
               zoom={7}

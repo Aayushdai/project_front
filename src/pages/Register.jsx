@@ -332,7 +332,7 @@ export default function RegisterFull() {
           localStorage.setItem("user", JSON.stringify(data.user));
           login(data.user, data.access); // Update AuthContext
         }
-        navigate("/about");
+        navigate("/home");
       } else {
         setGlobalError(data.message || JSON.stringify(data));
       }

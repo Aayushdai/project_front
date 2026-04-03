@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Home from "./pages/Home";
 import CreateTrip from "./pages/CreateTrip";
 import ExploreDestination from "./pages/ExploreDestination";
+import Chat from "./pages/Chat";
 import DestinationDetail from "./pages/DestinationDetail";
 import Itinerary from "./pages/Itinerary";
 import Profile from "./pages/Profile";
@@ -59,6 +60,7 @@ function Layout() {
         <Route path="/destination/:id" element={<PrivateRoute><DestinationDetail /></PrivateRoute>} />
         <Route path="/itinerary/:tripId" element={<PrivateRoute><Itinerary /></PrivateRoute>} />
         <Route path="/explore" element={<PrivateRoute><ExploreDestination /></PrivateRoute>} />
+        <Route path="/chat" element={<PrivateRoute><Chat /></PrivateRoute>} />
 
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/kyc" element={<AdminRoute><KYCAdminDashboard /></AdminRoute>} />
