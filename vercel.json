@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "devCommand": "npm start",
-  "framework": "react",
+  "framework": "create-react-app",
   "outputDirectory": "build",
   "rewrites": [
     {
