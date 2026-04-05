@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MapPin, Loader2, AlertCircle, ArrowLeft, Users, Zap } from "lucide-react";
 
@@ -14,13 +14,7 @@ export default function SearchResults() {
   const [error, setError] = useState(null);
   const [similarities, setSimilarities] = useState({});
 
-  useEffect(() => {
-    if (query) {
-      searchUsers();
-    }
-  }, [query]);
-
-  const searchUsers = async () => {
+  const searchUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -68,7 +62,13 @@ export default function SearchResults() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [query]);
+
+  useEffect(() => {
+    if (query) {
+      searchUsers();
+    }
+  }, [query, searchUsers]);
 
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
