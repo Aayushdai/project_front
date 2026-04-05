@@ -191,7 +191,8 @@ export default function RegisterFull() {
   useEffect(() => {
     const fetchSecurityQuestions = async () => {
       try {
-        const response = await fetch("http://127.0.0.1:8000/users/api/security-questions/");
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+        const response = await fetch(`${backendUrl}users/security-questions/`);
         const data = await response.json();
         setAllSecurityQuestions(data);
       } catch (err) {
@@ -320,7 +321,8 @@ export default function RegisterFull() {
       
       if (profileFile)  formData.append("profile_photo",  profileFile);
 
-      const response = await fetch("http://127.0.0.1:8000/users/api/register/", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const response = await fetch(`${backendUrl}users/register/`, {
         method: "POST",
         body: formData,
       });
