@@ -457,12 +457,12 @@ export default function Chat() {
         setChatLoading(true);
         setChatError(null);
 
-        const API_URL = getApiUrl();
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
         const [friendsRes, tripsRes] = await Promise.all([
-          fetch(`${API_URL}/api/users/friends/`, {
+          fetch(`${backendUrl}users/friends/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${API_URL}/api/trips/trips/`, {
+          fetch(`${backendUrl.replace('/api/', '')}/api/trips/trips/`, {
             headers: { Authorization: `Bearer ${token}` },
           }).catch(() => ({ ok: false })),
         ]);
@@ -559,9 +559,9 @@ export default function Chat() {
           type === "direct" ? "direct_messages" : "group_messages";
         const paramName = type === "direct" ? "recipient_id" : "trip_id";
 
-        const API_URL = getApiUrl();
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
         const res = await fetch(
-          `${API_URL}/api/chat/messages/${actionName}/?${paramName}=${recipientId}`,
+          `${backendUrl.replace('/api/', '')}/api/chat/messages/${actionName}/?${paramName}=${recipientId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -619,9 +619,9 @@ export default function Chat() {
       const recipientId =
         selectedConversation.userId || selectedConversation.tripId;
       const type = selectedConversation.type;
-      const API_URL = getApiUrl();
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
 
-      const res = await fetch(`${API_URL}/api/chat/messages/`, {
+      const res = await fetch(`${backendUrl.replace('/api/', '')}/api/chat/messages/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
