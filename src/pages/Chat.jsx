@@ -457,8 +457,9 @@ export default function Chat() {
         setChatLoading(true);
         setChatError(null);
 
+        const API_URL = getApiUrl();
         const [friendsRes, tripsRes] = await Promise.all([
-          fetch(`${API_URL}/users/api/friends/`, {
+          fetch(`${API_URL}/api/users/friends/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
           fetch(`${API_URL}/api/trips/trips/`, {
@@ -558,6 +559,7 @@ export default function Chat() {
           type === "direct" ? "direct_messages" : "group_messages";
         const paramName = type === "direct" ? "recipient_id" : "trip_id";
 
+        const API_URL = getApiUrl();
         const res = await fetch(
           `${API_URL}/api/chat/messages/${actionName}/?${paramName}=${recipientId}`,
           { headers: { Authorization: `Bearer ${token}` } }
@@ -617,6 +619,7 @@ export default function Chat() {
       const recipientId =
         selectedConversation.userId || selectedConversation.tripId;
       const type = selectedConversation.type;
+      const API_URL = getApiUrl();
 
       const res = await fetch(`${API_URL}/api/chat/messages/`, {
         method: "POST",
