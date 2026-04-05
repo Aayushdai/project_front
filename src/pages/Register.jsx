@@ -143,7 +143,7 @@ const VALIDATORS = {
     if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter (A-Z)";
     if (!/[a-z]/.test(v)) return "Include at least one lowercase letter (a-z)";
     if (!/[0-9]/.test(v)) return "Include at least one number (0-9)";
-    if (!/[!@#$%^&*()_+=\[\]{};':"\\|,.<>/?]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
+    if (!/[!@#$%^&*()_+={}';:"\\|,.<>/?-]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
     return "";
   },
   confirm: (v, form) => {

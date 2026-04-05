@@ -331,7 +331,6 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [myTrips, setMyTrips] = useState([]);
   const [availableTrips, setAvailableTrips] = useState([]);
-  const [tripHistory, setTripHistory] = useState([]);
   const [stats, setStats] = useState({ created: 0, joined: 0, total: 0 });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -340,7 +339,6 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPageMyTrips, setCurrentPageMyTrips] = useState(1);
   const [currentPageAvailable, setCurrentPageAvailable] = useState(1);
-  const [currentPageHistory, setCurrentPageHistory] = useState(1);
   const [userProfile, setUserProfile] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
   const itemsPerPage = 6;
@@ -417,7 +415,6 @@ export default function Dashboard() {
       
       setMyTrips(combined);
       setAvailableTrips(publicTrips);
-      setTripHistory(history);
       setStats({ created: userTripsCreated.length, joined: userTripsJoined.length, total: allTrips.length });
     } catch (err) {
       console.error("Dashboard error:", err);
@@ -561,8 +558,8 @@ export default function Dashboard() {
                 cursor: "pointer",
                 border: "none"
               }}
-              onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-2px)", e.currentTarget.style.boxShadow = "0 6px 24px rgba(240,194,122,.4)")}
-              onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "0 4px 16px rgba(240,194,122,.3)")}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 6px 24px rgba(240,194,122,.4)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(240,194,122,.3)"; }}
             >
               {userProfile.status === "under_review" ? "View Status" : "Complete KYC"}
             </a>

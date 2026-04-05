@@ -4,14 +4,11 @@ import { Link } from "react-router-dom";
 import {
   Edit3,
   MapPin,
-  Plane,
   Users,
-  Star,
   Wallet,
   Gem,
   Sunrise,
   Mountain,
-  Headphones,
   Zap,
   Mail,
   Calendar,
@@ -352,7 +349,6 @@ function PrefRow({ label, value }) {
 
 // ─── main profile page ───────────────────────────────────
 export default function ProfilePage() {
-  const { user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);

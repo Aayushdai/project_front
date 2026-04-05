@@ -7,7 +7,7 @@ const validateEmail = (emailInput) => {
   if (emailLower.length > 100) return "Email must be less than 100 characters";
   
   // Basic email format validation
-  const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+  const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!re.test(emailLower)) return "Enter a valid email address";
   
   // Check for consecutive dots

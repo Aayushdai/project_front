@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { ChevronLeft, CheckCircle2, Clock } from "lucide-react";
+import { ChevronLeft, CheckCircle2 } from "lucide-react";
 
 const VALIDATORS = {
   citizenship: (v) => {
@@ -35,7 +35,6 @@ const VALIDATORS = {
 export default function KYCForm() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [globalError, setGlobalError] = useState("");

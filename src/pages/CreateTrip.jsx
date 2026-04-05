@@ -11,7 +11,6 @@ const token = () => localStorage.getItem("access_token");
 
 export default function CreateTrip() {
   const navigate = useNavigate();
-  const { user } = useAuth();
 
   const [form, setForm] = useState({
     title: "",
@@ -22,8 +21,7 @@ export default function CreateTrip() {
     is_public: true
   });
 
-  const [destinationName, setDestinationName] = useState("");
-  const [destinationCountry, setDestinationCountry] = useState("");
+
   const [cities, setCities] = useState([]);
   const [allConstraintTags, setAllConstraintTags] = useState([]);
   const [selectedTagIds, setSelectedTagIds] = useState([]);

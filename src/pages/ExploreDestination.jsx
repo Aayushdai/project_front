@@ -24,11 +24,7 @@ import {
   Popup, Circle, Polyline, useMap,
 } from "react-leaflet";
 import {
-  Hotel, Bed, Home, Lightbulb, Eye, Building2, Palette, Zap, 
-  Utensils, Coffee, Beef, Wine, Church, Heart, DollarSign, 
-  Pill, Landmark, Map as MapIcon, Flame, Mountain, Droplets, 
-  ShoppingCart, Building, Leaf, Trophy, MapPin, Telescope,
-  Eye as ViewIcon, MoreVertical, Navigation2, Globe, Bike, ChevronRight
+  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -59,16 +55,6 @@ const buildQuery = (bbox) => `
 )->.all;
 .all out body 500;
 `;
-
-async function fetchPlacesBbox(bbox) {
-  const res = await fetch("https://overpass-api.de/api/interpreter", {
-    method: "POST",
-    body: "data=" + encodeURIComponent(buildQuery(bbox)),
-  });
-  if (!res.ok) throw new Error("Overpass HTTP " + res.status);
-  const json = await res.json();
-  return (json.elements || []).map(parseNode);
-}
 
 /* ═══════════════════════════════════════════════════════════════
    RATING ENGINE
@@ -465,7 +451,6 @@ export default function NepalMap() {
 
   // KYC state
   const [kycStatus, setKycStatus] = useState(null);
-  const [kycLoading, setKycLoading] = useState(true);
   const [refetchTrigger, setRefetchTrigger] = useState(0);
 
   // Fetch KYC status on mount and when refetchTrigger changes
@@ -476,7 +461,6 @@ export default function NepalMap() {
         if (!token) {
           console.error("No access token found - redirecting to login");
           setKycStatus("no_token");
-          setKycLoading(false);
           return;
         }
         const response = await fetch("http://127.0.0.1:8000/users/api/me/", {
@@ -486,16 +470,13 @@ export default function NepalMap() {
           const data = await response.json();
           setKycStatus(data.status || null);
           console.log("KYC Status updated:", data.status);
-          setKycLoading(false);
         } else {
           console.error("Failed to fetch KYC status:", response.status);
           setKycStatus("fetch_error");
-          setKycLoading(false);
         }
       } catch (error) {
         console.error("Failed to fetch KYC status:", error);
         setKycStatus("fetch_error");
-        setKycLoading(false);
       }
     };
     fetchKycStatus();
@@ -537,7 +518,7 @@ export default function NepalMap() {
   const watchRef = useRef(null);
 
   // Places
-  const [allPlaces, setAllPlaces] = useState([]);
+  const [allPlaces] = useState([]);
 
   // Auto-fill destination from location state
   useEffect(() => {
