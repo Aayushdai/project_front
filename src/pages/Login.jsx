@@ -139,7 +139,7 @@ export default function Login() {
 
           <div className="mb-1.5">
             <label className={`mb-2 block text-[11px] font-medium tracking-[2px] uppercase transition-colors ${focused === "username" ? "text-[#f0c27a]" : "text-white/35"}`}>
-              Username
+              GMail
             </label>
             <input
               type="text"

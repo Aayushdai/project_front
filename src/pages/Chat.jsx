@@ -66,7 +66,9 @@ const styles = `
     align-items: center;
     gap: 8px;
     background: var(--bg-muted);
-    border: 1px solid var(--border);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--border);
     border-radius: 10px;
     padding: 7px 11px;
     transition: border-color 0.15s;
@@ -350,7 +352,9 @@ const styles = `
     align-items: center;
     gap: 8px;
     background: var(--bg-muted);
-    border: 1px solid var(--border-strong);
+    border-width: 1px;
+    border-style: solid;
+    border-color: var(--border-strong);
     border-radius: 22px;
     padding: 6px 6px 6px 16px;
     transition: border-color 0.15s;
