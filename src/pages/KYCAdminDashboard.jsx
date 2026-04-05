@@ -3,7 +3,10 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Check, X, AlertCircle, Calendar, User, FileText } from "lucide-react";
 
-const API = "http://127.0.0.1:8000";
+const getApi = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+  return backendUrl.replace('/api/', '');
+};
 
 export default function KYCAdminDashboard() {
   const { user } = useAuth();

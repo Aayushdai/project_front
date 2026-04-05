@@ -63,7 +63,8 @@ export default function ForgotPassword() {
     if (emailValidationError) { setError(emailValidationError); return; }
     setLoading(true); setError("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/api/forgot-password/step1/", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const response = await fetch(`${backendUrl}users/forgot-password/step1/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase() }),
@@ -94,7 +95,8 @@ export default function ForgotPassword() {
     questions.forEach((q) => { formattedAnswers[q.id] = answers[q.id].trim().toLowerCase(); });
     setLoading(true); setError("");
     try {
-      const response = await fetch("http://127.0.0.1:8000/users/api/forgot-password/step2/", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const response = await fetch(`${backendUrl}users/forgot-password/step2/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: email.toLowerCase(), answers: formattedAnswers, new_password: newPassword }),

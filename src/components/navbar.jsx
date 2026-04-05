@@ -22,7 +22,9 @@ export default function NavbarComponent() {
   const fetchProfilePic = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-    fetch("http://127.0.0.1:8000/users/api/me/", {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+    const baseUrl = backendUrl.replace('/api/', '');
+    fetch(`${backendUrl}users/me/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())
@@ -30,7 +32,7 @@ export default function NavbarComponent() {
         if (data.profile_picture) {
           const url = data.profile_picture.startsWith("http")
             ? data.profile_picture
-            : `http://127.0.0.1:8000${data.profile_picture}`;
+            : `${baseUrl}${data.profile_picture}`;
           setProfilePic(url);
         } else {
           setProfilePic(null);
@@ -43,7 +45,8 @@ export default function NavbarComponent() {
   const fetchPendingRequests = () => {
     const token = localStorage.getItem("access_token");
     if (!token) return;
-    fetch("http://127.0.0.1:8000/users/api/friend-requests/pending/", {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+    fetch(`${backendUrl}users/friend-requests/pending/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => res.json())

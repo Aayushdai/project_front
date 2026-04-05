@@ -5,7 +5,10 @@ import { useNavigate, Link } from "react-router-dom";
 import { X } from "lucide-react";
 import KYCBanner from "../components/KYCBanner";
 
-const API_URL = "http://127.0.0.1:8000";
+const getApiUrl = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+  return backendUrl.replace('/api/', '');
+};
 const token = () => localStorage.getItem("access_token");
 
 export default function CreateTrip() {
@@ -38,14 +41,14 @@ export default function CreateTrip() {
         const citiesRes = await API.get("trips/cities/");
         setCities(citiesRes.data || []);
 
-        const tagsRes = await fetch(`${API_URL}/users/api/constraint-tags/`, {
+        const tagsRes = await fetch(`${getApiUrl()}/users/api/constraint-tags/`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         const tagsData = await tagsRes.json();
         setAllConstraintTags(tagsData);
         
         // Fetch user profile for KYC status
-        const profileRes = await fetch(`${API_URL}/users/api/me/`, {
+        const profileRes = await fetch(`${getApiUrl()}/users/api/me/`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         const profileData = await profileRes.json();

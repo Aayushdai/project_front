@@ -23,7 +23,8 @@ export default function ChatbotWidget() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem("access_token");
-        const response = await fetch("http://127.0.0.1:8000/users/api/me/", {
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+        const response = await fetch(`${backendUrl}users/me/`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (response.ok) {

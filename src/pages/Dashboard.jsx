@@ -355,7 +355,8 @@ export default function Dashboard() {
       console.log("Token present:", !!token);
       
       // Get user's UserProfile ID - use direct fetch since api.baseURL is /api/
-      const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const meRes = await fetch(`${backendUrl}users/me/`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

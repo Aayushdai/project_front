@@ -50,7 +50,8 @@ export default function Login() {
     if (!validate()) return;
     setLoading(true);
     try {
-      const res = await axios.post("http://127.0.0.1:8000/users/api/login/", form);
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const res = await axios.post(`${backendUrl}users/login/`, form);
       if (res.data.success) {
         login(res.data.user, res.data.access);
         navigate("/home");

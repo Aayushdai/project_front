@@ -1,7 +1,9 @@
 import axios from "axios";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+
 const API = axios.create({
-  baseURL: "http://127.0.0.1:8000/api/",
+  baseURL: BACKEND_URL,
   withCredentials: true, // for Django session auth
 });
 

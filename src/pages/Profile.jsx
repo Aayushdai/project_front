@@ -21,10 +21,13 @@ import {
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
-const API = "http://127.0.0.1:8000";
+const getApiUrl = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+  return backendUrl.replace('/api/', '');
+};
 const token = () => localStorage.getItem("access_token");
 const avatar = (url) =>
-  url ? (url.startsWith("http") ? url : `${API}${url}`) : null;
+  url ? (url.startsWith("http") ? url : `${getApiUrl()}${url}`) : null;
 
 const TRAVEL_STYLES = ["Budget", "Luxury", "Adventure"];
 const PACE_OPTIONS  = ["Relaxed", "Moderate", "Fast-paced"];

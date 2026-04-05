@@ -41,7 +41,8 @@ export default function UserSearchBar() {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/search/?q=${q}`, {
+      const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+      const response = await fetch(`${backendUrl}users/search/?q=${q}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -56,8 +57,9 @@ export default function UserSearchBar() {
         const simScores = {};
         for (const user of data.results) {
           try {
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
             const simResponse = await fetch(
-              `http://127.0.0.1:8000/users/api/similarity/${user.id}/`,
+              `${backendUrl}users/similarity/${user.id}/`,
               {
                 headers: {
                   'Authorization': `Bearer ${token}`,

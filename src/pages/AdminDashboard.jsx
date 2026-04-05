@@ -3,7 +3,10 @@ import axios from "axios";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
-const API_BASE = "http://127.0.0.1:8000/users";
+const getApiBase = () => {
+  const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+  return backendUrl.replace('/api/', '/users');
+};
 
 export default function AdminDashboard() {
   const { user, token } = useAuth();
@@ -32,6 +35,7 @@ export default function AdminDashboard() {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
+      const API_BASE = getApiBase();
       const response = await axios.get(`${API_BASE}/api/admin/users/`, {
         headers: { Authorization: `Bearer ${token}` },
         params: { search: search.trim(), page, page_size: PAGE_SIZE },
