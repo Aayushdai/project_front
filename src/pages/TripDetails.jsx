@@ -1,13 +1,11 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { ArrowLeft, MapPin, Calendar, Users, User2, Trash2, Send, Loader2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
 
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,46 +19,7 @@ export default function TripDetail() {
   const [chatLoading, setChatLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Get user's profile ID
-        const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
-        });
-        const userProfile = await meRes.json();
-        setUserProfileId(userProfile?.id);
-
-        // Fetch trip
-        const res = await API.get(`trips/trips/${id}/`);
-        console.log("Trip data:", res.data);
-        setTrip(res.data);
-        
-        // Fetch messages
-        fetchMessages();
-      } catch (err) {
-        console.error("Error fetching data:", err);
-        setError("Failed to load trip details");
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [id]);
-
-  // Poll for new messages every 3 seconds
-  useEffect(() => {
-    if (!id) return;
-    
-    const interval = setInterval(() => {
-      fetchMessages();
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [id]);
-
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     try {
       setChatLoading(true);
       const url = `http://127.0.0.1:8000/api/chat/messages/group_messages/?trip_id=${id}`;
@@ -89,7 +48,46 @@ export default function TripDetail() {
     } finally {
       setChatLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Get user's profile ID
+        const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        const userProfile = await meRes.json();
+        setUserProfileId(userProfile?.id);
+
+        // Fetch trip
+        const res = await API.get(`trips/trips/${id}/`);
+        console.log("Trip data:", res.data);
+        setTrip(res.data);
+        
+        // Fetch messages
+        fetchMessages();
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load trip details");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [id, fetchMessages]);
+
+  // Poll for new messages every 3 seconds
+  useEffect(() => {
+    if (!id) return;
+    
+    const interval = setInterval(() => {
+      fetchMessages();
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [id, fetchMessages]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();

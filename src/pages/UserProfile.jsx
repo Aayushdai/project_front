@@ -1,9 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
   MapPin,
-  Star,
   Wallet,
   Gem,
   Sunrise,
@@ -71,12 +70,7 @@ export default function UserProfile() {
   const [userKycStatus, setUserKycStatus] = useState(null);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
 
-  useEffect(() => {
-    fetchUserProfile();
-    fetchUserKycStatus();
-  }, [username]);
-
-  const fetchUserKycStatus = async () => {
+  const fetchUserKycStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
       const response = await fetch(`http://127.0.0.1:8000/users/api/me/`, {
@@ -91,9 +85,9 @@ export default function UserProfile() {
     } catch (err) {
       console.error("Error fetching KYC status:", err);
     }
-  };
+  }, []);
 
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
@@ -167,7 +161,12 @@ export default function UserProfile() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
+
+  useEffect(() => {
+    fetchUserProfile();
+    fetchUserKycStatus();
+  }, [username, fetchUserProfile, fetchUserKycStatus]);
 
   const sendFriendRequest = async () => {
     if (!userData) return;
