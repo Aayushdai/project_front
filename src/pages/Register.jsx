@@ -82,7 +82,7 @@ const VALIDATORS = {
     if (emailLower.length > 100) return "Email must be less than 100 characters";
     
     // Basic email format validation
-    const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
     if (!re.test(emailLower)) return "Enter a valid email address";
     
     // Check for consecutive dots
@@ -143,7 +143,7 @@ const VALIDATORS = {
     if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter (A-Z)";
     if (!/[a-z]/.test(v)) return "Include at least one lowercase letter (a-z)";
     if (!/[0-9]/.test(v)) return "Include at least one number (0-9)";
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
+    if (!/[!@#$%^&*()_+=\[\]{};':"\\|,.<>/?]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
     return "";
   },
   confirm: (v, form) => {
@@ -570,8 +570,8 @@ export default function RegisterFull() {
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                     className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500" />
                   <span className="text-[12px] text-gray-500 leading-relaxed">
-                    I agree to the <a href="#" className="font-semibold text-orange-500">Terms of Service</a> and{" "}
-                    <a href="#" className="font-semibold text-orange-500">Privacy Policy</a>. My data is handled securely.
+                    I agree to the <span className="font-semibold text-orange-500">Terms of Service</span> and{" "}
+                    <span className="font-semibold text-orange-500">Privacy Policy</span>. My data is handled securely.
                   </span>
                 </label>
               </>

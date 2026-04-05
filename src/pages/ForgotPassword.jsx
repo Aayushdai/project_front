@@ -7,7 +7,7 @@ const validateEmail = (emailInput) => {
   if (emailLower.length > 100) return "Email must be less than 100 characters";
   
   // Basic email format validation
-  const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  const re = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   if (!re.test(emailLower)) return "Enter a valid email address";
   
   // Check for consecutive dots
@@ -88,7 +88,7 @@ export default function ForgotPassword() {
     if (!/[A-Z]/.test(newPassword)) { setError("Include at least one uppercase letter"); return; }
     if (!/[a-z]/.test(newPassword)) { setError("Include at least one lowercase letter"); return; }
     if (!/[0-9]/.test(newPassword)) { setError("Include at least one number"); return; }
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(newPassword)) { setError("Include at least one special character"); return; }
+    if (!/[!@#$%^&*()_+=[\]{};':"\\|,.<>/?]/.test(newPassword)) { setError("Include at least one special character"); return; }
     if (newPassword !== confirmPassword) { setError("Passwords do not match"); return; }
     const formattedAnswers = {};
     questions.forEach((q) => { formattedAnswers[q.id] = answers[q.id].trim().toLowerCase(); });
