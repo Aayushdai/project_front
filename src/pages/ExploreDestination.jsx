@@ -41,24 +41,9 @@ const getNepalBounds = () =>
 const NEPAL_CENTER = [27.7172, 85.3240];
 
 /* ═══════════════════════════════════════════════════════════════
-   OVERPASS QUERY
+   RATING ENGINE (Kept for potential future use)
 ═══════════════════════════════════════════════════════════════ */
-const buildQuery = (bbox) => `
-[out:json][timeout:30];
-(
-  node["tourism"~"hotel|hostel|guest_house|attraction|viewpoint|museum|artwork|theme_park|zoo"]["name"](${bbox});
-  node["amenity"~"restaurant|cafe|fast_food|bar|place_of_worship|hospital|bank|pharmacy"]["name"](${bbox});
-  node["historic"~"ruins|monument|memorial"]["name"](${bbox});
-  node["natural"~"peak|waterfall|cave_entrance"]["name"](${bbox});
-  node["leisure"~"park|stadium"]["name"](${bbox});
-  node["shop"~"supermarket|mall"]["name"](${bbox});
-)->.all;
-.all out body 500;
-`;
-
-/* ═══════════════════════════════════════════════════════════════
-   RATING ENGINE
-═══════════════════════════════════════════════════════════════ */
+/*
 function seededRandom(seed) {
   let t = (seed + 0x6d2b79f5) >>> 0;
   t = Math.imul(t ^ (t >>> 15), t | 1);
@@ -98,24 +83,7 @@ function deriveReviews(node, rating) {
   base = Math.round(base * (0.5 + rating / 5));
   return base + Math.round(seededRandom(node.id + 1) * base);
 }
-
-function parseNode(node) {
-  const tags = node.tags || {};
-  const rating  = deriveRating(node);
-  const reviews = deriveReviews(node, rating);
-  return {
-    id:       node.id,
-    name:     tags.name || tags["name:en"] || "Unnamed Place",
-    nameNe:   tags["name:ne"] || null,
-    category: "Place",
-    icon:     "MapPin",
-    color:    "#C9A84C",
-    rating, reviews,
-    lat: node.lat,
-    lng: node.lon,
-    tags,
-  };
-}
+*/
 
 /* ═══════════════════════════════════════════════════════════════
    OSRM DIRECT FETCH  (replaces leaflet-routing-machine entirely)
@@ -578,7 +546,7 @@ export default function NepalMap() {
       // Cleanup: abort fetch if effect re-runs or component unmounts
       if (abortRef.current) abortRef.current.abort();
     };
-  }, [showRoute, origin?.lat, origin?.lng, destination?.lat, destination?.lng, mode]);
+  }, [showRoute, origin, destination, mode]);
 
   // When user picks a different alternative route, update steps
   useEffect(() => {
@@ -714,8 +682,8 @@ export default function NepalMap() {
                           cursor: "pointer",
                           transition: "all .2s"
                         }}
-                        onMouseEnter={e => (e.currentTarget.style.transform = "translateY(-1px)", e.currentTarget.style.boxShadow = "0 4px 12px rgba(240,194,122,.3)")}
-                        onMouseLeave={e => (e.currentTarget.style.transform = "translateY(0)", e.currentTarget.style.boxShadow = "none")}
+                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(240,194,122,.3)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                       >
                         {kycStatus === "under_review" ? "View Status" : kycStatus === "pending" ? "Update KYC" : "Complete KYC"}
                       </Link>

@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import API from "../services/api";
 import Sidebar from "../components/Sidebar";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { X } from "lucide-react";
 import KYCBanner from "../components/KYCBanner";
 
