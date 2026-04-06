@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
+const API = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
 const getApiUrl = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
   return backendUrl.replace('/api/', '');

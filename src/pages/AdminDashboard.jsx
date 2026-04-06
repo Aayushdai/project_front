@@ -70,6 +70,7 @@ export default function AdminDashboard() {
   const confirmReset = async () => {
     setResetting(true);
     try {
+      const API_BASE = getApiBase();
       const response = await axios.post(
         `${API_BASE}/api/admin/reset-password/`,
         { user_id: selectedUser.id },
