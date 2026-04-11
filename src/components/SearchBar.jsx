@@ -1,12 +1,16 @@
 // components/SearchBar.jsx
 import React, { useState } from 'react';
 
+const PLACEHOLDER = "Search places, cities, attractions...";
+
 export default function SearchBar({ onSearch }) {
   const [query, setQuery] = useState('');
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (query.trim()) onSearch(query.trim());
+    if (query.trim()) {
+      onSearch(query.trim());
+    }
   };
 
   return (
@@ -15,7 +19,7 @@ export default function SearchBar({ onSearch }) {
         type="text"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search places, cities, attractions..."
+        placeholder={PLACEHOLDER}
         aria-label="Search destinations"
       />
       <button type="submit">Search</button>

@@ -7,18 +7,60 @@ import PeopleIcon from "@mui/icons-material/People";
 import RoomIcon from "@mui/icons-material/Room";
 import ShieldIcon from "@mui/icons-material/Shield";
 
-const features = [
-  { icon: <PeopleIcon />, title: "Smart Matching", desc: "Connect with travelers who share your pace and interests", tag: "AI-Powered" },
-  { icon: <RoomIcon />, title: "Trip Planning", desc: "Build itineraries together in real time", tag: "Collaborative" },
-  { icon: <ShieldIcon />, title: "Safe & Verified", desc: "Verified members and 24/7 support keep you safe", tag: "Trusted" },
+// ──── CONSTANTS ────
+const ITEMS_PER_PAGE = 8;
+const PLACEHOLDER = "Search destination, people, or trips…";
+const HERO_TITLE_PART_1 = "Find Your Partner";
+const HERO_TITLE_PART_2 = "for the Adventure";
+
+const COLORS = {
+  primary: "#ffd580",
+  darkBg: "#111827",
+  lightBg: "#f8f6f1",
+  textDark: "#1a1a2e",
+  darkContent: "#0a0f1e",
+  gray300: "rgb(209 213 219)",
+  gray400: "rgb(156 163 175)",
+  gray500: "rgb(107 114 128)",
+  gray900: "rgb(17 24 39)",
+  white: "#ffffff",
+  orange50: "#fed7aa",
+  orange100: "#fed7aa",
+};
+
+const FEATURES = [
+  { 
+    icon: <PeopleIcon />, 
+    title: "Smart Matching", 
+    desc: "Connect with travelers who share your pace and interests", 
+    tag: "AI-Powered" 
+  },
+  { 
+    icon: <RoomIcon />, 
+    title: "Trip Planning", 
+    desc: "Build itineraries together in real time", 
+    tag: "Collaborative" 
+  },
+  { 
+    icon: <ShieldIcon />, 
+    title: "Safe & Verified", 
+    desc: "Verified members and 24/7 support keep you safe", 
+    tag: "Trusted" 
+  },
 ];
+
+const DESTINATION_NOT_FOUND_MSG = "No destinations found";
+const PAGINATION_PREV_TEXT = "← Previous";
+const PAGINATION_NEXT_TEXT = "Next →";
+const SECTION_TITLE = "Why Travel Sathi?";
+const SECTION_SUBTITLE_1 = "Your journey,";
+const SECTION_SUBTITLE_2 = "elevated";
 
 export default function Home() {
   const navigate = useNavigate();
   const [destinations, setDestinations] = useState([]);
   const [query, setQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8;
 
   useEffect(() => {
     api.get("trips/destinations/")
@@ -31,9 +73,9 @@ export default function Home() {
   };
 
   // Pagination logic
-  const totalPages = Math.ceil(destinations.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedDestinations = destinations.slice(startIndex, startIndex + itemsPerPage);
+  const totalPages = Math.ceil(destinations.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedDestinations = destinations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <div className="font-[Poppins,sans-serif] bg-[#f8f6f1] text-[#1a1a2e]">
@@ -66,7 +108,7 @@ export default function Home() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search destination, people, or trips…"
+              placeholder={PLACEHOLDER}
               className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && query.trim()) {
@@ -112,7 +154,7 @@ export default function Home() {
                   ))
                 ) : (
                   <div className="px-5 py-3 text-center text-sm text-gray-500">
-                    No destinations found
+                    {DESTINATION_NOT_FOUND_MSG}
                   </div>
                 )}
               </div>
@@ -134,12 +176,12 @@ export default function Home() {
         <div className="mb-6 flex items-center justify-between">
           <h2 className="text-3xl font-semibold">Popular Destinations</h2>
           <p className="text-sm text-gray-500">
-            Showing {startIndex + 1}–{Math.min(startIndex + itemsPerPage, destinations.length)} of {destinations.length}
+            Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, destinations.length)} of {destinations.length}
           </p>
         </div>
 
         {destinations.length === 0 ? (
-          <p className="text-gray-400">No destinations found.</p>
+          <p className="text-gray-400">{DESTINATION_NOT_FOUND_MSG}</p>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
@@ -179,7 +221,7 @@ export default function Home() {
                   disabled={currentPage === 1}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  ← Previous
+                  {PAGINATION_PREV_TEXT}
                 </button>
 
                 <div className="flex items-center gap-1">
@@ -203,7 +245,7 @@ export default function Home() {
                   disabled={currentPage === totalPages}
                   className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                 >
-                  Next →
+                  {PAGINATION_NEXT_TEXT}
                 </button>
               </div>
             )}
@@ -215,15 +257,15 @@ export default function Home() {
       <section className="bg-[#111827] py-20">
         <div className="mx-auto max-w-6xl px-4">
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#ffd580]">
-            Why Travel Sathi?
+            {SECTION_TITLE}
           </p>
           <h2 className="mb-12 text-3xl font-semibold text-white">
-            Your journey,{" "}
-            <span className="italic text-[#ffd580]">elevated</span>
+            {SECTION_SUBTITLE_1}{" "}
+            <span className="italic text-[#ffd580]">{SECTION_SUBTITLE_2}</span>
           </h2>
 
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
-            {features.map(({ icon, title, desc, tag }) => (
+            {FEATURES.map(({ icon, title, desc, tag }) => (
               <div
                 key={title}
                 className="group rounded-2xl border border-white/8 bg-white/[0.04] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#ffd580]/30"

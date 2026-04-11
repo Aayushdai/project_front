@@ -5,6 +5,38 @@ import { useNavigate, Link } from "react-router-dom";
 import { X } from "lucide-react";
 import KYCBanner from "../components/KYCBanner";
 
+// ──── CONSTANTS ────
+const COLORS = {
+  primary: "#1976D2",
+  primaryDark: "#1565c0",
+  golden: "#f0c27a",
+  goldenDark: "#c9973a",
+  darkBg: "#0a0c16",
+  white10: "rgba(255, 255, 255, 0.1)",
+  white20: "rgba(255, 255, 255, 0.2)",
+  white40: "rgba(255, 255, 255, 0.4)",
+  white60: "rgba(255, 255, 255, 0.6)",
+};
+
+const FORM_LABELS = {
+  tripTitle: "Trip Title *",
+  destination: "Destination *",
+  startDate: "Start Date *",
+  endDate: "End Date *",
+  description: "Description",
+  tags: "Trip Tags (Diet, Lifestyle, Values)",
+  isPublic: "Make this trip public (other travelers can find it)",
+};
+
+const TEXTS = {
+  heading: "Create a New Trip",
+  fillRequired: "Please fill in all required fields",
+  failedCreate: "Failed to create trip",
+  creating: "Creating...",
+  createTrip: "Create Trip",
+  kycRequired: "Complete KYC verification to create trips",
+};
+
 const getApiUrl = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
   return backendUrl.replace('/api/', '');
@@ -41,14 +73,14 @@ export default function CreateTrip() {
         const citiesRes = await API.get("trips/cities/");
         setCities(citiesRes.data || []);
 
-        const tagsRes = await fetch(`${getApiUrl()}/users/api/constraint-tags/`, {
+        const tagsRes = await fetch(`${getApiUrl()}/api/users/constraint-tags/`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         const tagsData = await tagsRes.json();
         setAllConstraintTags(tagsData);
         
         // Fetch user profile for KYC status
-        const profileRes = await fetch(`${getApiUrl()}/users/api/me/`, {
+        const profileRes = await fetch(`${getApiUrl()}/api/users/me/`, {
           headers: { Authorization: `Bearer ${token()}` },
         });
         const profileData = await profileRes.json();
@@ -94,7 +126,7 @@ export default function CreateTrip() {
     e.preventDefault();
     
     if (!form.title || !form.destination_id || !form.start_date || !form.end_date) {
-      setError("Please fill in all required fields");
+      setError(TEXTS.fillRequired);
       return;
     }
 
@@ -108,17 +140,17 @@ export default function CreateTrip() {
         constraint_tag_ids: selectedTagIds
       };
 
-      const res = await API.post("trips/trips/", payload);
+      const res = await API.post("trips/", payload);
       navigate(`/trip/${res.data.id}`);
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to create trip");
+      setError(err.response?.data?.message || TEXTS.failedCreate);
       console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
-  const inp = "w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition";
+
 
   // KYC blocking screen
   if (kycLoading) {
@@ -175,29 +207,29 @@ export default function CreateTrip() {
         {userProfile && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
 
         <div className="max-w-2xl mt-6">
-          <h2 className="text-3xl font-bold text-white mb-8">Create a New Trip</h2>
+          <h2 className="text-3xl font-bold text-white mb-8">{TEXTS.heading}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Title */}
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Trip Title *</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: COLORS.white40 }}>{FORM_LABELS.tripTitle}</label>
               <input
                 name="title"
                 placeholder="e.g., Summer Europe Adventure"
                 value={form.title}
                 onChange={handleChange}
-                className={inp}
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition"
               />
             </div>
 
             {/* Destination */}
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Destination *</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: COLORS.white40 }}>{FORM_LABELS.destination}</label>
               <select
                 name="destination_id"
                 value={form.destination_id}
                 onChange={handleChange}
-                className={inp}
+                className="w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition"
               >
                 <option value="">Select a city...</option>
                 {cities.map(city => (
@@ -326,7 +358,7 @@ export default function CreateTrip() {
 
             {/* Error message */}
             {error && (
-              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm text-red-400">
+              <div className="rounded-lg bg-red-500/10 border border-red-500/20 px-4 py-2.5 text-sm" style={{ color: "#f87171" }}>
                 {error}
               </div>
             )}
@@ -335,13 +367,14 @@ export default function CreateTrip() {
             <button
               type="submit"
               disabled={loading || !userProfile || userProfile.status !== 'approved'}
-              className="w-full rounded-lg bg-[#1976D2] py-3 text-sm font-bold text-white transition hover:bg-[#1565c0] disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!userProfile || userProfile.status !== 'approved' ? 'Complete KYC verification to create trips' : ''}
+              className="w-full rounded-lg py-3 text-sm font-bold text-white transition hover:bg-[#1565c0] disabled:opacity-50 disabled:cursor-not-allowed" 
+              style={{ backgroundColor: COLORS.primary }}
+              title={!userProfile || userProfile.status !== 'approved' ? TEXTS.kycRequired : ''}
             >
-              {loading ? "Creating..." : "Create Trip"}
+              {loading ? TEXTS.creating : TEXTS.createTrip}
             </button>
             {(!userProfile || userProfile.status !== 'approved') && (
-              <p className="text-center text-xs text-amber-400 mt-2">Complete KYC verification to create trips</p>
+              <p className="text-center text-xs text-amber-400 mt-2">{TEXTS.kycRequired}</p>
             )}
           </form>
         </div>

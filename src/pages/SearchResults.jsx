@@ -1,12 +1,130 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MapPin, Loader2, AlertCircle, ArrowLeft, Users, Zap } from "lucide-react";
+import { MapPin, Loader2, AlertCircle, ArrowLeft, Users } from "lucide-react";
+import { useAuthRequired } from "../hooks/useAuthRequired";
+import { apiFetch, getToken, getBaseUrl } from "../utils/api";
 
+// ──── CONSTANTS ────
 const API_URL = "http://127.0.0.1:8000";
+
+const SIMILARITY_COLORS = {
+  green: { bg: "bg-green-500/20", text: "text-green-400" },
+  blue: { bg: "bg-blue-500/20", text: "text-blue-400" },
+  yellow: { bg: "bg-yellow-500/20", text: "text-yellow-400" },
+  gray: { bg: "bg-gray-600/20", text: "text-gray-400" },
+};
+
+const SIMILARITY_THRESHOLDS = {
+  excellent: 80,
+  good: 60,
+  fair: 40,
+};
+
+const BEST_MATCH_THRESHOLD = 75;
+
+const TEXTS = {
+  notAuthenticated: "Not authenticated. Please log in.",
+  searchTitle: "Search",
+  resultsFor: "Results for",
+  searchingUsers: "Searching for users...",
+  bestResult: "Best Result",
+  otherResults: "other result",
+  otherResultsPlural: "other results",
+  noUsersFound: "No users found",
+  tryelDifferent: "Try searching with different keywords",
+  enterSearchQuery: "Enter a search query to find travelers",
+  fetchErrorMsg: "Error fetching similarity for user",
+  searchErrorMsg: "Failed to load search results",
+};
+
+function SimilarityBadge({ score }) {
+  if (score === null || score === undefined) return null;
+  
+  let colors = SIMILARITY_COLORS.gray;
+  
+  if (score >= SIMILARITY_THRESHOLDS.excellent) {
+    colors = SIMILARITY_COLORS.green;
+  } else if (score >= SIMILARITY_THRESHOLDS.good) {
+    colors = SIMILARITY_COLORS.blue;
+  } else if (score >= SIMILARITY_THRESHOLDS.fair) {
+    colors = SIMILARITY_COLORS.yellow;
+  }
+  
+  const { bg: bgColor, text: textColor } = colors;
+  
+  return (
+    <div className={`${bgColor} px-2.5 py-1 rounded-full text-xs font-medium ${textColor} min-w-fit`}>
+      {score}% match
+    </div>
+  );
+}
+
+function UserRow({ user, similarity, onUserClick }) {
+  const profilePicUrl = user.profile_picture?.startsWith("http")
+    ? user.profile_picture
+    : user.profile_picture
+    ? `${API_URL}${user.profile_picture}`
+    : null;
+
+  const displayName = user.first_name && user.last_name
+    ? `${user.first_name} ${user.last_name}`
+    : user.first_name || user.username;
+
+  return (
+    <div
+      onClick={() => onUserClick(user.username)}
+      className="flex items-center gap-3 p-3 hover:bg-white/5 rounded-lg cursor-pointer transition group"
+    >
+      {/* Avatar */}
+      <div className="flex-shrink-0">
+        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 overflow-hidden flex items-center justify-center ring-1 ring-white/10 group-hover:ring-white/20 transition">
+          {profilePicUrl ? (
+            <img
+              src={profilePicUrl}
+              alt={user.username}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+          ) : (
+            <span className="text-sm font-bold text-white">
+              {displayName[0].toUpperCase()}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <h3 className="text-sm font-semibold text-white truncate">
+            {displayName}
+          </h3>
+          <span className="text-xs text-white/50 flex-shrink-0">
+            @{user.username}
+          </span>
+        </div>
+        {user.location && (
+          <div className="flex items-center gap-1 text-white/40 mt-0.5">
+            <MapPin className="w-3 h-3 flex-shrink-0" />
+            <span className="text-xs truncate">{user.location}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Similarity Score */}
+      <div className="flex-shrink-0">
+        <SimilarityBadge score={similarity} />
+      </div>
+    </div>
+  );
+}
 
 export default function SearchResults() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isReady: isAuthReady } = useAuthRequired();
   const query = searchParams.get("q") || "";
   
   const [results, setResults] = useState([]);
@@ -16,22 +134,19 @@ export default function SearchResults() {
 
   const searchUsers = useCallback(async () => {
     try {
+      const token = getToken();
+      if (!token) {
+        setError(TEXTS.notAuthenticated);
+        return;
+      }
+
       setLoading(true);
       setError(null);
-      const token = localStorage.getItem("access_token");
       
-      const response = await fetch(
-        `${API_URL}/users/api/search/?q=${encodeURIComponent(query)}`,
-        {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        }
+      const data = await apiFetch(
+        `users/search/?q=${encodeURIComponent(query)}`
       );
       
-      if (!response.ok) throw new Error("Failed to fetch results");
-      
-      const data = await response.json();
       setResults(data.results || []);
       
       // Fetch similarity scores for each result
@@ -39,18 +154,10 @@ export default function SearchResults() {
         const similarityScores = {};
         for (const user of data.results) {
           try {
-            const simResponse = await fetch(
-              `${API_URL}/users/api/similarity/${user.id}/`,
-              {
-                headers: {
-                  "Authorization": `Bearer ${token}`,
-                },
-              }
-            );
-            const simData = await simResponse.json();
-            similarityScores[user.id] = simData.similarity;
+            const simData = await apiFetch(`users/similarity/${user.id}/`);
+            similarityScores[user.id] = Math.round(simData.similarity || 0);
           } catch (err) {
-            console.error("Error fetching similarity:", err);
+            console.error("Error fetching similarity for user", user.id, ":", err);
             similarityScores[user.id] = null;
           }
         }
@@ -58,43 +165,36 @@ export default function SearchResults() {
       }
     } catch (err) {
       console.error("Search error:", err);
-      setError("Failed to load search results");
+      setError(err.message || "Failed to load search results");
     } finally {
       setLoading(false);
     }
   }, [query]);
 
   useEffect(() => {
-    if (query) {
+    if (query && isAuthReady) {
       searchUsers();
+    } else if (!isAuthReady && query) {
+      setLoading(false);
+      setError(TEXTS.notAuthenticated);
     }
-  }, [query, searchUsers]);
+  }, [query, searchUsers, isAuthReady]);
 
   const handleUserClick = (username) => {
     navigate(`/user/${username}`);
   };
 
-  const getSimilarityColor = (score) => {
-    if (!score) return "text-white/40";
-    if (score >= 80) return "text-green-400";
-    if (score >= 60) return "text-yellow-400";
-    if (score >= 40) return "text-orange-400";
-    return "text-red-400";
-  };
-
-  const getSimilarityBgColor = (score) => {
-    if (!score) return "bg-white/5";
-    if (score >= 80) return "bg-green-400/10";
-    if (score >= 60) return "bg-yellow-400/10";
-    if (score >= 40) return "bg-orange-400/10";
-    return "bg-red-400/10";
-  };
+  // Separate and sort results
+  const bestMatches = results.filter((user) => (similarities[user.id] || 0) >= BEST_MATCH_THRESHOLD);
+  const otherMatches = results
+    .filter((user) => (similarities[user.id] || 0) < BEST_MATCH_THRESHOLD)
+    .sort((a, b) => (similarities[b.id] || 0) - (similarities[a.id] || 0));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] pb-40">
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] pb-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-[rgba(10,12,22,0.85)] backdrop-blur-md sticky top-16 z-10">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-white/10 rounded-lg transition"
@@ -102,111 +202,83 @@ export default function SearchResults() {
             <ArrowLeft className="w-5 h-5 text-white" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-white">Search Results</h1>
-            <p className="text-xs text-white/50">
-              {query && `Results for "${query}"`}
-            </p>
+            <h1 className="text-lg font-bold text-white">{TEXTS.searchTitle}</h1>
+            {query && (
+              <p className="text-xs text-white/50">
+                {TEXTS.resultsFor} "{query}"
+              </p>
+            )}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="w-8 h-8 text-white/60 animate-spin mb-3" />
-            <p className="text-white/60">Searching for users...</p>
+            <p className="text-white/60 text-sm">{TEXTS.searchingUsers}</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20">
             <AlertCircle className="w-8 h-8 text-red-400 mb-3" />
-            <p className="text-white/80">{error}</p>
+            <p className="text-white/80 text-sm">{error}</p>
           </div>
         ) : results.length > 0 ? (
           <div>
-            <div className="flex items-center gap-2 mb-6">
-              <Users className="w-5 h-5 text-white/60" />
-              <p className="text-white/60">
-                Found <span className="font-semibold text-white">{results.length}</span> user{results.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {results.map((user) => {
-                const profilePicUrl = user.profile_picture?.startsWith("http")
-                  ? user.profile_picture
-                  : user.profile_picture
-                  ? `${API_URL}${user.profile_picture}`
-                  : null;
-                
-                const similarity = similarities[user.id];
-
-                return (
-                  <div
-                    key={user.id}
-                    onClick={() => handleUserClick(user.username)}
-                    className={`relative bg-white/5 border border-white/10 rounded-2xl p-5 hover:bg-white/10 hover:border-white/20 cursor-pointer transition transform hover:scale-105 ${getSimilarityBgColor(similarity)}`}
-                  >
-                    {/* Similarity Badge */}
-                    {similarity !== null && (
-                      <div className={`absolute top-4 right-4 flex items-center gap-1 px-3 py-1 rounded-full bg-white/10 border ${getSimilarityColor(similarity).includes('green') ? 'border-green-400/30' : getSimilarityColor(similarity).includes('yellow') ? 'border-yellow-400/30' : getSimilarityColor(similarity).includes('orange') ? 'border-orange-400/30' : 'border-red-400/30'} ${getSimilarityColor(similarity)}`}>
-                        <Zap className="w-3 h-3" />
-                        <span className="text-xs font-semibold">{similarity}%</span>
-                      </div>
-                    )}
-
-                    {/* Avatar */}
-                    <div className="mb-4">
-                      <div className="w-full h-32 rounded-xl bg-[#1976D2] overflow-hidden flex items-center justify-center ring-2 ring-white/10">
-                        {profilePicUrl ? (
-                          <img
-                            src={profilePicUrl}
-                            alt={user.username}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.target.style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <span className="text-4xl font-bold text-white">
-                            {(user.first_name || user.username)[0].toUpperCase()}
-                          </span>
-                        )}
-                      </div>
+            {/* Best Match Section */}
+            {bestMatches.length > 0 && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-1 h-5 bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
+                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
+                    {TEXTS.bestResult}
+                  </h2>
+                </div>
+                <div className="border border-green-500/20 rounded-lg overflow-hidden bg-green-500/5">
+                  {bestMatches.map((user) => (
+                    <div key={user.id} className="border-b border-green-500/10 last:border-b-0">
+                      <UserRow
+                        user={user}
+                        similarity={similarities[user.id]}
+                        onUserClick={handleUserClick}
+                      />
                     </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
-                    {/* Info */}
-                    <div className="mb-3">
-                      <h3 className="text-base font-semibold text-white">
-                        {user.first_name && user.last_name
-                          ? `${user.first_name} ${user.last_name}`
-                          : user.first_name || user.username}
-                      </h3>
-                      <p className="text-xs text-white/50">@{user.username}</p>
-                    </div>
-
-                    {user.location && (
-                      <div className="flex items-center gap-1 text-white/60 mb-3">
-                        <MapPin className="w-3 h-3" />
-                        <span className="text-xs">{user.location}</span>
-                      </div>
-                    )}
-
-                    {/* View Profile Button */}
-                    <button className="w-full py-2 px-3 bg-[#1976D2] hover:bg-[#1565C0] text-white text-xs font-medium rounded-lg transition">
-                      View Profile
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
+            {/* Other Results Section */}
+            {otherMatches.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-4 h-4 text-white/60" />
+                  <p className="text-xs text-white/60 font-medium">
+                    <span className="font-semibold text-white">{otherMatches.length}</span> {otherMatches.length !== 1 ? TEXTS.otherResultsPlural : TEXTS.otherResults}
+                  </p>
+                </div>
+                <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.02] divide-y divide-white/10">
+                  {otherMatches.map((user) => (
+                    <UserRow
+                      key={user.id}
+                      user={user}
+                      similarity={similarities[user.id]}
+                      onUserClick={handleUserClick}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
             <Users className="w-12 h-12 text-white/20 mb-4" />
-            <p className="text-white/60 mb-2">No users found</p>
-            <p className="text-white/30 text-sm">
-              {query ? `Try searching with different keywords` : "Enter a search query to find users"}
+            <p className="text-white/60 text-sm font-medium">{TEXTS.noUsersFound}</p>
+            <p className="text-white/40 text-xs mt-1">
+              {query
+                ? TEXTS.tryelDifferent
+                : TEXTS.enterSearchQuery}
             </p>
           </div>
         )}

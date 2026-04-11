@@ -3,6 +3,41 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { ChevronLeft, CheckCircle2 } from "lucide-react";
 
+// ──── CONSTANTS ────
+const FORM_LABELS = {
+  passportPhoto: "Passport / ID Photo *",
+  documentDetails: "Document Details",
+  citizenship: "Citizenship *",
+  passportNo: "Passport / ID No *",
+  expiryDate: "Expiry Date *",
+};
+
+const PLACEHOLDERS = {
+  citizenship: "e.g. Nepali",
+  passportNo: "A12345678",
+};
+
+const MESSAGES = {
+  loading: "Loading...",
+  backToProfile: "Back to Profile",
+  submit: "Submit KYC Form",
+  submitting: "Submitting...",
+  cancel: "Cancel",
+  uploadPhoto: "Upload passport or ID photo",
+  photoHint: "JPG or PNG — clear, unobstructed scan",
+  photoRequired: "Passport photo is required",
+  onlyJpgPng: "Only JPG, PNG or WEBP files allowed",
+  fileTooLarge: "File must be under 5MB",
+  successTitle: "KYC Submitted Successfully!",
+  successMessage: "Your KYC form has been submitted. Our admin team will review your documents and get back to you within 24-48 hours.",
+  redirecting: "Redirecting to profile...",
+  heading: "Complete Your KYC",
+  subheading: "To unlock full access to all features, please provide your travel document details.",
+  securityInfo: "ℹ️ Your Information is Secure: Your personal data is encrypted and stored securely. Admin staff will review your documents within 24-48 hours.",
+  failedSubmit: "Failed to submit KYC form",
+  connectError: "Unable to connect to the server.",
+};
+
 const VALIDATORS = {
   citizenship: (v) => {
     if (!v.trim()) return "Citizenship is required";
@@ -120,7 +155,7 @@ export default function KYCForm() {
     }
 
     if (s === 1 && !passportFile) {
-      setPhotoError("Passport photo is required");
+      setPhotoError(MESSAGES.photoRequired);
       valid = false;
     }
 
@@ -134,12 +169,12 @@ export default function KYCForm() {
     if (!file) return;
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-      setPhotoError("Only JPG, PNG or WEBP files allowed");
+      setPhotoError(MESSAGES.onlyJpgPng);
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      setPhotoError("File must be under 5MB");
+      setPhotoError(MESSAGES.fileTooLarge);
       return;
     }
 
@@ -183,10 +218,10 @@ export default function KYCForm() {
         const redirectPath = user.is_staff ? "/admin/kyc" : "/profile";
         setTimeout(() => navigate(redirectPath), 2000);
       } else {
-        setGlobalError(data.message || "Failed to submit KYC form");
+        setGlobalError(data.message || MESSAGES.failedSubmit);
       }
     } catch (err) {
-      setGlobalError("Unable to connect to the server.");
+      setGlobalError(MESSAGES.connectError);
     } finally {
       setLoading(false);
     }
@@ -208,7 +243,7 @@ export default function KYCForm() {
     errors[k] && touched[k] ? <p className="mt-1 text-[11px] text-red-400">{errors[k]}</p> : null;
 
   if (!user) {
-    return <div className="flex min-h-screen items-center justify-center bg-[#f0ece4]">Loading...</div>;
+    return <div className="flex min-h-screen items-center justify-center bg-[#f0ece4]">{MESSAGES.loading}</div>;
   }
 
   return (
@@ -219,7 +254,7 @@ export default function KYCForm() {
           onClick={() => navigate("/profile")}
           className="flex items-center gap-2 text-orange-600 hover:text-orange-700 mb-8 font-semibold"
         >
-          <ChevronLeft className="w-4 h-4" /> Back to Profile
+          <ChevronLeft className="w-4 h-4" /> {MESSAGES.backToProfile}
         </button>
 
         {/* Success State */}
@@ -230,18 +265,18 @@ export default function KYCForm() {
                 <CheckCircle2 className="w-12 h-12 text-emerald-600" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold text-[#111827] mb-2">KYC Submitted Successfully!</h1>
+            <h1 className="text-3xl font-bold text-[#111827] mb-2">{MESSAGES.successTitle}</h1>
             <p className="text-gray-600 mb-6">
-              Your KYC form has been submitted. Our admin team will review your documents and get back to you within 24-48 hours.
+              {MESSAGES.successMessage}
             </p>
-            <p className="text-sm text-gray-500">Redirecting to profile...</p>
+            <p className="text-sm text-gray-500">{MESSAGES.redirecting}</p>
           </div>
         ) : (
           <div className="rounded-2xl bg-white shadow-lg p-8 md:p-12">
             {/* Title */}
-            <h1 className="text-3xl font-bold text-[#111827] mb-2">Complete Your KYC</h1>
+            <h1 className="text-3xl font-bold text-[#111827] mb-2">{MESSAGES.heading}</h1>
             <p className="text-gray-600 mb-8">
-              To unlock full access to all features, please provide your travel document details.
+              {MESSAGES.subheading}
             </p>
 
             {/* Progress bar */}
@@ -255,7 +290,7 @@ export default function KYCForm() {
             <form onSubmit={handleSubmit} noValidate>
               {/* Passport/ID Photo Upload */}
               <p className="mb-4 border-b border-[#e5e0d8] pb-3 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">
-                Passport / ID Photo *
+                {FORM_LABELS.passportPhoto}
               </p>
               <div
                 onClick={() => passportRef.current?.click()}
@@ -267,8 +302,8 @@ export default function KYCForm() {
                   <img src={passportPhoto} alt="passport" className="h-full w-full rounded-2xl object-cover" />
                 ) : (
                   <>
-                    <p className="text-[13px] font-semibold text-[#374151]">Upload passport or ID photo</p>
-                    <p className="text-[11px] text-gray-400">JPG or PNG — clear, unobstructed scan</p>
+                    <p className="text-[13px] font-semibold text-[#374151]">{MESSAGES.uploadPhoto}</p>
+                    <p className="text-[11px] text-gray-400">{MESSAGES.photoHint}</p>
                   </>
                 )}
               </div>
@@ -283,35 +318,35 @@ export default function KYCForm() {
 
               {/* Document Details */}
               <p className="mb-4 border-b border-[#e5e0d8] pb-3 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">
-                Document Details
+                {FORM_LABELS.documentDetails}
               </p>
               <div className="grid grid-cols-2 gap-4 mb-8 max-sm:grid-cols-1">
                 <div className="flex flex-col gap-1">
-                  <label className={lbl("citizenship")}>Citizenship *</label>
+                  <label className={lbl("citizenship")}>{FORM_LABELS.citizenship}</label>
                   <input
                     className={inp("citizenship")}
                     value={form.citizenship}
                     onChange={set("citizenship")}
                     onFocus={() => setFocused("citizenship")}
                     onBlur={blur("citizenship")}
-                    placeholder="e.g. Nepali"
+                    placeholder={PLACEHOLDERS.citizenship}
                   />
                   {errMsg("citizenship")}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <label className={lbl("passportNo")}>Passport / ID No *</label>
+                  <label className={lbl("passportNo")}>{FORM_LABELS.passportNo}</label>
                   <input
                     className={inp("passportNo")}
                     value={form.passportNo}
                     onChange={set("passportNo")}
                     onFocus={() => setFocused("passportNo")}
                     onBlur={blur("passportNo")}
-                    placeholder="A12345678"
+                    placeholder={PLACEHOLDERS.passportNo}
                   />
                   {errMsg("passportNo")}
                 </div>
                 <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
-                  <label className={lbl("passportExpiry")}>Expiry Date *</label>
+                  <label className={lbl("passportExpiry")}>{FORM_LABELS.expiryDate}</label>
                   <input
                     type="date"
                     className={inp("passportExpiry")}
@@ -327,7 +362,7 @@ export default function KYCForm() {
               {/* Info box */}
               <div className="mb-8 rounded-xl bg-blue-50 border border-blue-200 p-4">
                 <p className="text-[12px] text-blue-800">
-                  <strong>ℹ️ Your Information is Secure:</strong> Your personal data is encrypted and stored securely. Admin staff will review your documents within 24-48 hours.
+                  <strong>{MESSAGES.securityInfo}</strong>
                 </p>
               </div>
 
@@ -345,7 +380,7 @@ export default function KYCForm() {
                   onClick={() => navigate("/profile")}
                   className="flex-1 rounded-xl border border-[#e2ddd6] px-5 py-3 text-[13px] font-semibold text-gray-400 transition hover:border-gray-400 hover:text-gray-600"
                 >
-                  Cancel
+                  {MESSAGES.cancel}
                 </button>
                 <button
                   type="submit"
@@ -355,10 +390,10 @@ export default function KYCForm() {
                   {loading ? (
                     <>
                       <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                      Submitting...
+                      {MESSAGES.submitting}
                     </>
                   ) : (
-                    "Submit KYC Form"
+                    MESSAGES.submit
                   )}
                 </button>
               </div>

@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import api from "../API/api";
 import KYCBanner from "../components/KYCBanner";
+import { TripsGridSkeleton, StatsCardSkeleton } from "../components/SkeletonLoaders";
 import {
   PlusCircle,
   Compass,
@@ -18,6 +19,23 @@ import {
   LogIn,
   Clock,
 } from "lucide-react";
+
+// ──── CONSTANTS ────
+const TEXTS = {
+  greeting: "Welcome back",
+  subtext: "Manage your trips and find your next travel companion",
+  tripsCreated: "Trips Created",
+  groupsJoined: "Groups Joined",
+  totalTrips: "Total Trips",
+  myTrips: "My Trips",
+  allAvailable: "All Available",
+  create: "Create",
+  search: "Search trips by name, description, or destination...",
+  loadingTrips: "Loading your trips...",
+  signedOut: "You have been signed out",
+  loginMessage: "Please log in again to continue",
+  welcome: "Welcome to Travel Sathi",
+};
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&family=Poppins:wght@300;400;500;600&display=swap');
@@ -341,12 +359,21 @@ export default function Dashboard() {
   const [currentPageAvailable, setCurrentPageAvailable] = useState(1);
   const [userProfile, setUserProfile] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
+  const [selectedTags, setSelectedTags] = useState([]);
+  const [constraintTags, setConstraintTags] = useState([]);
+  const [showTagFilter, setShowTagFilter] = useState(false);
   const itemsPerPage = 6;
 
   useEffect(() => {
     if (!user) { navigate("/"); return; }
     fetchDashboardData();
   }, [user, navigate]);
+
+  useEffect(() => {
+    api.get("users/constraint-tags/")
+      .then(r => setConstraintTags(r.data || []))
+      .catch(console.error);
+  }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true); setError("");
@@ -371,12 +398,12 @@ export default function Dashboard() {
       setUserProfile(profile); // Store profile data for KYC status
       setUserProfileId(userId); // Store for use in rendering
       
-      const tripsRes = await api.get("trips/trips/");
+      const tripsRes = await api.get("trips/");
       const allTrips = tripsRes.data || [];
       console.log("All trips:", allTrips);
       
       // Fetch trip history
-      const historyRes = await api.get("trips/trip-history/");
+      const historyRes = await api.get("trips/history/");
       const history = historyRes.data || [];
       console.log("Trip history:", history);
       
@@ -432,7 +459,7 @@ export default function Dashboard() {
   const handleJoinTrip = async (tripId) => {
     try {
       console.log("Joining trip:", tripId);
-      const res = await api.patch(`trips/trips/${tripId}/`, { action: "join" });
+      const res = await api.patch(`trips/${tripId}/`, { action: "join" });
       console.log("Join response:", res.data);
       console.log("Trip data from response:", res.data.trip);
       console.log("Participants from response:", res.data.trip?.participants);
@@ -454,7 +481,7 @@ export default function Dashboard() {
     if (!window.confirm("Are you sure you want to leave this trip?")) return;
     try {
       console.log("Leaving trip:", tripId);
-      const res = await api.patch(`trips/trips/${tripId}/`, { action: "leave" });
+      const res = await api.patch(`trips/${tripId}/`, { action: "leave" });
       console.log("Leave response:", res.data);
       fetchDashboardData(); 
       setError("");
@@ -468,7 +495,7 @@ export default function Dashboard() {
     if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) return;
     try {
       console.log("Deleting trip:", tripId);
-      await api.delete(`trips/trips/${tripId}/`);
+      await api.delete(`trips/${tripId}/`);
       console.log("Trip deleted successfully");
       fetchDashboardData(); 
       setError("");
@@ -486,13 +513,28 @@ export default function Dashboard() {
   ];
 
   // Filter trips based on search query
+  // Filter trips based on search query and tags
   const filterTrips = (trips) => {
-    if (!searchQuery.trim()) return trips;
-    return trips.filter(t =>
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.destination?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    let result = trips;
+    
+    // Filter by search query
+    if (searchQuery.trim()) {
+      result = result.filter(t =>
+        t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        t.destination?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Filter by selected tags - only show trips that have AT LEAST ONE of the selected tags
+    if (selectedTags.length > 0) {
+      result = result.filter(t => {
+        const tripTagIds = (t.constraint_tags || []).map(tag => tag.id);
+        return selectedTags.some(tagId => tripTagIds.includes(tagId));
+      });
+    }
+    
+    return result;
   };
 
   // Get filtered and paginated trips for "My Trips"
@@ -517,11 +559,12 @@ export default function Dashboard() {
       
       {/* KYC Blocking Screen */}
       {kycLoading ? (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", width: "100vw", background: "linear-gradient(135deg, #07080f 0%, #0d0e1a 100%)", fontFamily: "'Syne',sans-serif" }}>
-          <div style={{ textAlign: "center", animation: "fadeIn 0.4s ease" }}>
-            <div style={{ fontSize: 48, marginBottom: 20, animation: "spin 2s linear infinite" }}>⌛</div>
-            <div style={{ fontSize: 18, color: "#f5f0e8", marginBottom: 10, fontWeight: 700, letterSpacing: "-.5px" }}>Loading...</div>
-            <div style={{ fontSize: 13, color: "rgba(245,240,232,.4)" }}>Verifying access permissions</div>
+        <div className="db-root" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
+          <div className="db-inner">
+            <div style={{ marginBottom: '1.5rem' }}>
+              <StatsCardSkeleton />
+            </div>
+            <TripsGridSkeleton count={6} />
           </div>
         </div>
       ) : userProfile && userProfile.status && userProfile.status !== "approved" ? (
@@ -580,29 +623,30 @@ export default function Dashboard() {
           {/* Header */}
           <div className="db-header">
             <h1 className="db-greeting">
-              Welcome back, <span>{user?.first_name || user?.username}</span>
+              {TEXTS.greeting}, <span>{user?.first_name || user?.username}</span>
             </h1>
-            <p className="db-subtext">Manage your trips and find your next travel companion</p>
+            <p className="db-subtext">{TEXTS.subtext}</p>
           </div>
 
           {/* Stats */}
           <div className="db-stats">
-            <StatCard icon={<PlusCircle size={18} />} label="Trips Created" value={stats.created} iconBg="rgba(255,213,128,0.12)" iconColor="#ffd580" />
-            <StatCard icon={<Users size={18} />}      label="Groups Joined"  value={stats.joined}  iconBg="rgba(147,197,253,0.12)" iconColor="#93c5fd" />
-            <StatCard icon={<Globe size={18} />}      label="Total Trips"    value={stats.total}   iconBg="rgba(134,239,172,0.12)" iconColor="#86efac" />
+            <StatCard icon={<PlusCircle size={18} />} label={TEXTS.tripsCreated} value={stats.created} iconBg="rgba(255,213,128,0.12)" iconColor="#ffd580" />
+            <StatCard icon={<Users size={18} />}      label={TEXTS.groupsJoined}  value={stats.joined}  iconBg="rgba(147,197,253,0.12)" iconColor="#93c5fd" />
+            <StatCard icon={<Globe size={18} />}      label={TEXTS.totalTrips}    value={stats.total}   iconBg="rgba(134,239,172,0.12)" iconColor="#86efac" />
           </div>
 
           {/* KYC Banner */}
-          {userProfile && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
+          {userProfile && !loading && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
 
           {/* Error */}
-          {error && (
+          {error && !loading && (
             <div className="db-error">
               <AlertCircle size={16} /> {error}
             </div>
           )}
 
           {/* Tabs */}
+          {!loading && (
           <div className="db-tabs">
             {tabs.map(t => (
               <button
@@ -614,13 +658,16 @@ export default function Dashboard() {
               </button>
             ))}
           </div>
+          )}
 
           {/* Content */}
           {loading ? (
-            <div className="db-loading">
-              <Loader2 size={32} className="db-spinner" />
-              <span>Loading your dashboard...</span>
-            </div>
+            <>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <StatsCardSkeleton />
+              </div>
+              <TripsGridSkeleton count={6} />
+            </>
           ) : (
             <>
               {/* Search Bar (visible on myTrips and available tabs) */}
@@ -641,7 +688,7 @@ export default function Dashboard() {
                     </svg>
                     <input
                       type="text"
-                      placeholder="Search trips by name, description, or destination..."
+                      placeholder={TEXTS.search}
                       value={searchQuery}
                       onChange={(e) => {
                         setSearchQuery(e.target.value);
@@ -679,6 +726,168 @@ export default function Dashboard() {
                       </button>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Constraint Tags Filter - Click Only */}
+              {(activeTab === "myTrips" || activeTab === "available") && constraintTags.length > 0 && (
+                <div 
+                  style={{ marginBottom: "1.5rem", position: 'relative' }}
+                >
+                  <button
+                    onClick={() => setShowTagFilter(!showTagFilter)}
+                    style={{
+                      padding: '0.6rem 1rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(201,168,76,0.3)',
+                      background: showTagFilter ? 'rgba(201,168,76,0.15)' : 'rgba(255,255,255,0.05)',
+                      color: showTagFilter ? '#ffd580' : 'rgba(255,255,255,0.6)',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      transition: 'all 0.2s',
+                      fontFamily: 'Poppins'
+                    }}
+                  >
+                    🏷️ Filter by Requirements {selectedTags.length > 0 && `(${selectedTags.length})`}
+                  </button>
+
+                  {showTagFilter && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      marginTop: '0.8rem',
+                      padding: '1rem',
+                      borderRadius: '12px',
+                      border: '1px solid rgba(201,168,76,0.3)',
+                      background: 'rgba(10,12,22,0.95)',
+                      backdropFilter: 'blur(10px)',
+                      zIndex: 100,
+                      minWidth: '300px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                    }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                        {constraintTags.map(tag => (
+                          <button
+                            key={tag.id}
+                            onClick={() => {
+                              setSelectedTags(prev => {
+                                if (prev.includes(tag.id)) {
+                                  return prev.filter(id => id !== tag.id);
+                                }
+                                // Remove any conflicting tags
+                                const filteredTags = prev.filter(id => {
+                                  const otherTag = constraintTags.find(t => t.id === id);
+                                  if (!otherTag) return true;
+                                  
+                                  const n1 = tag.name.toLowerCase();
+                                  const n2 = otherTag.name.toLowerCase();
+                                  const c1 = tag.category;
+                                  const c2 = otherTag.category;
+                                  
+                                  // Age ranges conflict
+                                  if (c1 === 'age_range' && c2 === 'age_range') return false;
+                                  
+                                  // Diet conflicts
+                                  if (c1 === 'diet' && c2 === 'diet') {
+                                    const dietConflicts = [
+                                      ['vegetarian', 'non-vegetarian'],
+                                      ['vegan', 'non-vegan'],
+                                      ['halal', 'non-halal'],
+                                      ['kosher', 'non-kosher'],
+                                      ['gluten-free', 'gluten']
+                                    ];
+                                    for (let [a, b] of dietConflicts) {
+                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+                                        return false;
+                                      }
+                                    }
+                                  }
+                                  
+                                  // Lifestyle conflicts
+                                  if (c1 === 'lifestyle' && c2 === 'lifestyle') {
+                                    const lifestyleConflicts = [
+                                      ['smoker', 'non-smoker'],
+                                      ['drinker', 'non-drinker'],
+                                      ['drinks alcohol', 'non-drinker'],
+                                      ['early riser', 'night owl'],
+                                      ['party person', 'quiet & homebody'],
+                                      ['party person', 'quiet']
+                                    ];
+                                    for (let [a, b] of lifestyleConflicts) {
+                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+                                        return false;
+                                      }
+                                    }
+                                  }
+                                  
+                                  // Values conflicts
+                                  if (c1 === 'values' && c2 === 'values') {
+                                    const valuesConflicts = [
+                                      ['introvert', 'extrovert'],
+                                      ['social butterfly', 'quiet traveler'],
+                                      ['budget conscious', 'luxury lover'],
+                                      ['eco-conscious', 'luxury lover'],
+                                      ['minimalist', 'luxury lover']
+                                    ];
+                                    for (let [a, b] of valuesConflicts) {
+                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+                                        return false;
+                                      }
+                                    }
+                                  }
+                                  
+                                  return true;
+                                });
+                                return [...filteredTags, tag.id];
+                              });
+                              setCurrentPageMyTrips(1);
+                              setCurrentPageAvailable(1);
+                            }}
+                            style={{
+                              padding: '0.5rem 0.8rem',
+                              borderRadius: '6px',
+                              border: `1px solid ${selectedTags.includes(tag.id) ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                              background: selectedTags.includes(tag.id) ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.05)',
+                              color: selectedTags.includes(tag.id) ? '#ffd580' : 'rgba(255,255,255,0.6)',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem',
+                              fontWeight: 500,
+                              transition: 'all 0.2s',
+                              fontFamily: 'Poppins'
+                            }}
+                          >
+                            {tag.name}
+                          </button>
+                        ))}
+                      </div>
+                      {selectedTags.length > 0 && (
+                        <button
+                          onClick={() => {
+                            setSelectedTags([]);
+                            setCurrentPageMyTrips(1);
+                            setCurrentPageAvailable(1);
+                          }}
+                          style={{
+                            marginTop: '0.8rem',
+                            padding: '0.5rem 1rem',
+                            borderRadius: '6px',
+                            border: '1px solid rgba(255,100,100,0.3)',
+                            background: 'rgba(255,100,100,0.1)',
+                            color: '#ff6464',
+                            cursor: 'pointer',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            width: '100%',
+                            fontFamily: 'Poppins'
+                          }}
+                        >
+                          Clear Filters
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -933,20 +1142,111 @@ function EmptyState({ icon, title, subtitle, action, buttonText }) {
 function CreateTripSection({ onTripCreated }) {
   const [formData, setFormData] = useState({
     title: "", description: "", destination: "",
-    start_date: "", end_date: "", is_public: true,
+    start_date: "", end_date: "", is_public: true, constraint_tags: [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cities, setCities] = useState([]);
+  const [constraintTags, setConstraintTags] = useState({
+    diet: [], lifestyle: [], values: [], age_range: []
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get("trips/cities/").then(r => setCities(r.data || [])).catch(console.error);
+    api.get("users/constraint-tags/").then(r => {
+      const grouped = { diet: [], lifestyle: [], values: [], age_range: [] };
+      (r.data || []).forEach(tag => {
+        if (grouped[tag.category]) grouped[tag.category].push(tag);
+      });
+      setConstraintTags(grouped);
+    }).catch(console.error);
   }, []);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
+  };
+
+  // Helper: Check if two tags conflict (mutually exclusive pairs)
+  const tagsConflict = (tagId1, tagId2) => {
+    let tag1, tag2;
+    Object.keys(constraintTags).forEach(cat => {
+      if (constraintTags[cat].find(t => t.id === tagId1)) tag1 = constraintTags[cat].find(t => t.id === tagId1);
+      if (constraintTags[cat].find(t => t.id === tagId2)) tag2 = constraintTags[cat].find(t => t.id === tagId2);
+    });
+    if (!tag1 || !tag2) return false;
+    
+    const n1 = tag1.name.toLowerCase();
+    const n2 = tag2.name.toLowerCase();
+    const c1 = tag1.category;
+    const c2 = tag2.category;
+    
+    // Age ranges conflict with each other
+    if (c1 === 'age_range' && c2 === 'age_range') return true;
+    
+    // Same category diet conflicts
+    if (c1 === 'diet' && c2 === 'diet') {
+      const dietConflicts = [
+        ['vegetarian', 'non-vegetarian'],
+        ['vegan', 'non-vegan'],
+        ['halal', 'non-halal'],
+        ['kosher', 'non-kosher'],
+        ['gluten-free', 'gluten']
+      ];
+      for (let [a, b] of dietConflicts) {
+        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+          return true;
+        }
+      }
+    }
+    
+    // Lifestyle - smoking/drinking/time/social conflicts
+    if (c1 === 'lifestyle' && c2 === 'lifestyle') {
+      const lifestyleConflicts = [
+        ['smoker', 'non-smoker'],
+        ['drinker', 'non-drinker'],
+        ['drinks alcohol', 'non-drinker'],
+        ['early riser', 'night owl'],
+        ['party person', 'quiet & homebody'],
+        ['party person', 'quiet']
+      ];
+      for (let [a, b] of lifestyleConflicts) {
+        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+          return true;
+        }
+      }
+    }
+    
+    // Values - personality/social/budget conflicts
+    if (c1 === 'values' && c2 === 'values') {
+      const valuesConflicts = [
+        ['introvert', 'extrovert'],
+        ['social butterfly', 'quiet traveler'],
+        ['budget conscious', 'luxury lover'],
+        ['eco-conscious', 'luxury lover'],
+        ['minimalist', 'luxury lover']
+      ];
+      for (let [a, b] of valuesConflicts) {
+        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
+          return true;
+        }
+      }
+    }
+    
+    return false;
+  };
+
+  const handleTagToggle = (tagId) => {
+    setFormData(prev => {
+      if (prev.constraint_tags.includes(tagId)) {
+        return { ...prev, constraint_tags: prev.constraint_tags.filter(id => id !== tagId) };
+      }
+      
+      // Remove any conflicting tags
+      const filteredTags = prev.constraint_tags.filter(id => !tagsConflict(id, tagId));
+      return { ...prev, constraint_tags: [...filteredTags, tagId] };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -955,12 +1255,14 @@ function CreateTripSection({ onTripCreated }) {
       const submitData = {
         title: formData.title,
         description: formData.description,
-        destination_id: parseInt(formData.destination), // ✅ Send as destination_id
+        destination_id: parseInt(formData.destination),
         start_date: formData.start_date,
         end_date: formData.end_date,
         is_public: formData.is_public,
+        constraint_tag_ids: formData.constraint_tags,
       };
-      const res = await api.post("trips/trips/", submitData);
+      console.log('Submitting trip with tags:', formData.constraint_tags);
+      const res = await api.post("trips/", submitData);
       if (res.status === 201) onTripCreated();
     } catch (err) {
       console.error("Trip creation error:", err);
@@ -991,6 +1293,47 @@ function CreateTripSection({ onTripCreated }) {
             <option value="">Select a destination...</option>
             {cities.map(c => <option key={c.id} value={c.id}>{c.name}, {c.country}</option>)}
           </select>
+        </div>
+
+        {/* Constraint Tags Section */}
+        <div className="form-group">
+          <label className="form-label">Trip Requirements (Absolute Tags)</label>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>Select tags that describe mandatory requirements for this trip</p>
+          
+          {['diet', 'lifestyle', 'values'].map(category => (
+            constraintTags[category].length > 0 && (
+              <div key={category} style={{ marginBottom: '1.2rem' }}>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.6rem', textTransform: 'capitalize' }}>
+                  {category}:
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                  {constraintTags[category].map(tag => (
+                    <label key={tag.id} style={{
+                      display: 'flex', alignItems: 'center', gap: '0.5rem',
+                      padding: '0.6rem 1rem', borderRadius: '8px',
+                      background: formData.constraint_tags.includes(tag.id) 
+                        ? 'rgba(201,168,76,0.2)' 
+                        : 'rgba(255,255,255,0.05)',
+                      border: `1px solid ${formData.constraint_tags.includes(tag.id) 
+                        ? 'rgba(201,168,76,0.4)' 
+                        : 'rgba(255,255,255,0.1)'}`,
+                      cursor: 'pointer', transition: 'all 0.2s'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={formData.constraint_tags.includes(tag.id)}
+                        onChange={() => handleTagToggle(tag.id)}
+                        style={{ cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '0.9rem', color: formData.constraint_tags.includes(tag.id) ? '#ffd580' : 'rgba(255,255,255,0.7)' }}>
+                        {tag.name}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )
+          ))}
         </div>
 
         <div className="form-group form-grid">

@@ -41,6 +41,114 @@ const getNepalBounds = () =>
 const NEPAL_CENTER = [27.7172, 85.3240];
 
 /* ═══════════════════════════════════════════════════════════════
+   UI CONSTANTS
+═══════════════════════════════════════════════════════════════ */
+const COLORS = {
+  gold: "#f0c27a",
+  goldGradientStart: "#c9973a",
+  goldGradientEnd: "#f0c27a",
+  emerald: "#34d399",
+  teal: "#5dcaa5",
+  blue: "#7b9fd4",
+  grey: "#888780",
+  liveLocation: "#4285f4",
+  altRoute: "#4a5568",
+  clusterGold: "#C9A84C",
+  gold15: "rgba(201,168,76,.15)",
+  gold45: "rgba(201,168,76,.45)",
+  gold08: "rgba(240,194,122,.08)",
+  gold25: "rgba(240,194,122,.25)",
+  gold3: "rgba(240,194,122,.3)",
+  gold05: "rgba(240,194,122,.05)",
+  gold06: "rgba(240,194,122,.06)",
+  gold1: "rgba(240,194,122,.1)",
+  errorRed: "#f87171",
+  errorBg: "rgba(248,113,113,.08)",
+  errorBorder: "rgba(248,113,113,.2)",
+};
+
+const ICON_CONFIG = {
+  clusterIconSize: [38, 38],
+  clusterIconAnchor: [19, 19],
+  routeIconSize: 34,
+  routeIconAnchor: 17,
+  routeIconSmall: 22,
+  routeIconSmallAnchor: 11,
+  liveIconSize: 28,
+  liveIconAnchor: 14,
+  clusterBorderWidth: "1.5px",
+  routeBorderWidth: "2px",
+  routeBorderSmallWidth: "2.5px",
+  animationDuration: "1.8s",
+};
+
+const RATING_THRESHOLDS = {
+  high: 4.5,
+  medium: 4.0,
+  low: 3.0,
+  colorHigh: "#f0c27a",
+  colorMedium: "#5dcaa5",
+  colorLow: "#7b9fd4",
+  colorPoor: "#888780",
+};
+
+const ERROR_MESSAGES = {
+  osrmHttp: (status) => `OSRM HTTP ${status}`,
+  osrmNoRoute: "No route found",
+  noAccessToken: "No access token found - redirecting to login",
+  kycFetchFailed: "Failed to fetch KYC status",
+  geolocationNotSupported: "Geolocation not supported.",
+  locationError: (msg) => `Location error: ${msg}`,
+};
+
+const MESSAGES = {
+  travelNepal: "Travel Nepal",
+  nepal: "Nepal",
+  route: "Route",
+  nearby: "Nearby",
+  saved: "Saved",
+  chat: "Chat",
+  findingRoute: "Finding route…",
+  alternative: "Alternative Routes",
+  directions: "Directions",
+  kycPending: "KYC Pending",
+  kycUnderReview: "KYC Under Review",
+  completeRegistration: "Complete Registration",
+  kycPendingMsg: "Your KYC is submitted and pending verification. You'll be notified once approved!",
+  kycReviewMsg: "Your KYC is being reviewed. Check back soon!",
+  kycRequiredMsg: "Complete your KYC to start exploring routes across Nepal.",
+  completeKyc: "Complete KYC",
+  updateKyc: "Update KYC",
+  viewStatus: "View Status",
+  refresh: "🔄 Refresh",
+  startPlaceholder: "Start — search anywhere in Nepal…",
+  destPlaceholder: "Destination — search Nepal…",
+  drive: "Drive",
+  walk: "Walk",
+  bike: "Bike",
+  swap: "Swap",
+  save: "Save",
+  showRoute: "Show Route →",
+  enableLocation: "Enable live location",
+  discoverPlaces: "to discover places near you in Nepal",
+  noSavedPlaces: "No saved places yet",
+  savePlaces: "Save a destination to access it quickly",
+  use: "Use",
+  remove: "Remove",
+  setAsDestination: "Set as Destination",
+  origin: "Origin",
+  destination: "Destination",
+  zoom: {
+    in: "Zoom in",
+    out: "Zoom out",
+    track: "My location",
+    stopTrack: "Stop tracking",
+    fitNepal: "Fit Nepal",
+    fitRoute: "Fit route",
+  },
+};
+
+/* ═══════════════════════════════════════════════════════════════
    RATING ENGINE (Kept for potential future use)
 ═══════════════════════════════════════════════════════════════ */
 /*
@@ -153,7 +261,7 @@ function StarsDisplay({ rating, size = 13 }) {
       {[1,2,3,4,5].map(i => (
         <span key={i} style={{
           fontSize: size,
-          color: (rating >= i || rating >= i-0.5) ? "#f0c27a" : "rgba(255,255,255,0.18)",
+          color: (rating >= i || rating >= i-0.5) ? COLORS.gold : "rgba(255,255,255,0.18)",
           opacity: (!(rating >= i) && rating >= i-0.5) ? 0.6 : 1,
         }}>★</span>
       ))}
@@ -338,8 +446,8 @@ function PlaceClusterLayer({ places, onSetDest }) {
       chunkDelay: 50,
       iconCreateFunction: (cluster) => L.divIcon({
         className: "",
-        html: `<div style="width:38px;height:38px;border-radius:50%;background:rgba(201,168,76,0.15);border:1.5px solid rgba(201,168,76,0.45);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:#C9A84C;">${cluster.getChildCount()}</div>`,
-        iconSize:[38,38], iconAnchor:[19,19],
+        html: `<div style="width:38px;height:38px;border-radius:50%;background:${COLORS.gold15};border:${ICON_CONFIG.clusterBorderWidth} solid ${COLORS.gold45};display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:700;font-size:12px;color:${COLORS.clusterGold};">${cluster.getChildCount()}</div>`,
+        iconSize:ICON_CONFIG.clusterIconSize, iconAnchor:ICON_CONFIG.clusterIconAnchor,
       }),
     });
 
@@ -356,7 +464,7 @@ function PlaceClusterLayer({ places, onSetDest }) {
       ].filter(Boolean).slice(0, 3).join("<br/>");
 
       const starsHtml = [1,2,3,4,5].map(i =>
-        `<span style="font-size:13px;color:${p.rating>=i||p.rating>=i-.5?"#C9A84C":"rgba(255,255,255,.18)"};opacity:${(!(p.rating>=i)&&p.rating>=i-.5)?".6":"1"}">★</span>`
+        `<span style="font-size:13px;color:${p.rating>=i||p.rating>=i-.5?COLORS.clusterGold:"rgba(255,255,255,.18)"};opacity:${(!(p.rating>=i)&&p.rating>=i-.5)?".6":"1"}">★</span>`
       ).join("");
 
       L.marker([p.lat, p.lng], { icon: makePlaceIcon(p) })
@@ -371,7 +479,7 @@ function PlaceClusterLayer({ places, onSetDest }) {
               <span style="font-size:11px;color:rgba(245,240,232,.35);">(${p.reviews.toLocaleString()} reviews)</span>
             </div>
             ${extras ? `<div style="font-size:11px;color:rgba(245,240,232,.4);line-height:1.9;margin-bottom:10px;border-top:.5px solid rgba(255,255,255,.06);padding-top:8px;">${extras}</div>` : ""}
-            <button onclick="window.__tmSetDest(${p.id})" style="width:100%;padding:8px;border-radius:7px;border:none;background:linear-gradient(135deg,#c9973a,#f0c27a);color:#0f0e0d;font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">Set as Destination</button>
+            <button onclick="window.__tmSetDest(${p.id})" style="width:100%;padding:8px;border-radius:7px;border:none;background:linear-gradient(135deg,${COLORS.goldGradientStart},${COLORS.goldGradientEnd});color:#0f0e0d;font-family:'DM Sans',sans-serif;font-weight:700;font-size:12px;cursor:pointer;">${MESSAGES.setAsDestination}</button>
           </div>`))
         .addTo(group);
     });
@@ -393,15 +501,15 @@ function MapControls({ tracking, onToggleTrack, routeCoords }) {
   const map = useMap();
   return (
     <div style={{ position:"absolute", bottom:80, right:16, zIndex:1000, display:"flex", flexDirection:"column", gap:8 }}>
-      <button style={S.ctrlBtn} onClick={() => map.zoomIn()} title="Zoom in">+</button>
-      <button style={S.ctrlBtn} onClick={() => map.zoomOut()} title="Zoom out">−</button>
+      <button style={S.ctrlBtn} onClick={() => map.zoomIn()} title={MESSAGES.zoom.in}>+</button>
+      <button style={S.ctrlBtn} onClick={() => map.zoomOut()} title={MESSAGES.zoom.out}>−</button>
       <button
         style={{ ...S.ctrlBtn, ...(tracking ? S.ctrlActive : {}) }}
-        onClick={onToggleTrack} title={tracking ? "Stop tracking" : "My location"}
-      ><MapPin size={18} color={tracking ? "#C9A84C" : "#f5f0e8"} /></button>
-      <button style={S.ctrlBtn} onClick={() => map.fitBounds(getNepalBounds(), { padding:[20,20] })} title="Fit Nepal"><Globe size={18} color="#C9A84C" /></button>
+        onClick={onToggleTrack} title={tracking ? MESSAGES.zoom.stopTrack : MESSAGES.zoom.track}
+      ><MapPin size={18} color={tracking ? COLORS.clusterGold : "#f5f0e8"} /></button>
+      <button style={S.ctrlBtn} onClick={() => map.fitBounds(getNepalBounds(), { padding:[20,20] })} title={MESSAGES.zoom.fitNepal}><Globe size={18} color={COLORS.clusterGold} /></button>
       {routeCoords?.length > 0 && (
-        <button style={S.ctrlBtn} onClick={() => map.fitBounds(L.latLngBounds(routeCoords), { padding:[60,60] })} title="Fit route"><Navigation2 size={18} color="#C9A84C" /></button>
+        <button style={S.ctrlBtn} onClick={() => map.fitBounds(L.latLngBounds(routeCoords), { padding:[60,60] })} title={MESSAGES.zoom.fitRoute}><Navigation2 size={18} color={COLORS.clusterGold} /></button>
       )}
     </div>
   );
@@ -427,7 +535,7 @@ export default function NepalMap() {
       try {
         const token = localStorage.getItem("access_token");
         if (!token) {
-          console.error("No access token found - redirecting to login");
+          console.error(ERROR_MESSAGES.noAccessToken);
           setKycStatus("no_token");
           return;
         }
@@ -440,7 +548,7 @@ export default function NepalMap() {
           setKycStatus(data.status || null);
           console.log("KYC Status updated:", data.status);
         } else {
-          console.error("Failed to fetch KYC status:", response.status);
+          console.error(ERROR_MESSAGES.kycFetchFailed, response.status);
           setKycStatus("fetch_error");
         }
       } catch (error) {
@@ -556,7 +664,7 @@ export default function NepalMap() {
 
   /* ── Live tracking ── */
   const startTracking = useCallback(() => {
-    if (!navigator.geolocation) { alert("Geolocation not supported."); return; }
+    if (!navigator.geolocation) { alert(ERROR_MESSAGES.geolocationNotSupported); return; }
     setTracking(true);
     watchRef.current = navigator.geolocation.watchPosition(
       pos => {
@@ -568,7 +676,7 @@ export default function NepalMap() {
           setOriginText(prev => prev || "My Location");
         }
       },
-      err => { setTracking(false); alert("Location error: " + err.message); },
+      err => { setTracking(false); alert(ERROR_MESSAGES.locationError(err.message)); },
       { enableHighAccuracy: true, maximumAge: 5000 }
     );
   }, []);
@@ -636,11 +744,11 @@ export default function NepalMap() {
 
           <div style={{ padding:"22px 20px 14px", marginTop:"8px", borderBottom:".5px solid rgba(201,168,76,.08)", flexShrink:0 }}>
             <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color:"#f5f0e8", marginBottom:6, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
-              <Globe size={20} color="#C9A84C" /> Travel <span style={{ color:"#C9A84C" }}>Nepal</span>
+              <Globe size={20} color={COLORS.clusterGold} /> {MESSAGES.travelNepal} <span style={{ color: COLORS.clusterGold }}>{MESSAGES.nepal}</span>
             </div>
             <div style={{ display:"flex", gap:5, background:"rgba(255,255,255,.03)", padding:4, borderRadius:10, flexWrap:"wrap" }}>
-              {[{id:"route",l:"Route"},{id:"nearby",l:"Nearby"},{id:"saved",l:"Saved"},{id:"chat",l:"Chat"}].map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?"#f0c27a":"transparent", color:activeTab===t.id?"#0f0e0d":"rgba(255,255,255,.3)", flex:"1 1 auto", minWidth:"60px" }}>{t.l}</button>
+              {[{id:"route",l:MESSAGES.route},{id:"nearby",l:MESSAGES.nearby},{id:"saved",l:MESSAGES.saved},{id:"chat",l:MESSAGES.chat}].map(t => (
+                <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?COLORS.gold:"transparent", color:activeTab===t.id?"#0f0e0d":"rgba(255,255,255,.3)", flex:"1 1 auto", minWidth:"60px" }}>{t.l}</button>
               ))}
             </div>
           </div>
@@ -654,17 +762,17 @@ export default function NepalMap() {
               <>
                 {/* KYC Registration Box */}
                 {kycStatus && kycStatus !== "approved" && (
-                  <div style={{ background: "rgba(240,194,122,.08)", border: ".5px solid rgba(240,194,122,.25)", borderRadius: 12, padding: "16px 14px", marginBottom: 16, animation: "tm-fade .3s ease", textAlign: "center" }}>
+                  <div style={{ background: COLORS.gold08, border: `.5px solid ${COLORS.gold25}`, borderRadius: 12, padding: "16px 14px", marginBottom: 16, animation: "tm-fade .3s ease", textAlign: "center" }}>
                     <div style={{ fontSize: 32, marginBottom: 10 }}>🔐</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "#f0c27a", marginBottom: 6, letterSpacing: "-.5px" }}>
-                      {kycStatus === "pending" ? "KYC Pending" : kycStatus === "under_review" ? "KYC Under Review" : "Complete Registration"}
+                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.gold, marginBottom: 6, letterSpacing: "-.5px" }}>
+                      {kycStatus === "pending" ? MESSAGES.kycPending : kycStatus === "under_review" ? MESSAGES.kycUnderReview : MESSAGES.completeRegistration}
                     </div>
                     <div style={{ fontSize: 11, color: "rgba(245,240,232,.5)", lineHeight: 1.6, marginBottom: 12 }}>
                       {kycStatus === "pending" 
-                        ? "Your KYC is submitted and pending verification. You'll be notified once approved!"
+                        ? MESSAGES.kycPendingMsg
                         : kycStatus === "under_review"
-                        ? "Your KYC is being reviewed. Check back soon!"
-                        : "Complete your KYC to start exploring routes across Nepal."}
+                        ? MESSAGES.kycReviewMsg
+                        : MESSAGES.kycRequiredMsg}
                     </div>
                     <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
                       <Link 
@@ -673,7 +781,7 @@ export default function NepalMap() {
                           display: "inline-block",
                           padding: "8px 16px",
                           borderRadius: 8,
-                          background: "linear-gradient(135deg,#c9973a,#f0c27a)",
+                          background: `linear-gradient(135deg,${COLORS.goldGradientStart},${COLORS.goldGradientEnd})`,
                           color: "#0f0e0d",
                           textDecoration: "none",
                           fontWeight: 700,
@@ -686,7 +794,7 @@ export default function NepalMap() {
                         onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(240,194,122,.3)"; }}
                         onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
                       >
-                        {kycStatus === "under_review" ? "View Status" : kycStatus === "pending" ? "Update KYC" : "Complete KYC"}
+                        {kycStatus === "under_review" ? MESSAGES.viewStatus : kycStatus === "pending" ? MESSAGES.updateKyc : MESSAGES.completeKyc}
                       </Link>
                       {(kycStatus === "pending" || kycStatus === "under_review") && (
                         <button
@@ -694,19 +802,19 @@ export default function NepalMap() {
                           style={{
                             padding: "8px 12px",
                             borderRadius: 8,
-                            border: ".5px solid rgba(240,194,122,.3)",
-                            background: "rgba(240,194,122,.05)",
-                            color: "#f0c27a",
+                            border: `.5px solid ${COLORS.gold3}`,
+                            background: COLORS.gold05,
+                            color: COLORS.gold,
                             fontWeight: 600,
                             fontSize: 12,
                             cursor: "pointer",
                             transition: "all .2s"
                           }}
-                          onMouseEnter={e => (e.currentTarget.style.background = "rgba(240,194,122,.1)")}
-                          onMouseLeave={e => (e.currentTarget.style.background = "rgba(240,194,122,.05)")}
+                          onMouseEnter={e => (e.currentTarget.style.background = COLORS.gold1)}
+                          onMouseLeave={e => (e.currentTarget.style.background = COLORS.gold05)}
                           title="Refresh KYC status"
                         >
-                          🔄 Refresh
+                          {MESSAGES.refresh}
                         </button>
                       )}
                     </div>
@@ -718,18 +826,18 @@ export default function NepalMap() {
                   <SearchBox
                     value={originText} onChange={setOriginText}
                     onSelect={p => { setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
-                    placeholder="Start — search anywhere in Nepal…"
-                    dotColor="#34d399"
+                    placeholder={MESSAGES.startPlaceholder}
+                    dotColor={COLORS.emerald}
                   />
                   <SearchBox
                     value={destText} onChange={setDestText}
                     onSelect={p => { setDest(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
-                    placeholder="Destination — search Nepal…"
-                    dotColor="#f0c27a"
+                    placeholder={MESSAGES.destPlaceholder}
+                    dotColor={COLORS.gold}
                   />
 
               <div style={{ display:"flex", gap:6 }}>
-                {[{k:"car",l:"Drive",icon:Navigation2},{k:"foot",l:"Walk",icon:MapPin},{k:"bike",l:"Bike",icon:Bike}].map(m => (
+                {[{k:"car",l:MESSAGES.drive,icon:Navigation2},{k:"foot",l:MESSAGES.walk,icon:MapPin},{k:"bike",l:MESSAGES.bike,icon:Bike}].map(m => (
                   <button key={m.k}
                     onClick={() => { setMode(m.k); setShowRoute(false); setRoutes([]); setSteps([]); }}
                     style={{ ...S.modeBtn, ...(mode===m.k ? S.modeBtnActive : {}), display:"flex", alignItems:"center", gap:"6px" }}>
@@ -740,35 +848,35 @@ export default function NepalMap() {
 
               {origin && destination && (
                 <div style={{ display:"flex", gap:8 }}>
-                  <button style={{...S.btnSec, display:"flex", alignItems:"center", gap:"6px"}}  onClick={handleSwap}><MoreVertical size={16} style={{rotate:"90deg"}} /> Swap</button>
-                  <button style={{...S.btnGold, display:"flex", alignItems:"center", gap:"6px"}} onClick={saveFavorite}><Heart size={16} /> Save</button>
+                  <button style={{...S.btnSec, display:"flex", alignItems:"center", gap:"6px"}}  onClick={handleSwap}><MoreVertical size={16} style={{rotate:"90deg"}} /> {MESSAGES.swap}</button>
+                  <button style={{...S.btnGold, display:"flex", alignItems:"center", gap:"6px"}} onClick={saveFavorite}><Heart size={16} /> {MESSAGES.save}</button>
                 </div>
               )}
 
               {origin && destination && !showRoute && (
-                <button style={S.btnRoute} onClick={() => setShowRoute(true)}>Show Route →</button>
+                <button style={S.btnRoute} onClick={() => setShowRoute(true)}>{MESSAGES.showRoute}</button>
               )}
 
               {routeLoading && (
                 <div style={{ textAlign:"center", padding:"14px 0", color:"rgba(240,194,122,.6)", fontSize:12 }}>
                   <div style={{ ...S.spinner, position:"static", display:"inline-block", marginBottom:6 }}/>
-                  <div>Finding route…</div>
+                  <div>{MESSAGES.findingRoute}</div>
                 </div>
               )}
 
               {routeError && (
-                <div style={{ background:"rgba(248,113,113,.08)", border:".5px solid rgba(248,113,113,.2)", borderRadius:10, padding:"10px 13px", fontSize:12, color:"#f87171" }}>
+                <div style={{ background: COLORS.errorBg, border: `.5px solid ${COLORS.errorBorder}`, borderRadius:10, padding:"10px 13px", fontSize:12, color: COLORS.errorRed }}>
                   {routeError}
                 </div>
               )}
 
               {routes.length > 1 && (
                 <div style={S.card}>
-                  <div style={S.cardTitle}>Alternative Routes</div>
+                  <div style={S.cardTitle}>{MESSAGES.alternative}</div>
                   {routes.map((r,i) => (
-                    <button key={i} onClick={() => setSelected(i)} style={{ ...S.routeAlt, borderColor:i===selectedRoute?"rgba(240,194,122,.45)":"rgba(255,255,255,.05)", background:i===selectedRoute?"rgba(240,194,122,.07)":"transparent" }}>
+                    <button key={i} onClick={() => setSelected(i)} style={{ ...S.routeAlt, borderColor:i===selectedRoute?COLORS.gold45:"rgba(255,255,255,.05)", background:i===selectedRoute?COLORS.gold06:"transparent" }}>
                       <div style={{ display:"flex", justifyContent:"space-between" }}>
-                        <span style={{ fontSize:13, fontWeight:500, color:i===selectedRoute?"#f0c27a":"rgba(255,255,255,.55)" }}>Route {i+1}</span>
+                        <span style={{ fontSize:13, fontWeight:500, color:i===selectedRoute?COLORS.gold:"rgba(255,255,255,.55)" }}>Route {i+1}</span>
                         <span style={{ fontSize:11, color:"rgba(255,255,255,.3)" }}>{r.durationMin} min</span>
                       </div>
                       <div style={{ fontSize:11, color:"rgba(255,255,255,.25)", marginTop:2 }}>{r.distanceKm} km</div>
@@ -779,11 +887,11 @@ export default function NepalMap() {
 
               {steps.length > 0 && (
                 <div style={S.card}>
-                  <div style={S.cardTitle}>Directions</div>
+                  <div style={S.cardTitle}>{MESSAGES.directions}</div>
                   <div style={{ maxHeight:300, overflowY:"auto", display:"flex", flexDirection:"column", gap:6 }}>
                     {steps.map((s,i) => (
                       <div key={s.id} style={{ display:"flex", gap:10, padding:"9px 10px", borderRadius:8, background:"rgba(255,255,255,.02)", border:".5px solid rgba(255,255,255,.04)", animation:`tm-slide .15s ease ${i*.025}s both` }}>
-                        <div style={{ flexShrink:0, width:20, height:20, borderRadius:"50%", background:"linear-gradient(135deg,#c9973a,#f0c27a)", display:"flex", alignItems:"center", justifyContent:"center", color:"#0f0e0d", fontSize:9, fontWeight:700 }}>{i+1}</div>
+                        <div style={{ flexShrink:0, width:20, height:20, borderRadius:"50%", background:`linear-gradient(135deg,${COLORS.goldGradientStart},${COLORS.goldGradientEnd})`, display:"flex", alignItems:"center", justifyContent:"center", color:"#0f0e0d", fontSize:9, fontWeight:700 }}>{i+1}</div>
                         <div>
                           <div style={{ fontSize:12, color:"rgba(255,255,255,.75)", lineHeight:1.5 }}>{s.text}</div>
                           <div style={{ fontSize:10, color:"rgba(255,255,255,.25)", marginTop:2 }}>{(s.dist/1000).toFixed(2)} km</div>
@@ -802,8 +910,8 @@ export default function NepalMap() {
               nearby.length === 0
                 ? <div style={S.empty}>
                     <div style={{ fontSize:28, marginBottom:10 }}>📡</div>
-                    <p>Enable live location</p>
-                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>to discover places near you in Nepal</p>
+                    <p>{MESSAGES.enableLocation}</p>
+                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.discoverPlaces}</p>
                   </div>
                 : nearby.map(p => (
                     <div key={p.id} onClick={() => handleSetDest(p.id)} style={S.nearbyCard}>
@@ -823,16 +931,16 @@ export default function NepalMap() {
               favorites.length === 0
                 ? <div style={S.empty}>
                     <div style={{ fontSize:28, marginBottom:10 }}>🗂</div>
-                    <p>No saved places yet</p>
-                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>Save a destination to access it quickly</p>
+                    <p>{MESSAGES.noSavedPlaces}</p>
+                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.savePlaces}</p>
                   </div>
                 : favorites.map(f => (
                     <div key={f.id} style={S.favItem}>
-                      <div style={{ fontSize:12, fontWeight:600, color:"#f0c27a", marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.name}</div>
+                      <div style={{ fontSize:12, fontWeight:600, color: COLORS.gold, marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.name}</div>
                       <div style={{ fontSize:10, color:"rgba(245,240,232,.25)" }}>{f.lat.toFixed(4)}, {f.lng.toFixed(4)}</div>
                       <div style={{ display:"flex", gap:6, marginTop:8 }}>
-                        <button style={S.btnUse} onClick={() => { setDest(f); setDestText(f.name); setShowRoute(false); setRoutes([]); setSteps([]); setActiveTab("route"); }}>Use</button>
-                        <button style={S.btnRemove} onClick={() => setFavorites(prev => prev.filter(x => x.id !== f.id))}>Remove</button>
+                        <button style={S.btnUse} onClick={() => { setDest(f); setDestText(f.name); setShowRoute(false); setRoutes([]); setSteps([]); setActiveTab("route"); }}>{MESSAGES.use}</button>
+                        <button style={S.btnRemove} onClick={() => setFavorites(prev => prev.filter(x => x.id !== f.id))}>{MESSAGES.remove}</button>
                       </div>
                     </div>
                   ))
@@ -876,10 +984,10 @@ export default function NepalMap() {
 
               {/* Origin marker */}
               {origin && (
-                <Marker position={[origin.lat, origin.lng]} icon={makeRouteIcon("#34d399")}>
+                <Marker position={[origin.lat, origin.lng]} icon={makeRouteIcon(COLORS.emerald)}>
                   <Popup className="tm-popup">
                     <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
-                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#34d399", marginBottom:4 }}>Origin</div>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color: COLORS.emerald, marginBottom:4 }}>{MESSAGES.origin}</div>
                       <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{origin.name}</div>
                     </div>
                   </Popup>
@@ -888,10 +996,10 @@ export default function NepalMap() {
 
               {/* Destination marker */}
               {destination && (
-                <Marker position={[destination.lat, destination.lng]} icon={makeRouteIcon("#f0c27a")}>
+                <Marker position={[destination.lat, destination.lng]} icon={makeRouteIcon(COLORS.gold)}>
                   <Popup className="tm-popup">
                     <div style={{ fontFamily:"'DM Sans',sans-serif", background:"#0d0e1a", color:"#f5f0e8", borderRadius:10, padding:"12px 14px" }}>
-                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color:"#f0c27a", marginBottom:4 }}>Destination</div>
+                      <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:14, color: COLORS.gold, marginBottom:4 }}>{MESSAGES.destination}</div>
                       <div style={{ fontSize:12, color:"rgba(245,240,232,.45)", lineHeight:1.5 }}>{destination.name}</div>
                     </div>
                   </Popup>

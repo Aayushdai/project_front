@@ -1,77 +1,85 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { useAuthRequired } from "../hooks/useAuthRequired";
 import logo from "../assets/content.png";
 import UserSearchBar from "./UserSearchBar";
+import { apiFetch, getBaseUrl, getToken } from "../utils/api";
 
-const navLinks = [
+const NAV_LINKS = [
   { to: "/home", label: "Home" },
   { to: "/explore", label: "Explore" },
   { to: "/dashboard", label: "Dashboard" },
 ];
 
+const MORE_LINKS = [
+  { to: "/chat", label: "Chat" },
+  { to: "/about", label: "About" },
+];
+
 export default function NavbarComponent() {
   const { user, logout } = useAuth();
+  const { isReady: isAuthReady } = useAuthRequired();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
   const dropdownRef = useRef(null);
-  const navigate = useNavigate();
 
-  const fetchProfilePic = () => {
-    const token = localStorage.getItem("access_token");
+  // Fetch profile data and pending requests
+  const fetchUserData = async () => {
+    const token = getToken();
     if (!token) return;
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
-    const baseUrl = backendUrl.replace('/api/', '');
-    fetch(`${backendUrl}users/me/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.profile_picture) {
-          const url = data.profile_picture.startsWith("http")
-            ? data.profile_picture
-            : `${baseUrl}${data.profile_picture}`;
-          setProfilePic(url);
-        } else {
-          setProfilePic(null);
-        }
-      })
-      .catch(() => setProfilePic(null));
+    
+    try {
+      const data = await apiFetch("users/me/");
+      if (data?.profile_picture) {
+        const url = data.profile_picture.startsWith("http")
+          ? data.profile_picture
+          : `${getBaseUrl()}${data.profile_picture}`;
+        setProfilePic(url);
+      } else {
+        setProfilePic(null);
+      }
+    } catch (error) {
+      setProfilePic(null);
+    }
+    
+    try {
+      const data = await apiFetch("users/friend-requests/pending/");
+      setPendingRequestsCount(data?.pending_requests?.length || 0);
+    } catch (error) {
+      setPendingRequestsCount(0);
+    }
   };
 
-  // Fetch pending friend requests count
-  const fetchPendingRequests = () => {
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
-    fetch(`${backendUrl}users/friend-requests/pending/`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        setPendingRequestsCount(data.pending_requests?.length || 0);
-      })
-      .catch(() => setPendingRequestsCount(0));
-  };
-
-  // Fetch on mount / user change
-  useEffect(() => { fetchProfilePic(); fetchPendingRequests(); }, [user]);
-
-  // ✅ Re-fetch whenever ProfilePage fires "profile-updated"
+  // Fetch on mount / user change / auth ready
   useEffect(() => {
-    const handler = () => { fetchProfilePic(); fetchPendingRequests(); };
-    window.addEventListener("profile-updated", handler);
-    return () => window.removeEventListener("profile-updated", handler);
+    if (isAuthReady) {
+      fetchUserData();
+    }
+  }, [user, isAuthReady]);
+
+  // Re-fetch when profile-updated event fires
+  useEffect(() => {
+    window.addEventListener("profile-updated", fetchUserData);
+    return () => window.removeEventListener("profile-updated", fetchUserData);
   }, []);
 
-  // ✅ Auto-refresh pending requests every 5 seconds
+  // Refresh pending requests every 10 seconds (optimized from 5s)
   useEffect(() => {
-    const interval = setInterval(fetchPendingRequests, 5000);
+    const interval = setInterval(() => {
+      const token = getToken();
+      if (token) {
+        apiFetch("users/friend-requests/pending/")
+          .then(data => setPendingRequestsCount(data?.pending_requests?.length || 0))
+          .catch(() => setPendingRequestsCount(0));
+      }
+    }, 10000);
     return () => clearInterval(interval);
   }, []);
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target))
@@ -81,18 +89,20 @@ export default function NavbarComponent() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLogout = () => { logout(); navigate("/"); };
+  const handleLogout = () => logout();
   const initial = user?.first_name?.[0] || user?.username?.[0] || "U";
 
   // Reusable avatar component with notification badge
   const Avatar = ({ size = "h-9 w-9", textSize = "text-sm", showBadge = false }) => (
-    <div className={`${size} flex-shrink-0 overflow-hidden rounded-full bg-[#1976D2] flex items-center justify-center ring-2 ring-white/10 relative`}>
-      {profilePic
-        ? <img src={profilePic} alt="avatar" className="h-full w-full object-cover" onError={() => setProfilePic(null)} />
-        : <span className={`${textSize} font-bold text-white`}>{initial.toUpperCase()}</span>
-      }
+    <div className="relative flex-shrink-0">
+      <div className={`${size} overflow-hidden rounded-full bg-[#1976D2] flex items-center justify-center ring-2 ring-white/10`}>
+        {profilePic
+          ? <img src={profilePic} alt="avatar" className="h-full w-full object-cover" onError={() => setProfilePic(null)} />
+          : <span className={`${textSize} font-bold text-white`}>{initial.toUpperCase()}</span>
+        }
+      </div>
       {showBadge && pendingRequestsCount > 0 && (
-        <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#0a0c16]">
+        <span className="absolute -top-3 -right-3 h-6 w-6 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center border-3 border-[#0a0c16] shadow-lg">
           {pendingRequestsCount > 9 ? '9+' : pendingRequestsCount}
         </span>
       )}
@@ -115,7 +125,7 @@ export default function NavbarComponent() {
 
         {/* Center Links */}
         <div className="hidden items-center gap-6 md:flex">
-          {navLinks.map(({ to, label }) => (
+          {NAV_LINKS.map(({ to, label }) => (
             <Link key={to} to={to} className="text-sm text-white/80 no-underline transition hover:text-white">
               {label}
             </Link>
@@ -123,8 +133,11 @@ export default function NavbarComponent() {
           <div className="group relative">
             <button className="text-sm text-white/80 transition hover:text-white">More ▾</button>
             <div className="absolute left-0 top-7 hidden min-w-[140px] rounded-xl bg-[#111] py-1 shadow-lg group-hover:block">
-              <span className="block cursor-pointer px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white">Blog</span>
-              <Link to="/about" className="block px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white no-underline">About</Link>
+              {MORE_LINKS.map(({ to, label }) => (
+                <Link key={to} to={to} className="block px-4 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white no-underline">
+                  {label}
+                </Link>
+              ))}
             </div>
           </div>
         </div>
@@ -174,15 +187,18 @@ export default function NavbarComponent() {
           <div className="mb-4">
             <UserSearchBar />
           </div>
-          {navLinks.map(({ to, label }) => (
+          {NAV_LINKS.map(({ to, label }) => (
             <Link key={to} to={to} onClick={() => setMobileOpen(false)}
               className="block py-2 text-sm text-white/80 no-underline hover:text-white">
               {label}
             </Link>
           ))}
-          <span className="block py-2 text-sm text-white/80">Blog</span>
-          <span className="block py-2 text-sm text-white/80">About
-          </span>
+          {MORE_LINKS.map(({ to, label }) => (
+            <Link key={to} to={to} onClick={() => setMobileOpen(false)}
+              className="block py-2 text-sm text-white/80 no-underline hover:text-white">
+              {label}
+            </Link>
+          ))}
         </div>
       )}
     </nav>

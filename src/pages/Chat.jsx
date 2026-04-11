@@ -1,7 +1,35 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { ChatListSkeleton, MessageThreadSkeleton } from "../components/SkeletonLoaders";
 
-const styles = `
+// ════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════════════════
+const MESSAGES = {
+  sidebarTitle: "Messages",
+  searchPlaceholder: "Search…",
+  noConversations: "No conversations yet",
+  noConversationsHint: "Add friends or join trips to start chatting",
+  directSection: "Direct",
+  groupsSection: "Groups",
+  selectConversation: "Select a conversation",
+  startChatting: "to start chatting",
+  noMessages: "No messages yet",
+  sayHi: "Say hi!",
+  dateToday: "Today",
+  startConversation: "Start a conversation",
+  membersLabel: "members",
+  online: "Online",
+  messagePrefix: "Message",
+};
+
+const AVATAR_COLORS = [
+  { bg: "#dbeafe", color: "#1d4ed8" },
+  { bg: "#fce7f3", color: "#be185d" },
+  { bg: "#fef3c7", color: "#b45309" },
+  { bg: "#dcfce7", color: "#15803d" },
+  { bg: "#ede9fe", color: "#6d28d9" },
+];const styles = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap');
 
   .chat-root *, .chat-root *::before, .chat-root *::after {
@@ -397,13 +425,6 @@ function getSenderId(msg) {
 }
 
 // ── Helper: avatar color class by index ─────────────────────────────────────
-const AVATAR_COLORS = [
-  { bg: "#dbeafe", color: "#1d4ed8" },
-  { bg: "#fce7f3", color: "#be185d" },
-  { bg: "#fef3c7", color: "#b45309" },
-  { bg: "#dcfce7", color: "#15803d" },
-  { bg: "#ede9fe", color: "#6d28d9" },
-];
 function avatarStyle(idx) {
   const c = AVATAR_COLORS[idx % AVATAR_COLORS.length];
   return { background: c.bg, color: c.color };
@@ -457,7 +478,7 @@ export default function Chat() {
           fetch(`${backendUrl}users/friends/`, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch(`${backendUrl.replace('/api/', '')}/api/trips/trips/`, {
+          fetch(`${backendUrl.replace('/api/', '')}/api/trips/`, {
             headers: { Authorization: `Bearer ${token}` },
           }).catch(() => ({ ok: false })),
         ]);
@@ -489,7 +510,25 @@ export default function Chat() {
             const trips = Array.isArray(tripsData)
               ? tripsData
               : tripsData.results || tripsData.trips || [];
-            const groupConvos = trips.map(trip => ({
+            
+            // Get current user's ID to filter joined trips
+            let currentUserId = null;
+            try {
+              const user = JSON.parse(localStorage.getItem("user") || "{}");
+              currentUserId = user?.id;
+            } catch (e) {
+              console.error("Failed to get user ID:", e);
+            }
+            
+            // Filter trips to show only ones user is a participant of
+            const joinedTrips = trips.filter(trip => {
+              if (!trip.participants) return false;
+              return trip.participants.some(p => 
+                (p.id === currentUserId) || (p.user?.id === currentUserId)
+              );
+            });
+            
+            const groupConvos = joinedTrips.map(trip => ({
               id: `group-${trip.id}`,
               type: "group",
               name: trip.title || "Trip Group",
@@ -682,7 +721,7 @@ export default function Chat() {
       {/* ── Sidebar ── */}
       <div className="sidebar">
         <div className="sidebar-header">
-          <div className="sidebar-title">Messages</div>
+          <div className="sidebar-title">{MESSAGES.sidebarTitle}</div>
         </div>
 
         <div className="search-wrap">
@@ -690,7 +729,7 @@ export default function Chat() {
             <SearchIcon />
             <input
               type="text"
-              placeholder="Search…"
+              placeholder={MESSAGES.searchPlaceholder}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
             />
@@ -698,15 +737,15 @@ export default function Chat() {
         </div>
 
         {chatLoading && conversations.length === 0 ? (
-          <div className="empty-state">
-            <div className="spinner" />
+          <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
+            <ChatListSkeleton count={8} />
           </div>
         ) : conversations.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">💬</div>
-            <div className="empty-title">No conversations yet</div>
+            <div className="empty-title">{MESSAGES.noConversations}</div>
             <div className="empty-sub">
-              Add friends or join trips to start chatting
+              {MESSAGES.noConversationsHint}
             </div>
             {chatError && <div className="error-box">{chatError}</div>}
           </div>
@@ -714,7 +753,7 @@ export default function Chat() {
           <div className="conv-list">
             {directConvos.length > 0 && (
               <>
-                <div className="section-label">Direct</div>
+                <div className="section-label">{MESSAGES.directSection}</div>
                 {directConvos.map((conv, idx) => (
                   <ConvItem
                     key={conv.id}
@@ -731,7 +770,7 @@ export default function Chat() {
             )}
             {groupConvos.length > 0 && (
               <>
-                <div className="section-label">Groups</div>
+                <div className="section-label">{MESSAGES.groupsSection}</div>
                 {groupConvos.map((conv, idx) => (
                   <ConvItem
                     key={conv.id}
@@ -755,8 +794,8 @@ export default function Chat() {
         {!selectedConversation ? (
           <div className="thread-empty">
             <div className="thread-empty-icon">👋</div>
-            <div className="thread-empty-title">Select a conversation</div>
-            <div className="thread-empty-sub">to start chatting</div>
+            <div className="thread-empty-title">{MESSAGES.selectConversation}</div>
+            <div className="thread-empty-sub">{MESSAGES.startChatting}</div>
           </div>
         ) : (
           <>
@@ -778,11 +817,11 @@ export default function Chat() {
                 <div className="thread-name">{selectedConversation.name}</div>
                 <div className="thread-sub">
                   {selectedConversation.type === "group" ? (
-                    `${selectedConversation.memberCount} members`
+                    `${selectedConversation.memberCount} ${MESSAGES.membersLabel}`
                   ) : (
                     <>
                       <span className="online-dot" />
-                      Online
+                      {MESSAGES.online}
                     </>
                   )}
                 </div>
@@ -810,19 +849,17 @@ export default function Chat() {
             {/* Messages */}
             <div className="messages-area">
               {chatLoading && messages.length === 0 ? (
-                <div style={{ display: "flex", justifyContent: "center", paddingTop: 32 }}>
-                  <div className="spinner" />
-                </div>
+                <MessageThreadSkeleton count={6} />
               ) : messages.length === 0 ? (
                 <div className="thread-empty">
                   <div style={{ fontSize: 28 }}>💌</div>
-                  <div className="thread-empty-title">No messages yet</div>
-                  <div className="thread-empty-sub">Say hi!</div>
+                  <div className="thread-empty-title">{MESSAGES.noMessages}</div>
+                  <div className="thread-empty-sub">{MESSAGES.sayHi}</div>
                 </div>
               ) : (
                 <>
                   <div className="date-divider">
-                    <span className="date-pill">Today</span>
+                    <span className="date-pill">{MESSAGES.dateToday}</span>
                   </div>
                   {groupedMessages.map((group, gi) => {
                     const first = group[0];
@@ -894,7 +931,7 @@ export default function Chat() {
               <div className="input-row">
                 <input
                   type="text"
-                  placeholder={`Message ${selectedConversation.name}…`}
+                  placeholder={`${MESSAGES.messagePrefix} ${selectedConversation.name}…`}
                   value={messageInput}
                   maxLength={1000}
                   onChange={e => setMessageInput(e.target.value)}
@@ -928,13 +965,6 @@ export default function Chat() {
 
 // ── ConvItem sub-component ────────────────────────────────────────────────────
 function ConvItem({ conv, idx, active, onClick }) {
-  const AVATAR_COLORS = [
-    { bg: "#dbeafe", color: "#1d4ed8" },
-    { bg: "#fce7f3", color: "#be185d" },
-    { bg: "#fef3c7", color: "#b45309" },
-    { bg: "#dcfce7", color: "#15803d" },
-    { bg: "#ede9fe", color: "#6d28d9" },
-  ];
   const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
 
   return (
@@ -964,8 +994,8 @@ function ConvItem({ conv, idx, active, onClick }) {
         <div className="conv-preview">
           {conv.lastMessage ||
             (conv.type === "group"
-              ? `${conv.memberCount} members`
-              : "Start a conversation")}
+              ? `${conv.memberCount} ${MESSAGES.membersLabel}`
+              : MESSAGES.startConversation)}
         </div>
       </div>
 

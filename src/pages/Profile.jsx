@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import {
   Edit3,
@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Clock,
 } from "lucide-react";
+import SuggestPeople from "../components/SuggestPeople";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const API = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
@@ -38,6 +39,121 @@ const FONTS = {
   display: "Playfair Display, Georgia, serif",
   body: "DM Sans, system-ui, sans-serif",
   mono: "DM Mono, monospace",
+};
+
+const COLORS = {
+  gold: "#C9A84C",
+  goldLight: "#e8c96d",
+  goldDark: "#8b6914",
+  emerald: "#4ade80",
+  red: "#ff4444",
+  amber: "#fbbf24",
+};
+
+const STAT_LABELS = {
+  trips: "Trips",
+  buddies: "Buddies",
+  rating: "Rating",
+};
+
+const TAB_NAMES = ["overview", "preferences", "suggestions"];
+
+const MODAL_BUTTONS = {
+  cancel: "Cancel",
+  save: "Save",
+  saving: "Saving…",
+};
+
+const MODAL_TITLE = "Edit Profile";
+const MODAL_LABELS = {
+  firstName: "First Name",
+  lastName: "Last Name",
+  bio: "Bio",
+  location: "Location",
+  travelStyle: "Travel Style",
+  pace: "Pace",
+  accommodation: "Accommodation",
+  preferenceTags: "Preferences & Tags",
+  changePhoto: "Change photo",
+};
+
+const MODAL_PLACEHOLDERS = {
+  firstName: "Jane",
+  lastName: "Doe",
+  bio: "Tell travellers about yourself…",
+  location: "Kathmandu, Nepal",
+};
+
+const MODAL_MESSAGES = {
+  loadingTags: "Loading tags…",
+  noneSelected: "None selected",
+  addTags: "+ Add tags",
+  failedToSave: "Failed to save.",
+  connectionError: "Could not connect to server.",
+};
+
+const FORM_LABELS = {
+  style: "Style",
+  pace: "Pace",
+  stays: "Stays",
+  travellerVibe: "Traveller Vibe",
+  vibeScores: "Vibe Scores",
+  budgetLabel: "Budget to Luxury",
+  chillLabel: "Chill to Extreme",
+  soloLabel: "Solo to Group",
+  budgetLeft: "Budget",
+  budgetRight: "Luxury",
+  chillLeft: "Chill",
+  chillRight: "Extreme",
+  soloLeft: "Solo",
+  soloRight: "Group",
+  account: "Account",
+  email: "Email",
+  joined: "Joined",
+  tags: "Tags",
+  friends: "Friends",
+};
+
+const KYC_MESSAGES = {
+  verified: "✓ Verified User",
+  verifiedText: "Your identity is verified. You have full access to all features and can interact with trips, chat, and more.",
+  rejected: "Verification Rejected",
+  rejectedText: "Your KYC verification was rejected. Please submit again.",
+  pending: "Verification Pending",
+  pendingText: "Your KYC submission is under review by our admin team. You will be notified within 24-48 hours.",
+  register: "Register for Full Access",
+  registerText: "Verify your identity with KYC to unlock full access to all features.",
+  resubmit: "Resubmit",
+  viewStatus: "View Status",
+  registerBtn: "Register",
+};
+
+const PREF_DEFAULTS = {
+  notSet: "Not set",
+};
+
+const BUTTONS = {
+  editProfile: "Edit profile",
+  confirm: "Confirm",
+  delete: "Delete",
+};
+
+const REQUESTS_LABEL = "Requests";
+
+const PROFILE_MESSAGES = {
+  loadingError: "Could not load profile.",
+  defaultName: "Traveller",
+};
+
+const EMPTY_STATES = {
+  noFriends: "No friends yet",
+  findBuddies: "Find travel buddies to connect",
+};
+
+const ERROR_BOUNDARY = {
+  title: "Something went wrong",
+  message: "Please try refreshing the page",
+  refresh: "Refresh Page",
 };
 
 // ─── chip selector ──────────────────────────────────────────────────────────
@@ -100,13 +216,13 @@ function MultiTagSelect({ label, allTags, selectedIds, onChange }) {
             {tag.name} <X className="w-3 h-3" />
           </button>
         ))}
-        {selectedTags.length === 0 && <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 italic self-center">None selected</p>}
+        {selectedTags.length === 0 && <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 italic self-center">{MODAL_MESSAGES.noneSelected}</p>}
       </div>
       <div className="relative">
         <button type="button" onClick={() => setOpen(!open)}
           style={{ fontFamily: FONTS.body }}
           className="w-full rounded-xl border border-white/10 bg-white/4 px-4 py-2.5 text-left text-sm text-white/50 hover:border-white/20 transition flex items-center justify-between">
-          <span>+ Add tags</span>
+          <span>{MODAL_MESSAGES.addTags}</span>
           <ChevronRight className={`w-4 h-4 transition-transform ${open ? "rotate-90" : ""}`} />
         </button>
         {open && (
@@ -176,7 +292,7 @@ function EditModal({ profile, onClose, onSaved }) {
   const setSlider = (e) => setForm(f => ({ ...f, [e.target.name]: Number(e.target.value) }));
 
   useEffect(() => {
-    fetch(`${API}/users/api/constraint-tags/`, { headers: { Authorization: `Bearer ${token()}` } })
+    fetch(`${API}users/constraint-tags/`, { headers: { Authorization: `Bearer ${token()}` } })
       .then(r => r.json()).then(d => { setAllConstraintTags(d); setTagsLoading(false); })
       .catch(() => setTagsLoading(false));
   }, []);
@@ -197,15 +313,15 @@ function EditModal({ profile, onClose, onSaved }) {
       Object.entries(form).forEach(([k, v]) => fd.append(k, v));
       if (photoFile) fd.append("profile_photo", photoFile);
       selectedConstraintTagIds.forEach(id => fd.append("constraint_tag_ids", id));
-      const res = await fetch(`${API}/users/api/profile/update/`, {
+      const res = await fetch(`${API}users/profile/update/`, {
         method: "PATCH", headers: { Authorization: `Bearer ${token()}` }, body: fd,
       });
       const data = await res.json();
-      if (!res.ok) { setErr(data.message || "Failed to save."); return; }
+      if (!res.ok) { setErr(data.message || MODAL_MESSAGES.failedToSave); return; }
       onSaved(data);
       window.dispatchEvent(new Event("profile-updated"));
       onClose();
-    } catch { setErr("Could not connect to server."); }
+    } catch { setErr(MODAL_MESSAGES.connectionError); }
     finally { setSaving(false); }
   };
 
@@ -225,11 +341,11 @@ function EditModal({ profile, onClose, onSaved }) {
         </div>
         {/* header */}
         <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0e0e0e]/95 backdrop-blur px-6 py-4 border-b border-white/8">
-          <button onClick={onClose} style={{ fontFamily: FONTS.body }} className="text-sm text-white/50 hover:text-white transition">Cancel</button>
-          <h2 style={{ fontFamily: FONTS.body }} className="text-sm font-bold text-white">Edit Profile</h2>
+          <button onClick={onClose} style={{ fontFamily: FONTS.body }} className="text-sm text-white/50 hover:text-white transition">{MODAL_BUTTONS.cancel}</button>
+          <h2 style={{ fontFamily: FONTS.body }} className="text-sm font-bold text-white">{MODAL_TITLE}</h2>
           <button onClick={handleSave} disabled={saving} style={{ fontFamily: FONTS.body }}
             className="text-sm font-bold text-[#C9A84C] hover:text-[#e8c96d] disabled:opacity-40 transition">
-            {saving ? "Saving…" : "Save"}
+            {saving ? MODAL_BUTTONS.saving : MODAL_BUTTONS.save}
           </button>
         </div>
 
@@ -254,13 +370,13 @@ function EditModal({ profile, onClose, onSaved }) {
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
             <button onClick={() => fileRef.current.click()} style={{ fontFamily: FONTS.body }}
               className="text-sm font-semibold text-[#C9A84C] hover:text-[#e8c96d] transition">
-              Change photo
+              {MODAL_LABELS.changePhoto}
             </button>
           </div>
 
           {/* name */}
           <div className="grid grid-cols-2 gap-3">
-            {[["First Name", "first_name", "Jane"], ["Last Name", "last_name", "Doe"]].map(([lbl, key, ph]) => (
+            {[[MODAL_LABELS.firstName, "first_name", MODAL_PLACEHOLDERS.firstName], [MODAL_LABELS.lastName, "last_name", MODAL_PLACEHOLDERS.lastName]].map(([lbl, key, ph]) => (
               <div key={key} className="flex flex-col gap-1.5">
                 <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{lbl}</label>
                 <input className={inp} style={{ fontFamily: FONTS.body }} value={form[key]} onChange={set(key)} placeholder={ph} />
@@ -269,30 +385,30 @@ function EditModal({ profile, onClose, onSaved }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">Bio</label>
-            <textarea className={`${inp} resize-none`} style={{ fontFamily: FONTS.body }} rows={3} value={form.bio} onChange={set("bio")} placeholder="Tell travellers about yourself…" />
+            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{MODAL_LABELS.bio}</label>
+            <textarea className={`${inp} resize-none`} style={{ fontFamily: FONTS.body }} rows={3} value={form.bio} onChange={set("bio")} placeholder={MODAL_PLACEHOLDERS.bio} />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">Location</label>
-            <input className={inp} style={{ fontFamily: FONTS.body }} value={form.location} onChange={set("location")} placeholder="Kathmandu, Nepal" />
+            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{MODAL_LABELS.location}</label>
+            <input className={inp} style={{ fontFamily: FONTS.body }} value={form.location} onChange={set("location")} placeholder={MODAL_PLACEHOLDERS.location} />
           </div>
 
           <div className="h-px bg-white/6" />
-          <ChipSelect label="Travel Style"  options={TRAVEL_STYLES} value={form.travel_style}             onChange={setChip("travel_style")} />
-          <ChipSelect label="Pace"          options={PACE_OPTIONS}  value={form.pace}                     onChange={setChip("pace")} />
-          <ChipSelect label="Accommodation" options={ACCOMM}        value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
+          <ChipSelect label={MODAL_LABELS.travelStyle}  options={TRAVEL_STYLES} value={form.travel_style}             onChange={setChip("travel_style")} />
+          <ChipSelect label={MODAL_LABELS.pace}          options={PACE_OPTIONS}  value={form.pace}                     onChange={setChip("pace")} />
+          <ChipSelect label={MODAL_LABELS.accommodation} options={ACCOMM}        value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
 
           <div className="h-px bg-white/6" />
-          <SliderField label="Budget"    name="budget_level"    value={form.budget_level}    onChange={setSlider} leftLabel="Budget"  rightLabel="Luxury"  />
-          <SliderField label="Adventure" name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel="Chill"   rightLabel="Extreme" />
-          <SliderField label="Social"    name="social_level"    value={form.social_level}    onChange={setSlider} leftLabel="Solo"    rightLabel="Group"   />
+          <SliderField label={FORM_LABELS.budgetLabel}    name="budget_level"    value={form.budget_level}    onChange={setSlider} leftLabel={FORM_LABELS.budgetLeft}  rightLabel={FORM_LABELS.budgetRight}  />
+          <SliderField label={FORM_LABELS.chillLabel} name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel={FORM_LABELS.chillLeft}   rightLabel={FORM_LABELS.chillRight} />
+          <SliderField label={FORM_LABELS.soloLabel}    name="social_level"    value={form.social_level}    onChange={setSlider} leftLabel={FORM_LABELS.soloLeft}    rightLabel={FORM_LABELS.soloRight}   />
 
           <div className="h-px bg-white/6" />
           {tagsLoading
-            ? <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/30">Loading tags…</p>
+            ? <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/30">{MODAL_MESSAGES.loadingTags}</p>
             : allConstraintTags.length > 0
-              ? <MultiTagSelect label="Preferences & Tags" allTags={allConstraintTags} selectedIds={selectedConstraintTagIds} onChange={setSelectedConstraintTagIds} />
+              ? <MultiTagSelect label={MODAL_LABELS.preferenceTags} allTags={allConstraintTags} selectedIds={selectedConstraintTagIds} onChange={setSelectedConstraintTagIds} />
               : null
           }
 
@@ -351,22 +467,23 @@ function PrefRow({ label, value }) {
 }
 
 // ─── main profile page ───────────────────────────────────
-export default function ProfilePage() {
+function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [pendingRequests, setPendingRequests] = useState([]);
   const [requestAction, setRequestAction] = useState({});
   const [friends, setFriends] = useState([]);
+  const [joinedTrips, setJoinedTrips] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
 
   useEffect(() => {
-    fetch(`${API}/users/api/me/`, { headers: { Authorization: `Bearer ${token()}` } })
+    fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
       .then(r => r.json()).then(d => { setProfile(d); setLoading(false); })
       .catch(() => setLoading(false));
 
     const fetchPending = () => {
-      fetch(`${API}/users/api/friend-requests/pending/`, { headers: { Authorization: `Bearer ${token()}` } })
+      fetch(`${API}users/friend-requests/pending/`, { headers: { Authorization: `Bearer ${token()}` } })
         .then(r => r.json()).then(d => setPendingRequests(d.pending_requests || []))
         .catch(() => setPendingRequests([]));
     };
@@ -377,7 +494,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const fetchFriends = () => {
-      fetch(`${API}/users/api/friends/`, { headers: { Authorization: `Bearer ${token()}` } })
+      fetch(`${API}users/friends/`, { headers: { Authorization: `Bearer ${token()}` } })
         .then(r => r.json()).then(d => setFriends(d.friends || []))
         .catch(() => setFriends([]));
     };
@@ -386,10 +503,32 @@ export default function ProfilePage() {
     return () => clearInterval(i2);
   }, []);
 
+  useEffect(() => {
+    const fetchJoinedTrips = () => {
+      fetch(`${API}trips/`, { headers: { Authorization: `Bearer ${token()}` } })
+        .then(r => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
+        .then(d => {
+          // Filter for trips where current user is a member (joined)
+          const myTrips = (d.results || d || []).filter(trip => 
+            trip.members?.some(m => m.id === profile?.id) || trip.created_by?.id === profile?.id
+          );
+          setJoinedTrips(myTrips);
+        })
+        .catch(err => {
+          console.log("Could not fetch trips:", err.message);
+          setJoinedTrips([]);
+        });
+    };
+    if (profile?.id) fetchJoinedTrips();
+  }, [profile?.id]);
+
   const handleFriendRequestResponse = async (requestId, action) => {
     setRequestAction(p => ({ ...p, [requestId]: true }));
     try {
-      const res = await fetch(`${API}/users/api/friend-request/${requestId}/respond/`, {
+      const res = await fetch(`${API}users/friend-request/${requestId}/respond/`, {
         method: "POST",
         headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -406,12 +545,12 @@ export default function ProfilePage() {
   );
   if (!profile) return (
     <div className="flex min-h-screen items-center justify-center bg-[#080808] text-white/30" style={{ fontFamily: FONTS.body }}>
-      Could not load profile.
+      {PROFILE_MESSAGES.loadingError}
     </div>
   );
 
   const pic = avatar(profile.profile_picture);
-  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username || "Traveller";
+  const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(" ") || profile.username || PROFILE_MESSAGES.defaultName;
   const initial  = fullName[0]?.toUpperCase() || "T";
   const handle   = profile.username || profile.email?.split("@")[0];
 
@@ -465,7 +604,7 @@ export default function ProfilePage() {
             {/* Edit button */}
             <button onClick={() => setEditing(true)} style={{ fontFamily: FONTS.body }}
               className="mb-1 rounded-xl border border-white/12 bg-white/5 px-5 py-2 text-[13px] font-semibold text-white hover:bg-white/10 hover:border-white/20 transition flex items-center gap-2">
-              <Edit3 className="w-3.5 h-3.5" /> Edit profile
+              <Edit3 className="w-3.5 h-3.5" /> {BUTTONS.editProfile}
             </button>
           </div>
 
@@ -497,9 +636,9 @@ export default function ProfilePage() {
           {/* ── Stats (Instagram-style 3-col) ── */}
           <div className="flex border-y border-white/8 mb-6">
             {[
-              { value: profile.trips_count ?? 0,                              label: "Trips"   },
-              { value: profile.buddies_count ?? 0,                            label: "Buddies" },
-              { value: profile.rating ? profile.rating.toFixed(1) : "—",     label: "Rating"  },
+              { value: joinedTrips.length,                                  label: STAT_LABELS.trips   },
+              { value: friends.length,                                      label: STAT_LABELS.buddies },
+              { value: profile.rating ? profile.rating.toFixed(1) : "—",   label: STAT_LABELS.rating  },
             ].map(({ value, label }, i) => (
               <div key={label} className={`flex-1 flex flex-col items-center py-4 gap-0.5 ${i < 2 ? "border-r border-white/8" : ""}`}>
                 <span className="text-[22px] font-bold text-white" style={{ fontFamily: FONTS.display }}>{value}</span>
@@ -512,7 +651,7 @@ export default function ProfilePage() {
           {pendingRequests.length > 0 && (
             <div className="mb-6">
               <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">
-                Requests - {pendingRequests.length}
+                {REQUESTS_LABEL} - {pendingRequests.length}
               </p>
               <div className="flex flex-col gap-2">
                 {pendingRequests.map(req => (
@@ -533,12 +672,12 @@ export default function ProfilePage() {
                       <button onClick={() => handleFriendRequestResponse(req.id, "accept")} disabled={requestAction[req.id]}
                         style={{ fontFamily: FONTS.body }}
                         className="rounded-xl bg-[#C9A84C] px-4 py-1.5 text-xs font-semibold text-black hover:bg-[#e8c96d] disabled:opacity-40 transition">
-                        Confirm
+                        {BUTTONS.confirm}
                       </button>
                       <button onClick={() => handleFriendRequestResponse(req.id, "reject")} disabled={requestAction[req.id]}
                         style={{ fontFamily: FONTS.body }}
                         className="rounded-xl bg-white/8 px-4 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/12 disabled:opacity-40 transition">
-                        Delete
+                        {BUTTONS.delete}
                       </button>
                     </div>
                   </div>
@@ -549,7 +688,7 @@ export default function ProfilePage() {
 
           {/* ── Tabs ── */}
           <div className="flex border-b border-white/8 mb-6 -mx-1">
-            {["overview", "preferences"].map(tab => (
+            {TAB_NAMES.map(tab => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 style={{ fontFamily: FONTS.body }}
                 className={`flex-1 py-3 text-[11px] font-semibold uppercase tracking-[0.15em] transition-all ${
@@ -568,9 +707,9 @@ export default function ProfilePage() {
               {/* Pref cards */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { label: "Style", icon: <StyleIcon style={profile.travel_style} />,  value: profile.travel_style },
-                  { label: "Pace",  icon: <PaceIcon  pace={profile.pace} />,            value: profile.pace?.replace("_", "-") },
-                  { label: "Stays", icon: <AccommIcon accomm={profile.accommodation_preference} />, value: profile.accommodation_preference },
+                  { label: FORM_LABELS.style, icon: <StyleIcon style={profile.travel_style} />,  value: profile.travel_style },
+                  { label: FORM_LABELS.pace,  icon: <PaceIcon  pace={profile.pace} />,            value: profile.pace?.replace("_", "-") },
+                  { label: FORM_LABELS.stays, icon: <AccommIcon accomm={profile.accommodation_preference} />, value: profile.accommodation_preference },
                 ].map(({ label, icon, value }) => (
                   <div key={label} className="rounded-2xl bg-white/3 border border-white/8 p-4 flex flex-col gap-3 hover:border-[#C9A84C]/20 transition">
                     <div className="flex items-center justify-between">
@@ -586,21 +725,21 @@ export default function ProfilePage() {
 
               {/* Vibe */}
               <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
-                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">Traveller Vibe</p>
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">{FORM_LABELS.travellerVibe}</p>
                 <div className="flex flex-col gap-5">
-                  <VibeBar label="Budget to Luxury"   value={profile.budget_level    ?? 5} left="Budget"  right="Luxury"  />
-                  <VibeBar label="Chill to Extreme"   value={profile.adventure_level ?? 5} left="Chill"   right="Extreme" />
-                  <VibeBar label="Solo to Group"      value={profile.social_level    ?? 5} left="Solo"    right="Group"   />
+                  <VibeBar label={FORM_LABELS.budgetLabel}   value={profile.budget_level    ?? 5} left={FORM_LABELS.budgetLeft}  right={FORM_LABELS.budgetRight}  />
+                  <VibeBar label={FORM_LABELS.chillLabel}   value={profile.adventure_level ?? 5} left={FORM_LABELS.chillLeft}   right={FORM_LABELS.chillRight} />
+                  <VibeBar label={FORM_LABELS.soloLabel}      value={profile.social_level    ?? 5} left={FORM_LABELS.soloLeft}    right={FORM_LABELS.soloRight}   />
                 </div>
               </div>
 
               {/* Account */}
               <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden">
-                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-5 pt-4 pb-2">Account</p>
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-5 pt-4 pb-2">{FORM_LABELS.account}</p>
                 <div className="px-5 pb-2">
                   {[
-                    { icon: <Mail className="w-4 h-4 text-[#C9A84C]/50" />, label: "Email", value: profile.email },
-                    { icon: <Calendar className="w-4 h-4 text-[#C9A84C]/50" />, label: "Joined", value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
+                    { icon: <Mail className="w-4 h-4 text-[#C9A84C]/50" />, label: FORM_LABELS.email, value: profile.email },
+                    { icon: <Calendar className="w-4 h-4 text-[#C9A84C]/50" />, label: FORM_LABELS.joined, value: profile.date_joined ? new Date(profile.date_joined).toLocaleDateString("en-US", { year: "numeric", month: "long" }) : "—" },
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="flex items-center gap-3 py-3 border-b border-white/6 last:border-0">
                       {icon}
@@ -629,22 +768,22 @@ export default function ProfilePage() {
                       {profile.status === 'approved' ? (
                         <>
                           <Check className="w-5 h-5 text-emerald-400" />
-                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-emerald-300">✓ Verified User</p>
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-emerald-300">{KYC_MESSAGES.verified}</p>
                         </>
                       ) : profile.status === 'rejected' ? (
                         <>
                           <X className="w-5 h-5 text-red-400" />
-                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-red-300">Verification Rejected</p>
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-red-300">{KYC_MESSAGES.rejected}</p>
                         </>
                       ) : profile.status === 'pending' ? (
                         <>
                           <Clock className="w-5 h-5 text-amber-400" />
-                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-amber-300">Verification Pending</p>
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-amber-300">{KYC_MESSAGES.pending}</p>
                         </>
                       ) : (
                         <>
                           <Gem className="w-5 h-5 text-[#C9A84C]" />
-                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-[#C9A84C]">Register for Full Access</p>
+                          <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold text-[#C9A84C]">{KYC_MESSAGES.register}</p>
                         </>
                       )}
                     </div>
@@ -658,44 +797,50 @@ export default function ProfilePage() {
                         : 'text-white/50'
                     }`}>
                       {profile.status === 'approved'
-                        ? 'Your identity is verified. You have full access to all features and can interact with trips, chat, and more.'
+                        ? KYC_MESSAGES.verifiedText
                         : profile.status === 'rejected'
-                        ? profile.rejection_reason ? `Rejected: ${profile.rejection_reason}. Please submit again.` : 'Your KYC verification was rejected. Please submit again.'
+                        ? profile.rejection_reason ? `Rejected: ${profile.rejection_reason}. ${KYC_MESSAGES.rejectedText.split('. ')[1]}` : KYC_MESSAGES.rejectedText
                         : profile.status === 'pending'
-                        ? 'Your KYC submission is under review by our admin team. You will be notified within 24-48 hours.'
-                        : 'Verify your identity with KYC to unlock full access to all features.'}
+                        ? KYC_MESSAGES.pendingText
+                        : KYC_MESSAGES.registerText}
                     </p>
                   </div>
                   {profile.status !== 'approved' && (
                     <Link to="/kyc" style={{ fontFamily: FONTS.body }}
                       className="px-4 py-2 rounded-xl bg-[#C9A84C] text-black font-semibold text-xs hover:bg-[#e8c96d] transition flex-shrink-0 flex items-center gap-1">
-                      {profile.status === 'rejected' ? 'Resubmit' : profile.status === 'pending' ? 'View Status' : 'Register'} <ChevronRight className="w-3.5 h-3.5" />
+                      {profile.status === 'rejected' ? KYC_MESSAGES.resubmit : profile.status === 'pending' ? KYC_MESSAGES.viewStatus : KYC_MESSAGES.registerBtn} <ChevronRight className="w-3.5 h-3.5" />
                     </Link>
                   )}
                 </div>
               </div>
             </div>
           )}
+
+          {activeTab === "suggestions" && (
+            <div className="pb-20">
+              <SuggestPeople currentUserId={profile.id} />
+            </div>
+          )}
           {activeTab === "preferences" && (
             <div className="flex flex-col gap-4 pb-20">
               <div className="rounded-2xl bg-white/3 border border-white/8 px-5">
-                <PrefRow label="Travel Style"  value={profile.travel_style} />
-                <PrefRow label="Pace"          value={profile.pace?.replace("_", "-")} />
-                <PrefRow label="Accommodation" value={profile.accommodation_preference} />
+                <PrefRow label={FORM_LABELS.style}  value={profile.travel_style} />
+                <PrefRow label={FORM_LABELS.pace}          value={profile.pace?.replace("_", "-")} />
+                <PrefRow label={FORM_LABELS.accommodation} value={profile.accommodation_preference} />
               </div>
 
               <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
-                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">Vibe Scores</p>
+                <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-5">{FORM_LABELS.vibeScores}</p>
                 <div className="flex flex-col gap-5">
-                  <VibeBar label="Budget to Luxury"  value={profile.budget_level    ?? 5} left="Budget" right="Luxury"  />
-                  <VibeBar label="Chill to Extreme"  value={profile.adventure_level ?? 5} left="Chill"  right="Extreme" />
-                  <VibeBar label="Solo to Group"     value={profile.social_level    ?? 5} left="Solo"   right="Group"   />
+                  <VibeBar label={FORM_LABELS.budgetLabel}  value={profile.budget_level    ?? 5} left={FORM_LABELS.budgetLeft} right={FORM_LABELS.budgetRight}  />
+                  <VibeBar label={FORM_LABELS.chillLabel}  value={profile.adventure_level ?? 5} left={FORM_LABELS.chillLeft}  right={FORM_LABELS.chillRight} />
+                  <VibeBar label={FORM_LABELS.soloLabel}     value={profile.social_level    ?? 5} left={FORM_LABELS.soloLeft}   right={FORM_LABELS.soloRight}   />
                 </div>
               </div>
 
               {profile.constraint_tags?.length > 0 && (
                 <div className="rounded-2xl bg-white/3 border border-white/8 p-5">
-                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">Tags</p>
+                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">{FORM_LABELS.tags}</p>
                   <div className="flex flex-wrap gap-2">
                     {profile.constraint_tags.map(tag => (
                       <span key={tag.id} style={{ fontFamily: FONTS.body }}
@@ -715,7 +860,7 @@ export default function ProfilePage() {
               <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold uppercase tracking-[0.15em] text-white/30">
-                    Friends {friends.length > 0 && <span className="text-[#C9A84C]">({friends.length})</span>}
+                    {FORM_LABELS.friends} {friends.length > 0 && <span className="text-[#C9A84C]">({friends.length})</span>}
                   </p>
                 </div>
 
@@ -724,12 +869,13 @@ export default function ProfilePage() {
                     {friends.map(friend => {
                       const name = friend.first_name && friend.last_name
                         ? `${friend.first_name} ${friend.last_name}` : friend.username;
+                      const friendAvatar = avatar(friend.profile_picture);
                       return (
                         <Link key={friend.id} to={`/user/${friend.username}`}
                           className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/5 transition no-underline group">
                           <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
-                            {friend.profile_picture
-                              ? <img src={friend.profile_picture} alt={friend.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
+                            {friendAvatar
+                              ? <img src={friendAvatar} alt={friend.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
                               : <span className="text-sm font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{friend.username[0].toUpperCase()}</span>
                             }
                           </div>
@@ -746,8 +892,8 @@ export default function ProfilePage() {
                     <div className="h-12 w-12 rounded-full bg-white/4 flex items-center justify-center">
                       <Users className="w-5 h-5 text-white/15" />
                     </div>
-                    <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 text-center">No friends yet</p>
-                    <p style={{ fontFamily: FONTS.body }} className="text-[10px] text-white/15 text-center">Find travel buddies to connect</p>
+                    <p style={{ fontFamily: FONTS.body }} className="text-xs text-white/25 text-center">{EMPTY_STATES.noFriends}</p>
+                    <p style={{ fontFamily: FONTS.body }} className="text-[10px] text-white/15 text-center">{EMPTY_STATES.findBuddies}</p>
                   </div>
                 )}
               </div>
@@ -761,5 +907,51 @@ export default function ProfilePage() {
         )}
       </div>
     </>
+  );
+}
+
+// Error boundary wrapper
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('Profile error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-[#080808] text-white">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">{ERROR_BOUNDARY.title}</h1>
+            <p className="text-white/60 mb-6">{ERROR_BOUNDARY.message}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-6 py-2 rounded-lg bg-[#C9A84C] text-black font-semibold hover:bg-[#e8c96d] transition"
+            >
+              {ERROR_BOUNDARY.refresh}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
+// Export with error boundary
+export default function ProfilePageWithErrorBoundary() {
+  return (
+    <ErrorBoundary>
+      <ProfilePage />
+    </ErrorBoundary>
   );
 }

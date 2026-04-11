@@ -3,7 +3,55 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const destinations = [
+// ──── CONSTANTS ────
+const SLIDESHOW_INTERVAL = 5000;
+const SLIDESHOW_DURATION = 1200;
+
+const COLORS = {
+  primary: "#f0c27a",
+  primaryLight: "#f0c27a",
+  primaryDark: "#c9973a",
+  darkBg: "#0a0a0a",
+  darkBg2: "#0f0e0d",
+  lightText: "#f5f0e8",
+  textLight: "#f5f0e8",
+  textMuted: "#ffffff",
+  white: "#ffffff",
+  white40: "rgba(255, 255, 255, 0.4)",
+  white35: "rgba(255, 255, 255, 0.35)",
+  white30: "rgba(255, 255, 255, 0.3)",
+  white20: "rgba(255, 255, 255, 0.2)",
+  white65: "rgba(255, 255, 255, 0.65)",
+  white90: "rgba(255, 255, 255, 0.9)",
+  red300: "#fca5a5",
+  red500_10: "rgba(239, 68, 68, 0.1)",
+  red500_25: "rgba(239, 68, 68, 0.25)",
+  red500_70: "rgba(239, 68, 68, 0.7)",
+  red400_85: "rgba(248, 113, 113, 0.85)",
+};
+
+const TEXTS = {
+  welcome: "Welcome back",
+  mainHeading: "Your next",
+  mainHeadingEmphasis: "adventure",
+  subheading: "Sign in to continue exploring the world's most beautiful destinations.",
+  usernameLabel: "GMail",
+  usernamePlaceholder: "your_username",
+  passwordLabel: "Password",
+  passwordPlaceholder: "Enter your password",
+  rememberMe: "Remember me",
+  forgotPassword: "Forgot password?",
+  newUserText: "New here?",
+  createAccount: "Create an account",
+  signingIn: "Signing in...",
+  signIn: "Sign In",
+  usernameRequired: "Username is required",
+  usernameMinLength: "Username must be at least 3 characters",
+  passwordRequired: "Password is required",
+  passwordMinLength: "Password must be at least 6 characters",
+};
+
+const DESTINATIONS = [
   { image: "/mountain.png", city: "Mustang", country: "Nepal", tagline: "Where the sky meets the peaks" },
   { image: "pokhara.png", city: "Pokhara", country: "Nepal", tagline: "A Place untouched by time" },
   { image: "Taplejung.png", city: "Taplejung", country: "Nepal", tagline: "Where the Beauty falls from the sky" },
@@ -22,17 +70,17 @@ export default function Login() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setTimeout(() => setCurrent((prev) => (prev + 1) % destinations.length), 1200);
-    }, 5000);
+      setTimeout(() => setCurrent((prev) => (prev + 1) % DESTINATIONS.length), SLIDESHOW_DURATION);
+    }, SLIDESHOW_INTERVAL);
     return () => clearInterval(interval);
   }, []);
 
   const validate = () => {
     const errs = { username: "", password: "" };
-    if (!form.username.trim()) errs.username = "Username is required";
-    else if (form.username.trim().length < 3) errs.username = "Username must be at least 3 characters";
-    if (!form.password) errs.password = "Password is required";
-    else if (form.password.length < 6) errs.password = "Password must be at least 6 characters";
+    if (!form.username.trim()) errs.username = TEXTS.usernameRequired;
+    else if (form.username.trim().length < 3) errs.username = TEXTS.usernameMinLength;
+    if (!form.password) errs.password = TEXTS.passwordRequired;
+    else if (form.password.length < 6) errs.password = TEXTS.passwordMinLength;
     setErrors(errs);
     return !errs.username && !errs.password;
   };
@@ -69,14 +117,14 @@ export default function Login() {
     }
   };
 
-  const d = destinations[current];
+  const d = DESTINATIONS[current];
 
   return (
     <div className="flex min-h-screen overflow-hidden bg-[#0a0a0a] font-sans">
 
       {/* Left — Slideshow */}
       <div className="relative flex-[1.2] overflow-hidden max-md:h-[42vh] max-md:flex-none">
-        {destinations.map((dest, i) => (
+        {DESTINATIONS.map((dest, i) => (
           <div
             key={i}
             className={`absolute inset-0 bg-cover bg-center transition-opacity duration-[1200ms] ${
@@ -103,7 +151,7 @@ export default function Login() {
             </h1>
 
             <div className="mt-8 flex gap-2">
-              {destinations.map((_, i) => (
+              {DESTINATIONS.map((_, i) => (
                 <button
                   key={i}
                   onClick={() => setCurrent(i)}
@@ -122,12 +170,13 @@ export default function Login() {
         <div className="pointer-events-none absolute -top-28 -right-28 h-[400px] w-[400px] rounded-full bg-[radial-gradient(circle,rgba(240,194,122,0.07)_0%,transparent_70%)]" />
         <div className="pointer-events-none absolute -bottom-20 -left-20 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(240,194,122,0.05)_0%,transparent_70%)]" />
 
-        <p className="mb-4 text-[11px] font-medium tracking-[4px] uppercase text-[#f0c27a]">Welcome back</p>
+        <p className="mb-4 text-[11px] font-medium tracking-[4px] uppercase text-[#f0c27a]">{TEXTS.welcome}</p>
         <h2 className="mb-2 font-['Montserrat'] text-5xl font-light leading-[1.05] text-[#f5f0e8] max-md:text-4xl">
-          Your next<br /><em className="italic text-[#f0c27a]">adventure</em><br />awaits.
+          {TEXTS.mainHeading}<br /><em className="italic text-[#f0c27a]">{TEXTS.mainHeadingEmphasis}</em><br />
+          awaits.
         </h2>
         <p className="mb-9 text-[13px] font-light leading-relaxed text-white/40">
-          Sign in to continue exploring the world's most beautiful destinations.
+          {TEXTS.subheading}
         </p>
 
         <form onSubmit={handleSubmit} noValidate>
@@ -140,7 +189,7 @@ export default function Login() {
 
           <div className="mb-1.5">
             <label className={`mb-2 block text-[11px] font-medium tracking-[2px] uppercase transition-colors ${focused === "username" ? "text-[#f0c27a]" : "text-white/35"}`}>
-              GMail
+              {TEXTS.usernameLabel}
             </label>
             <input
               type="text"
@@ -149,7 +198,7 @@ export default function Login() {
               onChange={handleChange}
               onFocus={() => setFocused("username")}
               onBlur={() => setFocused(null)}
-              placeholder="your_username"
+              placeholder={TEXTS.usernamePlaceholder}
               autoComplete="username"
               className={`w-full rounded-[10px] border bg-white/[0.04] px-4 py-3 text-sm text-[#f5f0e8] placeholder-white/20 outline-none transition focus:bg-white/[0.07] focus:border-[#f0c27a]/50 ${errors.username ? "border-red-500/50" : "border-white/10"}`}
             />
@@ -158,7 +207,7 @@ export default function Login() {
 
           <div className="mb-1.5">
             <label className={`mb-2 block text-[11px] font-medium tracking-[2px] uppercase transition-colors ${focused === "password" ? "text-[#f0c27a]" : "text-white/35"}`}>
-              Password
+              {TEXTS.passwordLabel}
             </label>
             <input
               type="password"
@@ -167,7 +216,7 @@ export default function Login() {
               onChange={handleChange}
               onFocus={() => setFocused("password")}
               onBlur={() => setFocused(null)}
-              placeholder="Enter your password"
+              placeholder={TEXTS.passwordPlaceholder}
               autoComplete="current-password"
               className={`w-full rounded-[10px] border bg-white/[0.04] px-4 py-3 text-sm text-[#f5f0e8] placeholder-white/20 outline-none transition focus:bg-white/[0.07] focus:border-[#f0c27a]/50 ${errors.password ? "border-red-500/50" : "border-white/10"}`}
             />
@@ -177,9 +226,9 @@ export default function Login() {
           <div className="mb-7 mt-3 flex items-center justify-between">
             <label className="flex cursor-pointer items-center gap-2 text-xs text-white/35">
               <input type="checkbox" className="h-3.5 w-3.5 accent-[#f0c27a]" />
-              Remember me
+              {TEXTS.rememberMe}
             </label>
-            <a href="/forgot-password" className="text-xs text-[#f0c27a]/70 transition hover:text-[#f0c27a]">Forgot password?</a>
+            <a href="/forgot-password" className="text-xs text-[#f0c27a]/70 transition hover:text-[#f0c27a]">{TEXTS.forgotPassword}</a>
           </div>
 
           <button
@@ -188,13 +237,13 @@ export default function Login() {
             className="flex w-full items-center justify-center gap-2 rounded-[10px] bg-gradient-to-r from-[#c9973a] via-[#f0c27a] to-[#c9973a] py-3.5 text-[13px] font-semibold tracking-[3px] uppercase text-[#0f0e0d] transition-all hover:-translate-y-px hover:brightness-110 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-65"
           >
             {loading && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[#0f0e0d]/30 border-t-[#0f0e0d]" />}
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? TEXTS.signingIn : TEXTS.signIn}
           </button>
         </form>
 
         <p className="mt-6 text-center text-[13px] text-white/30">
-          New here?
-          <a href="/register" className="ml-1 font-medium text-[#f0c27a] hover:underline">Create an account</a>
+          {TEXTS.newUserText}
+          <a href="/register" className="ml-1 font-medium text-[#f0c27a] hover:underline">{TEXTS.createAccount}</a>
         </p>
       </div>
 

@@ -5,13 +5,13 @@ export const authApi = {
   register: async (data) => {
     const response = await api.post("register/", data);
 
-    // Optional: auto-login after register
+    // Store tokens with correct keys
     if (response.data.access) {
-      localStorage.setItem("access", response.data.access);
+      localStorage.setItem("access_token", response.data.access);
     }
 
     if (response.data.refresh) {
-      localStorage.setItem("refresh", response.data.refresh);
+      localStorage.setItem("refresh_token", response.data.refresh);
     }
 
     return response.data;
@@ -21,16 +21,16 @@ export const authApi = {
   login: async (data) => {
     const response = await api.post("login/", data);
 
-    localStorage.setItem("access", response.data.access);
-    localStorage.setItem("refresh", response.data.refresh);
+    localStorage.setItem("access_token", response.data.access);
+    localStorage.setItem("refresh_token", response.data.refresh);
 
     return response.data;
   },
 
   // 🚪 Logout
   logout: () => {
-    localStorage.removeItem("access");
-    localStorage.removeItem("refresh");
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
   },
 
   // 👤 Get current user
@@ -38,13 +38,13 @@ export const authApi = {
 
   // 🔄 Refresh token
   refreshToken: async () => {
-    const refresh = localStorage.getItem("refresh");
+    const refresh = localStorage.getItem("refresh_token");
 
     const response = await api.post("token/refresh/", {
       refresh,
     });
 
-    localStorage.setItem("access", response.data.access);
+    localStorage.setItem("access_token", response.data.access);
 
     return response.data;
   },

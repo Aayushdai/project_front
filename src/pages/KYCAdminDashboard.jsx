@@ -3,6 +3,57 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft, Check, X, AlertCircle, Calendar, User, FileText } from "lucide-react";
 
+/* ═══════════════════════════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════════════════════════ */
+const MESSAGES = {
+  backToAdmin: "Back to Admin",
+  heading: "KYC Verification",
+  subheading: "Review and approve/reject user KYC submissions",
+  filterPending: "pending",
+  filterApproved: "approved",
+  filterRejected: "rejected",
+  userInfo: "User Information",
+  documentInfo: "Document Information",
+  passportPhoto: "Passport Photo",
+  action: "Action",
+  rejectionReasonLabel: "Rejection Reason (if rejecting)",
+  rejectionPlaceholder: "Explain why the KYC is being rejected...",
+  cancel: "Cancel",
+  reject: "Reject",
+  approve: "Approve",
+  clickToReview: "Click to review",
+  expiresPrefix: "Expires:",
+  noSubmissions: "No Pending KYC Submissions",
+  allReviewed: "All KYC submissions have been reviewed.",
+};
+
+const FORM_LABELS = {
+  username: "Username",
+  email: "Email",
+  firstName: "First Name",
+  lastName: "Last Name",
+  citizenship: "Citizenship",
+  passportNo: "Passport Number",
+  passportExpiry: "Passport Expiry",
+};
+
+const ERROR_MESSAGES = {
+  fetchFailed: "Failed to fetch KYC submissions:",
+  approveFailed: "Failed to approve KYC",
+  rejectFailed: "Failed to reject KYC",
+  approveError: "Error approving KYC:",
+  rejectError: "Error rejecting KYC:",
+  errorApproving: "Error approving KYC",
+  errorRejecting: "Error rejecting KYC",
+  rejectionRequired: "Please provide a rejection reason",
+};
+
+const SUCCESS_MESSAGES = {
+  approvedSuccess: "KYC approved successfully!",
+  rejectedSuccess: "KYC rejected successfully!",
+};
+
 const getApi = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
   return backendUrl.replace('/api/', '');
@@ -30,7 +81,7 @@ export default function KYCAdminDashboard() {
     setLoading(true);
     try {
       const API = getApi();
-      const response = await fetch(`${API}/users/api/kyc/pending/`, {
+      const response = await fetch(`${API}users/kyc/pending/`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
         },
@@ -40,7 +91,7 @@ export default function KYCAdminDashboard() {
         setKycs(data.kyc_submissions || []);
       }
     } catch (err) {
-      console.error("Failed to fetch KYC submissions:", err);
+      console.error(ERROR_MESSAGES.fetchFailed, err);
     } finally {
       setLoading(false);
     }
@@ -50,7 +101,7 @@ export default function KYCAdminDashboard() {
     setSubmitting(true);
     try {
       const API = getApi();
-      const response = await fetch(`${API}/users/api/kyc/${profileId}/action/`, {
+      const response = await fetch(`${API}users/kyc/${profileId}/action/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -63,13 +114,13 @@ export default function KYCAdminDashboard() {
       if (response.ok && data.success) {
         setKycs((prev) => prev.filter((k) => k.id !== profileId));
         setActiveKyc(null);
-        alert("KYC approved successfully!");
+        alert(SUCCESS_MESSAGES.approvedSuccess);
       } else {
-        alert("Failed to approve KYC");
+        alert(ERROR_MESSAGES.approveFailed);
       }
     } catch (err) {
-      console.error("Error approving KYC:", err);
-      alert("Error approving KYC");
+      console.error(ERROR_MESSAGES.approveError, err);
+      alert(ERROR_MESSAGES.errorApproving);
     } finally {
       setSubmitting(false);
     }
@@ -77,14 +128,14 @@ export default function KYCAdminDashboard() {
 
   const handleReject = async (profileId) => {
     if (!rejectionReason.trim()) {
-      alert("Please provide a rejection reason");
+      alert(ERROR_MESSAGES.rejectionRequired);
       return;
     }
 
     setSubmitting(true);
     try {
       const API = getApi();
-      const response = await fetch(`${API}/users/api/kyc/${profileId}/action/`, {
+      const response = await fetch(`${API}users/kyc/${profileId}/action/`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("access_token")}`,
@@ -98,13 +149,13 @@ export default function KYCAdminDashboard() {
         setKycs((prev) => prev.filter((k) => k.id !== profileId));
         setActiveKyc(null);
         setRejectionReason("");
-        alert("KYC rejected successfully!");
+        alert(SUCCESS_MESSAGES.rejectedSuccess);
       } else {
-        alert("Failed to reject KYC");
+        alert(ERROR_MESSAGES.rejectFailed);
       }
     } catch (err) {
-      console.error("Error rejecting KYC:", err);
-      alert("Error rejecting KYC");
+      console.error(ERROR_MESSAGES.rejectError, err);
+      alert(ERROR_MESSAGES.errorRejecting);
     } finally {
       setSubmitting(false);
     }
@@ -130,15 +181,15 @@ export default function KYCAdminDashboard() {
           onClick={() => navigate("/admin")}
           className="flex items-center gap-2 text-orange-600 hover:text-orange-700 mb-8 font-semibold"
         >
-          <ChevronLeft className="w-4 h-4" /> Back to Admin
+          <ChevronLeft className="w-4 h-4" /> {MESSAGES.backToAdmin}
         </button>
 
-        <h1 className="text-4xl font-bold text-[#111827] mb-2">KYC Verification</h1>
-        <p className="text-gray-600 mb-8">Review and approve/reject user KYC submissions</p>
+        <h1 className="text-4xl font-bold text-[#111827] mb-2">{MESSAGES.heading}</h1>
+        <p className="text-gray-600 mb-8">{MESSAGES.subheading}</p>
 
         {/* Filter tabs */}
         <div className="flex gap-3 mb-8">
-          {["pending", "approved", "rejected"].map((type) => (
+          {[MESSAGES.filterPending, MESSAGES.filterApproved, MESSAGES.filterRejected].map((type) => (
             <button
               key={type}
               onClick={() => setFilter(type)}
@@ -173,14 +224,14 @@ export default function KYCAdminDashboard() {
               {/* Left column - User info */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-                  User Information
+                  {MESSAGES.userInfo}
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Username", value: activeKyc.username },
-                    { label: "Email", value: activeKyc.email },
-                    { label: "First Name", value: activeKyc.first_name },
-                    { label: "Last Name", value: activeKyc.last_name },
+                    { label: FORM_LABELS.username, value: activeKyc.username },
+                    { label: FORM_LABELS.email, value: activeKyc.email },
+                    { label: FORM_LABELS.firstName, value: activeKyc.first_name },
+                    { label: FORM_LABELS.lastName, value: activeKyc.last_name },
                   ].map(({ label, value }) => (
                     <div key={label}>
                       <p className="text-xs font-semibold text-gray-500 mb-1">{label}</p>
@@ -193,14 +244,14 @@ export default function KYCAdminDashboard() {
               {/* Right column - Document info */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-                  Document Information
+                  {MESSAGES.documentInfo}
                 </h3>
                 <div className="space-y-3">
                   {[
-                    { label: "Citizenship", value: activeKyc.citizenship },
-                    { label: "Passport Number", value: activeKyc.passport_no },
+                    { label: FORM_LABELS.citizenship, value: activeKyc.citizenship },
+                    { label: FORM_LABELS.passportNo, value: activeKyc.passport_no },
                     {
-                      label: "Passport Expiry",
+                      label: FORM_LABELS.passportExpiry,
                       value: activeKyc.passport_expiry ? new Date(activeKyc.passport_expiry).toLocaleDateString() : "—",
                     },
                   ].map(({ label, value }) => (
@@ -217,7 +268,7 @@ export default function KYCAdminDashboard() {
             {activeKyc.passport_photo && (
               <div className="mb-8">
                 <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-                  Passport Photo
+                  {MESSAGES.passportPhoto}
                 </h3>
                 <img
                   src={activeKyc.passport_photo}
@@ -230,18 +281,18 @@ export default function KYCAdminDashboard() {
             {/* Actions */}
             <div className="border-t border-[#e2ddd6] pt-8">
               <h3 className="text-sm font-semibold text-gray-600 mb-4 uppercase tracking-wide">
-                Action
+                {MESSAGES.action}
               </h3>
 
               {/* Rejection reason textarea */}
               <div className="mb-6">
                 <label className="block text-xs font-semibold text-gray-600 mb-2">
-                  Rejection Reason (if rejecting)
+                  {MESSAGES.rejectionReasonLabel}
                 </label>
                 <textarea
                   value={rejectionReason}
                   onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explain why the KYC is being rejected..."
+                  placeholder={MESSAGES.rejectionPlaceholder}
                   className="w-full border border-[#e2ddd6] rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
                   rows="3"
                 />
@@ -252,21 +303,21 @@ export default function KYCAdminDashboard() {
                   onClick={() => setActiveKyc(null)}
                   className="px-6 py-3 rounded-lg border border-[#e2ddd6] text-gray-600 font-semibold hover:border-orange-500 hover:text-orange-600 transition"
                 >
-                  Cancel
+                  {MESSAGES.cancel}
                 </button>
                 <button
                   onClick={() => handleReject(activeKyc.id)}
                   disabled={submitting || !rejectionReason.trim()}
                   className="px-6 py-3 rounded-lg bg-red-500 text-white font-semibold hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
-                  <X className="w-4 h-4" /> Reject
+                  <X className="w-4 h-4" /> {MESSAGES.reject}
                 </button>
                 <button
                   onClick={() => handleApprove(activeKyc.id)}
                   disabled={submitting}
                   className="px-6 py-3 rounded-lg bg-emerald-500 text-white font-semibold hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2"
                 >
-                  <Check className="w-4 h-4" /> Approve
+                  <Check className="w-4 h-4" /> {MESSAGES.approve}
                 </button>
               </div>
             </div>
@@ -302,7 +353,7 @@ export default function KYCAdminDashboard() {
                         </div>
                         <div className="flex items-center gap-1 text-gray-600">
                           <Calendar className="w-4 h-4" />
-                          Expires: {new Date(kyc.passport_expiry).toLocaleDateString()}
+                          {MESSAGES.expiresPrefix} {new Date(kyc.passport_expiry).toLocaleDateString()}
                         </div>
                         <div className="flex items-center gap-1 text-gray-600">
                           <User className="w-4 h-4" />
@@ -314,13 +365,13 @@ export default function KYCAdminDashboard() {
 
                   {/* Action hints */}
                   <div className="flex flex-col items-end gap-2">
-                    <span className="text-xs font-semibold text-gray-400 uppercase">Click to review</span>
+                    <span className="text-xs font-semibold text-gray-400 uppercase">{MESSAGES.clickToReview}</span>
                     <div className="flex gap-2">
                       <div className="px-3 py-1 rounded-full bg-red-100 text-red-700 text-xs font-semibold flex items-center gap-1">
-                        <X className="w-3 h-3" /> Reject
+                        <X className="w-3 h-3" /> {MESSAGES.reject}
                       </div>
                       <div className="px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Approve
+                        <Check className="w-3 h-3" /> {MESSAGES.approve}
                       </div>
                     </div>
                   </div>
@@ -336,8 +387,8 @@ export default function KYCAdminDashboard() {
                 <AlertCircle className="w-12 h-12 text-blue-400" />
               </div>
             </div>
-            <h3 className="text-xl font-semibold text-[#111827] mb-2">No Pending KYC Submissions</h3>
-            <p className="text-gray-600">All KYC submissions have been reviewed.</p>
+            <h3 className="text-xl font-semibold text-[#111827] mb-2">{MESSAGES.noSubmissions}</h3>
+            <p className="text-gray-600">{MESSAGES.allReviewed}</p>
           </div>
         )}
       </div>

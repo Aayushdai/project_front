@@ -1,67 +1,71 @@
 import { Gem, Clock, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const FONTS = {
-  display: "Playfair Display, Georgia, serif",
-  body: "DM Sans, system-ui, sans-serif",
-  mono: "DM Mono, monospace",
+const KYC_STATUS_CONFIG = {
+  rejected: {
+    icon: X,
+    label: "Verification Rejected",
+    bgColor: "bg-red-500/10",
+    borderColor: "border-red-500/30",
+    iconColor: "text-red-400",
+    labelColor: "text-red-300",
+    textColor: "text-red-200/60",
+    defaultMessage: "Your KYC was rejected. Please resubmit.",
+    buttonLabel: "Resubmit",
+    buttonColor: "bg-[#C9A84C] hover:bg-[#e8c96d]"
+  },
+  pending: {
+    icon: Clock,
+    label: "Verification Pending",
+    bgColor: "bg-amber-500/10",
+    borderColor: "border-amber-500/30",
+    iconColor: "text-amber-400",
+    labelColor: "text-amber-300",
+    textColor: "text-amber-200/60",
+    message: "Your KYC is under review. You can still use features while we verify.",
+    buttonLabel: "View",
+    buttonColor: "bg-[#C9A84C] hover:bg-[#e8c96d]"
+  },
+  not_submitted: {
+    icon: Gem,
+    label: "Register KYC to Get Full Access",
+    bgColor: "bg-[#C9A84C]/8",
+    borderColor: "border-[#C9A84C]/30",
+    iconColor: "text-[#C9A84C]",
+    labelColor: "text-[#C9A84C]",
+    textColor: "text-white/50",
+    message: "Complete KYC verification to unlock premium features.",
+    buttonLabel: "Register",
+    buttonColor: "bg-[#C9A84C] hover:bg-[#e8c96d]"
+  }
 };
 
 export default function KYCBanner({ status, rejectionReason }) {
-  // Only show banner if KYC is not approved
   if (status === 'approved') return null;
 
+  const config = KYC_STATUS_CONFIG[status] || KYC_STATUS_CONFIG.not_submitted;
+  const Icon = config.icon;
+  const message = status === 'rejected' && rejectionReason 
+    ? `Rejected: ${rejectionReason}. Please resubmit your KYC.`
+    : config.defaultMessage || config.message;
+
   return (
-    <div className={`rounded-xl border-2 p-4 overflow-hidden transition-all ${
-      status === 'rejected'
-        ? 'bg-red-500/10 border-red-500/30'
-        : status === 'pending'
-        ? 'bg-amber-500/10 border-amber-500/30'
-        : 'bg-[#C9A84C]/8 border-[#C9A84C]/30'
-    }`}>
+    <div className={`rounded-xl border-2 p-4 overflow-hidden transition-all ${config.bgColor} ${config.borderColor}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            {status === 'rejected' ? (
-              <>
-                <X className="w-4 h-4 text-red-400 flex-shrink-0" />
-                <p style={{ fontFamily: FONTS.body }} className="text-[12px] font-semibold text-red-300">
-                  Verification Rejected
-                </p>
-              </>
-            ) : status === 'pending' ? (
-              <>
-                <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <p style={{ fontFamily: FONTS.body }} className="text-[12px] font-semibold text-amber-300">
-                  Verification Pending
-                </p>
-              </>
-            ) : (
-              <>
-                <Gem className="w-4 h-4 text-[#C9A84C] flex-shrink-0" />
-                <p style={{ fontFamily: FONTS.body }} className="text-[12px] font-semibold text-[#C9A84C]">
-                  Register KYC to Get Full Access
-                </p>
-              </>
-            )}
+            <Icon className={`w-4 h-4 flex-shrink-0 ${config.iconColor}`} />
+            <p className={`text-[12px] font-semibold ${config.labelColor}`}>
+              {config.label}
+            </p>
           </div>
-          <p style={{ fontFamily: FONTS.body }} className={`text-[11px] ${
-            status === 'rejected'
-              ? 'text-red-200/60'
-              : status === 'pending'
-              ? 'text-amber-200/60'
-              : 'text-white/50'
-          }`}>
-            {status === 'rejected'
-              ? rejectionReason ? `Rejected: ${rejectionReason}. Please resubmit your KYC.` : 'Your KYC was rejected. Please resubmit.'
-              : status === 'pending'
-              ? 'Your KYC is under review. You can still use features while we verify.'
-              : 'Complete KYC verification to unlock premium features.'}
+          <p className={`text-[11px] ${config.textColor}`}>
+            {message}
           </p>
         </div>
-        <Link to="/kyc" style={{ fontFamily: FONTS.body }}
-          className="px-3 py-1.5 rounded-lg bg-[#C9A84C] text-black font-semibold text-[11px] hover:bg-[#e8c96d] transition whitespace-nowrap flex-shrink-0">
-          {status === 'rejected' ? 'Resubmit' : status === 'pending' ? 'View' : 'Register'}
+        <Link to="/kyc"
+          className={`px-3 py-1.5 rounded-lg text-black font-semibold text-[11px] transition whitespace-nowrap flex-shrink-0 ${config.buttonColor}`}>
+          {config.buttonLabel}
         </Link>
       </div>
     </div>

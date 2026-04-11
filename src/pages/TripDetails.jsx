@@ -3,6 +3,53 @@ import { useParams, useNavigate } from "react-router-dom";
 import API from "../services/api";
 import { ArrowLeft, MapPin, Calendar, Users, User2, Trash2, Send, Loader2 } from "lucide-react";
 
+// ──── CONSTANTS ────
+const COLORS = {
+  darkBg: "#0f1419",
+  cardBg: "#1a1f2e",
+  orange500: "#ff8c00",
+  text: "#ffffff",
+  textSecondary: "#a3a3a3",
+  textMuted: "#666666",
+  border: "rgba(255,255,255,0.08)",
+  borderLight: "rgba(255,255,255,0.05)",
+  green500_20: "rgba(34, 197, 94, 0.2)",
+  green400: "#86efac",
+  gray500_20: "rgba(107, 114, 128, 0.2)",
+  gray400: "#9ca3af",
+  red500_20: "rgba(239, 68, 68, 0.2)",
+  red400: "#f87171",
+  blue500_20: "rgba(59, 130, 246, 0.2)",
+  blue300: "#93c5fd",
+};
+
+const TEXTS = {
+  loadingTrip: "Loading trip details...",
+  tripNotFound: "Trip not found",
+  backToDashboard: "Back to Dashboard",
+  destinationTbd: "Destination TBD",
+  participants: "participants",
+  noDescription: "No description provided",
+  tripTags: "Trip Tags (Diet, Lifestyle, Values):",
+  publicTrip: "Public Trip",
+  privateTrip: "Private Trip",
+  deleteTrip: "Delete Trip",
+  deleting: "Deleting...",
+  deleteConfirm: "Are you sure you want to delete this trip? This action cannot be undone.",
+  deleteError: "Failed to delete trip",
+  itinerary: "Itinerary",
+  day: "Day",
+  participantsTitle: "Participants",
+  noParticipants: "No participants yet",
+  chatTitle: "💬 Chat",
+  noMessages: "No messages yet",
+  unknownUser: "Unknown",
+  kycApprovalRequired: "You need KYC approval to send messages",
+  failedToSendMessage: "Failed to send message",
+  errorSendingMessage: "Error sending message. Please try again.",
+  failedToLoadTrip: "Failed to load trip details",
+};
+
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -54,14 +101,14 @@ export default function TripDetail() {
     const fetchData = async () => {
       try {
         // Get user's profile ID
-        const meRes = await fetch("http://127.0.0.1:8000/users/api/me/", {
+        const meRes = await fetch("http://127.0.0.1:8000/api/users/me/", {
           headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
         });
         const userProfile = await meRes.json();
         setUserProfileId(userProfile?.id);
 
         // Fetch trip
-        const res = await API.get(`trips/trips/${id}/`);
+        const res = await API.get(`trips/${id}/`);
         console.log("Trip data:", res.data);
         setTrip(res.data);
         
@@ -69,7 +116,7 @@ export default function TripDetail() {
         fetchMessages();
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load trip details");
+        setError(TEXTS.failedToLoadTrip);
       } finally {
         setLoading(false);
       }
@@ -125,21 +172,21 @@ export default function TripDetail() {
         const errData = await res.json();
         console.error("Message send error:", errData);
         if (errData.error?.includes("KYC")) {
-          alert("You need KYC approval to send messages");
+          alert(TEXTS.kycApprovalRequired);
         } else {
-          alert(errData.error || "Failed to send message");
+          alert(errData.error || TEXTS.failedToSendMessage);
         }
       }
     } catch (err) {
       console.error("Error sending message:", err);
-      alert("Error sending message. Please try again.");
+      alert(TEXTS.errorSendingMessage);
     } finally {
       setSendingMessage(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("Are you sure you want to delete this trip? This action cannot be undone.")) {
+    if (!window.confirm(TEXTS.deleteConfirm)) {
       return;
     }
 
@@ -149,7 +196,7 @@ export default function TripDetail() {
       navigate("/dashboard");
     } catch (err) {
       console.error("Error deleting trip:", err);
-      setError(err.response?.data?.message || "Failed to delete trip");
+      setError(err.response?.data?.message || TEXTS.deleteError);
       setDeleting(false);
     }
   };
@@ -158,9 +205,9 @@ export default function TripDetail() {
   const hasOnlyCreator = trip && trip.participants?.length === 1;
   const canDelete = isCreator && hasOnlyCreator;
 
-  if (loading) return <div className="p-6 text-center">Loading trip details...</div>;
+  if (loading) return <div className="p-6 text-center">{TEXTS.loadingTrip}</div>;
   if (error) return <div className="p-6 text-center text-red-500">{error}</div>;
-  if (!trip) return <div className="p-6 text-center">Trip not found</div>;
+  if (!trip) return <div className="p-6 text-center">{TEXTS.tripNotFound}</div>;
 
   return (
     <div className="min-h-screen bg-[#0f1419] text-white p-6">
@@ -187,7 +234,7 @@ export default function TripDetail() {
           className="flex items-center gap-2 text-orange-500 hover:text-orange-400 mb-4"
         >
           <ArrowLeft size={20} />
-          Back to Dashboard
+          {TEXTS.backToDashboard}
         </button>
       </div>
 
@@ -202,7 +249,7 @@ export default function TripDetail() {
               <div className="flex flex-wrap gap-6 text-gray-300">
                 <div className="flex items-center gap-2">
                   <MapPin size={20} className="text-orange-500" />
-                  <span>{trip.destination?.name || "Destination TBD"}, {trip.destination?.country}</span>
+                  <span>{trip.destination?.name || TEXTS.destinationTbd}, {trip.destination?.country}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Calendar size={20} className="text-orange-500" />
@@ -210,19 +257,19 @@ export default function TripDetail() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Users size={20} className="text-orange-500" />
-                  <span>{trip.participants?.length || 0} participants</span>
+                  <span>{trip.participants?.length || 0} {TEXTS.participants}</span>
                 </div>
               </div>
             </div>
 
             <div className="mb-6">
-              <p className="text-gray-300 text-lg leading-relaxed">{trip.description || "No description provided"}</p>
+              <p className="text-gray-300 text-lg leading-relaxed">{trip.description || TEXTS.noDescription}</p>
             </div>
 
             {/* Constraint Tags */}
             {trip.constraint_tags && trip.constraint_tags.length > 0 && (
               <div className="mb-6">
-                <p className="text-sm text-gray-400 mb-3">Trip Tags (Diet, Lifestyle, Values):</p>
+                <p className="text-sm text-gray-400 mb-3">{TEXTS.tripTags}</p>
                 <div className="flex flex-wrap gap-2">
                   {trip.constraint_tags.map(tag => (
                     <span
@@ -237,8 +284,8 @@ export default function TripDetail() {
             )}
 
             <div className="flex gap-3 flex-wrap items-center">
-              {trip.is_public && <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">Public Trip</span>}
-              {!trip.is_public && <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm">Private Trip</span>}
+              {trip.is_public && <span className="px-3 py-1 bg-green-500/20 text-green-400 rounded-full text-sm">{TEXTS.publicTrip}</span>}
+              {!trip.is_public && <span className="px-3 py-1 bg-gray-500/20 text-gray-400 rounded-full text-sm">{TEXTS.privateTrip}</span>}
               
               {canDelete && (
                 <button
@@ -247,7 +294,7 @@ export default function TripDetail() {
                   className="flex items-center gap-2 px-4 py-1.5 bg-red-500/20 text-red-400 rounded-full text-sm border border-red-500/30 hover:bg-red-500/30 transition disabled:opacity-50"
                 >
                   <Trash2 size={16} />
-                  {deleting ? "Deleting..." : "Delete Trip"}
+                  {deleting ? TEXTS.deleting : TEXTS.deleteTrip}
                 </button>
               )}
             </div>
@@ -256,11 +303,11 @@ export default function TripDetail() {
           {/* Itinerary Section */}
           {trip.itinerary && trip.itinerary.length > 0 && (
             <div className="bg-[#1a1f2e] rounded-2xl p-8 border border-[rgba(255,255,255,0.08)]">
-              <h2 className="text-2xl font-bold mb-6">Itinerary</h2>
+              <h2 className="text-2xl font-bold mb-6">{TEXTS.itinerary}</h2>
               <div className="space-y-4">
                 {trip.itinerary.map(item => (
                   <div key={item.id} className="bg-[#0f1419] p-4 rounded-lg border border-[rgba(255,255,255,0.05)]">
-                    <div className="font-bold text-orange-500 mb-2">Day {item.day}</div>
+                    <div className="font-bold text-orange-500 mb-2">{TEXTS.day} {item.day}</div>
                     <div className="text-gray-300">{item.activity}</div>
                     {item.notes && <div className="text-gray-500 text-sm mt-2">{item.notes}</div>}
                   </div>
@@ -271,7 +318,7 @@ export default function TripDetail() {
 
           {/* Participants Section */}
           <div className="bg-[#1a1f2e] rounded-2xl p-8 border border-[rgba(255,255,255,0.08)]">
-            <h2 className="text-2xl font-bold mb-6">Participants ({trip.participants?.length || 0})</h2>
+            <h2 className="text-2xl font-bold mb-6">{TEXTS.participantsTitle} ({trip.participants?.length || 0})</h2>
             
             {trip.participants && trip.participants.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -296,7 +343,7 @@ export default function TripDetail() {
               </div>
             ) : (
               <div className="text-center py-8 text-gray-400">
-                No participants yet
+                {TEXTS.noParticipants}
               </div>
             )}
           </div>
@@ -306,7 +353,7 @@ export default function TripDetail() {
         <div className="w-96 sticky top-6 h-fit">
           <div className="bg-[#1a1f2e] rounded-2xl p-6 border border-[rgba(255,255,255,0.08)] flex flex-col" style={{ height: "600px" }}>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-              <span>💬 Chat</span>
+              <span>{TEXTS.chatTitle}</span>
               <span className="text-xs text-gray-400 font-normal truncate">({trip.title})</span>
             </h2>
 
@@ -318,7 +365,7 @@ export default function TripDetail() {
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex items-center justify-center h-full text-gray-400 text-sm text-center">
-                  <p>No messages yet</p>
+                  <p>{TEXTS.noMessages}</p>
                 </div>
               ) : (
                 messages.map((msg, idx) => (
@@ -329,7 +376,7 @@ export default function TripDetail() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
-                          <span className="font-semibold text-white text-xs">{msg.sender_name || "Unknown"}</span>
+                          <span className="font-semibold text-white text-xs">{msg.sender_name || TEXTS.unknownUser}</span>
                           <span className="text-gray-500 text-xs">
                             {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                           </span>

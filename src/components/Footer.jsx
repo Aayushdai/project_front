@@ -1,6 +1,29 @@
 import contentLogo from "../assets/content.png";
 
+const FOOTER_SECTIONS = {
+  company: {
+    title: "Company",
+    items: ["About Us", "How it Works", "Careers", "Blog"]
+  },
+  support: {
+    title: "Support",
+    items: ["Help Center", "Safety & Trust", "Community Rules", "Contact Us"]
+  },
+  explore: {
+    title: "Explore",
+    items: ["Find Travelers", "Popular Trips", "Destinations", "Travel Stories"]
+  }
+};
+
+const FOOTER_LINKS = [
+  { label: "Privacy", href: "#" },
+  { label: "Terms", href: "#" },
+  { label: "Cookies", href: "#" }
+];
+
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="bg-black text-slate-300">
       <div className="mx-auto max-w-7xl px-6 py-16">
@@ -9,51 +32,26 @@ const Footer = () => {
           
           {/* BRAND */}
           <div>
-            <img src={contentLogo} alt="Travel Sathi" className="h-16" />
+            <img src={contentLogo} alt="Travel Companion" className="h-16" />
             <p className="mt-4 text-sm leading-relaxed text-slate-400">
               Your trusted travel companion to find like-minded travelers,
               plan trips together, and explore the world safely.
             </p>
           </div>
 
-          {/* COMPANY */}
-          <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-              Company
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li className="hover:text-white cursor-pointer">About Us</li>
-              <li className="hover:text-white cursor-pointer">How it Works</li>
-              <li className="hover:text-white cursor-pointer">Careers</li>
-              <li className="hover:text-white cursor-pointer">Blog</li>
-            </ul>
-          </div>
-
-          {/* SUPPORT */}
-          <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-              Support
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li className="hover:text-white cursor-pointer">Help Center</li>
-              <li className="hover:text-white cursor-pointer">Safety & Trust</li>
-              <li className="hover:text-white cursor-pointer">Community Rules</li>
-              <li className="hover:text-white cursor-pointer">Contact Us</li>
-            </ul>
-          </div>
-
-          {/* EXPLORE */}
-          <div>
-            <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
-              Explore
-            </h4>
-            <ul className="space-y-3 text-sm">
-              <li className="hover:text-white cursor-pointer">Find Travelers</li>
-              <li className="hover:text-white cursor-pointer">Popular Trips</li>
-              <li className="hover:text-white cursor-pointer">Destinations</li>
-              <li className="hover:text-white cursor-pointer">Travel Stories</li>
-            </ul>
-          </div>
+          {/* DYNAMIC SECTIONS */}
+          {Object.values(FOOTER_SECTIONS).map(section => (
+            <div key={section.title}>
+              <h4 className="mb-4 text-sm font-semibold uppercase tracking-wider text-white">
+                {section.title}
+              </h4>
+              <ul className="space-y-3 text-sm text-slate-400">
+                {section.items.map(item => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
 
         {/* DIVIDER */}
@@ -62,13 +60,15 @@ const Footer = () => {
         {/* BOTTOM BAR */}
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-slate-400">
-            © {new Date().getFullYear()} All rights reserved.
+            © {currentYear} All rights reserved.
           </p>
 
-          <div className="flex gap-6 text-slate-400">
-            <span className="cursor-pointer hover:text-white">Privacy</span>
-            <span className="cursor-pointer hover:text-white">Terms</span>
-            <span className="cursor-pointer hover:text-white">Cookies</span>
+          <div className="flex gap-6 text-slate-400 text-sm">
+            {FOOTER_LINKS.map(link => (
+              <a key={link.label} href={link.href} className="hover:text-white transition">
+                {link.label}
+              </a>
+            ))}
           </div>
         </div>
       </div>

@@ -19,12 +19,58 @@ import {
   Globe,
   MessageCircle,
 } from "lucide-react";
+import { ProfileHeaderSkeleton, ProfileFriendsListSkeleton } from "../components/SkeletonLoaders";
 
 const API_URL = "http://127.0.0.1:8000";
 const FONTS = {
   display: "Playfair Display, Georgia, serif",
   body: "DM Sans, system-ui, sans-serif",
   mono: "DM Mono, monospace",
+};
+
+const MESSAGES = {
+  failedToLoad: "Failed to load user profile",
+  userNotFound: "User not found",
+  goBack: "Go Back",
+  match: "% Match",
+  completKyc: "Complete KYC to send friend requests and messages",
+  kycChatTooltip: "Complete KYC to chat",
+  kycFriendTooltip: "Complete KYC to send friend request",
+  friendsLabel: "Friends",
+  chatLabel: "Chat",
+  unfriendLabel: "Unfriend",
+  unfriending: "Unfriending...",
+  cancelRequest: "Cancel Request",
+  canceling: "Canceling...",
+  accept: "Accept",
+  reject: "Reject",
+  addFriend: "Add Friend",
+  sending: "Sending...",
+  travelPreferences: "Travel Preferences",
+  travelStyle: "Travel Style",
+  pace: "Pace",
+  destinations: "Destinations",
+  accommodation: "Accommodation",
+  vibes: "Travel Vibes",
+  budget: "Budget",
+  adventure: "Adventure",
+  social: "Social",
+  friends: "Friends",
+  noFriendsYet: "No friends yet",
+  makingFriends: "Help them make new friends!",
+};
+
+const COLORS = {
+  gold: "#C9A84C",
+  goldLight: "#d4b76a",
+  goldDark: "#9a7a3f",
+  bgDark: "#0a0c16",
+  bgDarker: "#0e0e0e",
+  white: "#ffffff",
+  textGold: "#C9A84C",
+  textMuted: "rgba(255,255,255,0.8)",
+  textDim: "rgba(255,255,255,0.70)",
+  red400: "#ff0000",
 };
 
 function SimilarityBadge({ score }) {
@@ -73,7 +119,7 @@ export default function UserProfile() {
   const fetchUserKycStatus = useCallback(async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/me/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/me/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -93,7 +139,7 @@ export default function UserProfile() {
       const token = localStorage.getItem('access_token');
       
       // Fetch user by username from search results
-      const searchResponse = await fetch(`http://127.0.0.1:8000/users/api/search/?q=${username}`, {
+      const searchResponse = await fetch(`http://127.0.0.1:8000/api/users/search/?q=${username}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -104,12 +150,12 @@ export default function UserProfile() {
       
       const foundUser = results.find(u => u.username === username);
       if (!foundUser) {
-        setError("User not found");
+        setError(MESSAGES.userNotFound);
         return;
       }
 
       // Get full profile details
-      const profileResponse = await fetch(`http://127.0.0.1:8000/users/api/user-profile/${foundUser.id}/`, {
+      const profileResponse = await fetch(`http://127.0.0.1:8000/api/users/user-profile/${foundUser.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -122,7 +168,7 @@ export default function UserProfile() {
       });
 
       // Get similarity score
-      const similarityResponse = await fetch(`http://127.0.0.1:8000/users/api/similarity/${foundUser.id}/`, {
+      const similarityResponse = await fetch(`http://127.0.0.1:8000/api/users/similarity/${foundUser.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -135,7 +181,7 @@ export default function UserProfile() {
       }
 
       // Get friend request status
-      const statusResponse = await fetch(`http://127.0.0.1:8000/users/api/friend-request/status/${foundUser.id}/`, {
+      const statusResponse = await fetch(`http://127.0.0.1:8000/api/users/friend-request/status/${foundUser.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -146,7 +192,7 @@ export default function UserProfile() {
       }
 
       // Fetch user's friends
-      const friendsResponse = await fetch(`http://127.0.0.1:8000/users/api/friends/${foundUser.id}/`, {
+      const friendsResponse = await fetch(`http://127.0.0.1:8000/api/users/friends/${foundUser.id}/`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -157,7 +203,7 @@ export default function UserProfile() {
       }
     } catch (err) {
       console.error("Error fetching user profile:", err);
-      setError("Failed to load user profile");
+      setError(MESSAGES.failedToLoad);
     } finally {
       setLoading(false);
     }
@@ -173,7 +219,7 @@ export default function UserProfile() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/friend-request/send/${userData.id}/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/friend-request/send/${userData.id}/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +252,7 @@ export default function UserProfile() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/friend-request/${friendStatus.request_id}/respond/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/friend-request/${friendStatus.request_id}/respond/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -232,7 +278,7 @@ export default function UserProfile() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/friend-request/${friendStatus.request_id}/cancel/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/friend-request/${friendStatus.request_id}/cancel/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -257,7 +303,7 @@ export default function UserProfile() {
     try {
       setActionLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://127.0.0.1:8000/users/api/unfriend/${userData.id}/`, {
+      const response = await fetch(`http://127.0.0.1:8000/api/users/unfriend/${userData.id}/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -280,11 +326,22 @@ export default function UserProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 text-white/60 animate-spin" />
-          <p className="text-white/60">Loading profile...</p>
+      <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] p-6">
+        <div className="max-w-3xl mx-auto">
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ height: '2.2rem', width: '100px', background: 'linear-gradient(90deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.15) 50%, rgba(255,255,255,0.05) 100%)', backgroundSize: '1000px 100%', animation: 'shimmer 2s infinite', borderRadius: '8px', marginBottom: '1rem' }} />
+          </div>
+          <ProfileHeaderSkeleton />
+          <div style={{ marginTop: '3rem' }}>
+            <ProfileFriendsListSkeleton count={5} />
+          </div>
         </div>
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+          }
+        `}</style>
       </div>
     );
   }
@@ -300,7 +357,7 @@ export default function UserProfile() {
             className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition flex items-center gap-2"
           >
             <ArrowLeft className="w-4 h-4" />
-            Go Back
+            {MESSAGES.goBack}
           </button>
         </div>
       </div>
@@ -392,7 +449,7 @@ export default function UserProfile() {
                   {userKycStatus && userKycStatus !== 'approved' && (
                     <div className="mb-4 p-3 rounded-lg bg-[#C9A84C]/15 border border-[#C9A84C]/40 text-[#C9A84C] text-sm flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span style={{ fontFamily: FONTS.body }}>Complete KYC to send friend requests and messages</span>
+                      <span style={{ fontFamily: FONTS.body }}>{MESSAGES.completKyc}</span>
                     </div>
                   )}
                   <div className="flex gap-3 flex-wrap">
@@ -403,17 +460,17 @@ export default function UserProfile() {
                         style={{ fontFamily: FONTS.body }}
                       >
                         <Users className="w-4 h-4" />
-                        Friends
+                        {MESSAGES.friendsLabel}
                       </button>
                       <button
                         onClick={handleStartChat}
                         disabled={actionLoading || (userKycStatus && userKycStatus !== 'approved')}
                         className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50 disabled:cursor-not-allowed"
                         style={{ fontFamily: FONTS.body }}
-                        title={userKycStatus && userKycStatus !== 'approved' ? 'Complete KYC to chat' : ''}
+                        title={userKycStatus && userKycStatus !== 'approved' ? MESSAGES.kycChatTooltip : ''}
                       >
                         <MessageCircle className="w-4 h-4" />
-                        Chat
+                        {MESSAGES.chatLabel}
                       </button>
                       <button
                         onClick={() => setShowUnfriendConfirm(true)}
@@ -442,7 +499,7 @@ export default function UserProfile() {
                       ) : (
                         <X className="w-4 h-4" />
                       )}
-                      {actionLoading ? "Canceling..." : "Cancel Request"}
+                        {actionLoading ? MESSAGES.canceling : MESSAGES.cancelRequest}
                     </button>
                   ) : friendStatus?.status === "pending" &&
                     friendStatus?.type === "incoming" ? (
@@ -466,7 +523,7 @@ export default function UserProfile() {
                         className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:opacity-50"
                         style={{ fontFamily: FONTS.body }}
                       >
-                        Reject
+                        {MESSAGES.reject}
                       </button>
                     </>
                   ) : (
@@ -475,14 +532,14 @@ export default function UserProfile() {
                       disabled={actionLoading || (userKycStatus && userKycStatus !== 'approved')}
                       className="flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-[#0a0c16] transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ fontFamily: FONTS.body }}
-                      title={userKycStatus && userKycStatus !== 'approved' ? 'Complete KYC to send friend request' : ''}
+                      title={userKycStatus && userKycStatus !== 'approved' ? MESSAGES.kycFriendTooltip : ''}
                     >
                       {actionLoading ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <Users className="w-4 h-4" />
                       )}
-                      {actionLoading ? "Sending..." : "Add Friend"}
+                      {actionLoading ? MESSAGES.sending : MESSAGES.addFriend}
                     </button>
                   )}
                 </div>
@@ -505,7 +562,7 @@ export default function UserProfile() {
                     className="text-2xl font-bold text-white mb-6"
                     style={{ fontFamily: FONTS.display }}
                   >
-                    Travel Preferences
+                    {MESSAGES.travelPreferences}
                   </h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     {userData.travel_style && (
@@ -516,7 +573,7 @@ export default function UserProfile() {
                             className="text-sm font-semibold text-[#C9A84C]"
                             style={{ fontFamily: FONTS.body }}
                           >
-                            Travel Style
+                            {MESSAGES.travelStyle}
                           </h3>
                         </div>
                         <p
@@ -535,7 +592,7 @@ export default function UserProfile() {
                             className="text-sm font-semibold text-[#C9A84C]"
                             style={{ fontFamily: FONTS.body }}
                           >
-                            Pace
+                            {MESSAGES.pace}
                           </h3>
                         </div>
                         <p
@@ -554,7 +611,7 @@ export default function UserProfile() {
                             className="text-sm font-semibold text-[#C9A84C]"
                             style={{ fontFamily: FONTS.body }}
                           >
-                            Destinations
+                            {MESSAGES.destinations}
                           </h3>
                         </div>
                         <p
@@ -575,7 +632,7 @@ export default function UserProfile() {
                             className="text-sm font-semibold text-[#C9A84C]"
                             style={{ fontFamily: FONTS.body }}
                           >
-                            Accommodation
+                            {MESSAGES.accommodation}
                           </h3>
                         </div>
                         <p
@@ -599,7 +656,7 @@ export default function UserProfile() {
                     className="text-2xl font-bold text-white mb-6"
                     style={{ fontFamily: FONTS.display }}
                   >
-                    Travel Vibes
+                    {MESSAGES.vibes}
                   </h2>
                   <div className="space-y-6">
                     {userData.budget_level && (
@@ -611,7 +668,7 @@ export default function UserProfile() {
                               className="font-semibold text-white"
                               style={{ fontFamily: FONTS.body }}
                             >
-                              Budget
+                              {MESSAGES.budget}
                             </span>
                           </div>
                           <span
@@ -640,7 +697,7 @@ export default function UserProfile() {
                               className="font-semibold text-white"
                               style={{ fontFamily: FONTS.body }}
                             >
-                              Adventure
+                              {MESSAGES.adventure}
                             </span>
                           </div>
                           <span
@@ -669,7 +726,7 @@ export default function UserProfile() {
                               className="font-semibold text-white"
                               style={{ fontFamily: FONTS.body }}
                             >
-                              Social
+                              {MESSAGES.social}
                             </span>
                           </div>
                           <span

@@ -2,132 +2,254 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+/* ═══════════════════════════════════════════════════════════════
+   CONSTANTS
+═══════════════════════════════════════════════════════════════ */
 const STEPS = [
   { id: 1, label: "Personal Info", sub: "Name, photo, date of birth" },
   { id: 2, label: "Contact", sub: "Address, phone & email" },
   { id: 3, label: "Security", sub: "Answer security questions" },
 ];
 
+const VALIDATION_ERRORS = {
+  // First Name
+  firstNameRequired: "First name is required",
+  firstNameNumbers: "Name cannot contain numbers",
+  firstNameTooShort: "First name must be at least 2 characters",
+  firstNameTooLong: "First name must be less than 50 characters",
+  firstNameInvalid: "Name can only contain letters, spaces, hyphens or apostrophes",
+  // Last Name
+  lastNameRequired: "Last name is required",
+  lastNameNumbers: "Name cannot contain numbers",
+  lastNameTooShort: "Last name must be at least 2 characters",
+  lastNameTooLong: "Last name must be less than 50 characters",
+  lastNameInvalid: "Name can only contain letters, spaces, hyphens or apostrophes",
+  // Date of Birth
+  dobRequired: "Date of birth is required",
+  dobTooYoung: "You must be at least 16 years old",
+  dobTooOld: "Please enter a valid date of birth",
+  dobFuture: "Date of birth cannot be in the future",
+  // Gender
+  genderRequired: "Please select a gender",
+  // Address
+  addressRequired: "Street address is required",
+  addressTooShort: "Street address must be at least 5 characters",
+  addressTooLong: "Street address must be less than 100 characters",
+  // City
+  cityRequired: "City is required",
+  cityNumbers: "City name cannot contain numbers",
+  cityTooShort: "City name must be at least 2 characters",
+  cityTooLong: "City name must be less than 50 characters",
+  cityInvalid: "City can only contain letters and spaces",
+  // Country
+  countryRequired: "Country is required",
+  countryNumbers: "Country name cannot contain numbers",
+  countryTooShort: "Country name must be at least 2 characters",
+  countryTooLong: "Country name must be less than 50 characters",
+  countryInvalid: "Country can only contain letters and spaces",
+  // ZIP
+  zipRequired: "ZIP / Postal code is required",
+  zipInvalid: "Postal code must be 5-10 digits only (no letters or special characters)",
+  // Phone
+  phoneRequired: "Phone number is required",
+  phoneTooShort: "Phone number must be exactly 10 digits",
+  phoneStartInvalid: "Phone number must start with 984, 985, 986, or 974",
+  // Email
+  emailRequired: "Email is required",
+  emailTooLong: "Email must be less than 100 characters",
+  emailInvalid: "Enter a valid email address",
+  emailConsecutiveDots: "Email cannot contain consecutive dots",
+  emailDomainInvalid: "Email domain is invalid",
+  emailDomainNotAllowed: "We only accept emails from: Gmail, Yahoo, Hotmail, Outlook, ProtonMail, iCloud, and other standard providers",
+  emailTypoGmail: "Did you mean gmail.com?",
+  emailTypoYahoo: "Did you mean yahoo.com?",
+  emailTypoHotmail: "Did you mean hotmail.com?",
+  emailTypoOutlook: "Did you mean outlook.com?",
+  // Password
+  passwordRequired: "Password is required",
+  passwordTooShort: "Password must be at least 10 characters",
+  passwordTooLong: "Password must be less than 50 characters",
+  passwordNeedUpper: "Include at least one uppercase letter (A-Z)",
+  passwordNeedLower: "Include at least one lowercase letter (a-z)",
+  passwordNeedNumber: "Include at least one number (0-9)",
+  passwordNeedSpecial: "Include at least one special character (!@#$%^&* etc)",
+  // Confirm Password
+  confirmRequired: "Please confirm your password",
+  confirmMismatch: "Passwords do not match",
+  // Photo
+  photoRequired: "Profile photo is required",
+  photoTypeInvalid: "Only JPG, PNG or WEBP files allowed",
+  photoTooLarge: "File must be under 5MB",
+  // Security Questions
+  securityQuestionsMin: "Please select and answer at least 2 security questions",
+  securityQuestionsNotAnswered: "Please answer all selected security questions",
+  // Terms Agreement
+  termsRequired: "Please agree to the Terms of Service.",
+};
+
+const MESSAGES = {
+  sidebarTagline: "Every great journey starts with a",
+  sidebarTaglineAccent: "single step.",
+  loginPrompt: "Already have an account?",
+  loginLink: "Sign in",
+  stepBadge: "Step",
+  stepOf: "of 3",
+  step1Heading: "Tell us about",
+  step1HeadingAccent: "yourself",
+  step1Subheading: "Your name, date of birth, and a clear profile photo.",
+  step2Heading: "How to",
+  step2HeadingAccent: "reach you",
+  step2Subheading: "Your address, phone number, email and account password.",
+  step3Heading: "Secure your",
+  step3HeadingAccent: "account",
+  step3Subheading: "Set up security questions for password recovery.",
+  photoLabel: "Photo",
+  uploadProfile: "Profile Photo",
+  uploadHint: "Clear face photo. JPG or PNG, max 5MB.",
+  personalDetails: "Personal Details",
+  selectGender: "Select...",
+  male: "Male",
+  female: "Female",
+  other: "Others",
+  addressSection: "Address",
+  contactSection: "Contact & Account",
+  showPassword: "Show",
+  hidePassword: "Hide",
+  strength: "Strength:",
+  securitySection: "Security Setup",
+  securityInstructions: "Select 2-3 security questions and answer them. You'll use these to reset your password if you forget it.",
+  answerPlaceholder: "Your answer...",
+  selectedQuestions: "You have selected:",
+  questions: "question(s)",
+  minRequired: "minimum 2 required",
+  previous: "Back",
+  next: "Continue",
+  finish: "Complete Registration",
+  agreeTerms: "I agree to the Terms of Service and Privacy Policy. My data is handled securely.",
+  processRegistering: "Submitting...",
+  serverError: "Unable to connect to the server.",
+  travelCo: "TravelCo",
+};
+
+const FORM_LABELS = {
+  firstName: "First Name",
+  lastName: "Last Name",
+  dob: "Date of Birth",
+  gender: "Gender",
+  address: "Street Address",
+  city: "City",
+  zip: "ZIP / Postal Code",
+  country: "Country",
+  phone: "Phone Number",
+  email: "Email",
+  password: "Password",
+  confirm: "Confirm Password",
+};
+
+const STEP_FIELDS = {
+  1: ["firstName", "lastName", "dob", "gender"],
+  2: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
+  3: ["security_questions"], // Security questions validation done separately
+};
+
 const VALIDATORS = {
   firstName: (v) => {
-    if (!v.trim()) return "First name is required";
-    if (/\d/.test(v)) return "Name cannot contain numbers";
+    if (!v.trim()) return VALIDATION_ERRORS.firstNameRequired;
+    if (/\d/.test(v)) return VALIDATION_ERRORS.firstNameNumbers;
     const trimmed = v.trim();
-    if (trimmed.length < 2) return "First name must be at least 2 characters";
-    if (trimmed.length > 50) return "First name must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    if (trimmed.length < 2) return VALIDATION_ERRORS.firstNameTooShort;
+    if (trimmed.length > 50) return VALIDATION_ERRORS.firstNameTooLong;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return VALIDATION_ERRORS.firstNameInvalid;
     return "";
   },
   lastName: (v) => {
-    if (!v.trim()) return "Last name is required";
-    if (/\d/.test(v)) return "Name cannot contain numbers";
+    if (!v.trim()) return VALIDATION_ERRORS.lastNameRequired;
+    if (/\d/.test(v)) return VALIDATION_ERRORS.lastNameNumbers;
     const trimmed = v.trim();
-    if (trimmed.length < 2) return "Last name must be at least 2 characters";
-    if (trimmed.length > 50) return "Last name must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Name can only contain letters, spaces, hyphens or apostrophes";
+    if (trimmed.length < 2) return VALIDATION_ERRORS.lastNameTooShort;
+    if (trimmed.length > 50) return VALIDATION_ERRORS.lastNameTooLong;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return VALIDATION_ERRORS.lastNameInvalid;
     return "";
   },
   dob: (v) => {
-    if (!v) return "Date of birth is required";
+    if (!v) return VALIDATION_ERRORS.dobRequired;
     const dobDate = new Date(v);
     const age = Math.floor((Date.now() - dobDate) / (1000 * 60 * 60 * 24 * 365.25));
-    if (age < 16) return "You must be at least 16 years old";
-    if (age > 120) return "Please enter a valid date of birth";
-    if (dobDate > new Date()) return "Date of birth cannot be in the future";
+    if (age < 16) return VALIDATION_ERRORS.dobTooYoung;
+    if (age > 120) return VALIDATION_ERRORS.dobTooOld;
+    if (dobDate > new Date()) return VALIDATION_ERRORS.dobFuture;
     return "";
   },
-  gender: (v) => (!v ? "Please select a gender" : ""),
-
+  gender: (v) => (!v ? VALIDATION_ERRORS.genderRequired : ""),
   address: (v) => {
-    if (!v.trim()) return "Street address is required";
+    if (!v.trim()) return VALIDATION_ERRORS.addressRequired;
     const trimmed = v.trim();
-    if (trimmed.length < 5) return "Street address must be at least 5 characters";
-    if (trimmed.length > 100) return "Street address must be less than 100 characters";
+    if (trimmed.length < 5) return VALIDATION_ERRORS.addressTooShort;
+    if (trimmed.length > 100) return VALIDATION_ERRORS.addressTooLong;
     return "";
   },
   city: (v) => {
-    if (!v.trim()) return "City is required";
-    if (/\d/.test(v)) return "City name cannot contain numbers";
+    if (!v.trim()) return VALIDATION_ERRORS.cityRequired;
+    if (/\d/.test(v)) return VALIDATION_ERRORS.cityNumbers;
     const trimmed = v.trim();
-    if (trimmed.length < 2) return "City name must be at least 2 characters";
-    if (trimmed.length > 50) return "City name must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "City can only contain letters and spaces";
+    if (trimmed.length < 2) return VALIDATION_ERRORS.cityTooShort;
+    if (trimmed.length > 50) return VALIDATION_ERRORS.cityTooLong;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return VALIDATION_ERRORS.cityInvalid;
     return "";
   },
   country: (v) => {
-    if (!v.trim()) return "Country is required";
-    if (/\d/.test(v)) return "Country name cannot contain numbers";
+    if (!v.trim()) return VALIDATION_ERRORS.countryRequired;
+    if (/\d/.test(v)) return VALIDATION_ERRORS.countryNumbers;
     const trimmed = v.trim();
-    if (trimmed.length < 2) return "Country name must be at least 2 characters";
-    if (trimmed.length > 50) return "Country name must be less than 50 characters";
-    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return "Country can only contain letters and spaces";
+    if (trimmed.length < 2) return VALIDATION_ERRORS.countryTooShort;
+    if (trimmed.length > 50) return VALIDATION_ERRORS.countryTooLong;
+    if (!/^[a-zA-Z\s'-]+$/.test(trimmed)) return VALIDATION_ERRORS.countryInvalid;
     return "";
   },
   zip: (v) => {
-    if (!v.trim()) return "ZIP / Postal code is required";
+    if (!v.trim()) return VALIDATION_ERRORS.zipRequired;
     const trimmed = v.trim();
-    if (!/^\d{5,10}$/.test(trimmed)) return "Postal code must be 5-10 digits only (no letters or special characters)";
+    if (!/^\d{5,10}$/.test(trimmed)) return VALIDATION_ERRORS.zipInvalid;
     return "";
   },
   phone: (v) => {
-    if (!v.trim()) return "Phone number is required";
+    if (!v.trim()) return VALIDATION_ERRORS.phoneRequired;
     const cleaned = v.replace(/[\s\-().+]/g, "");
-    if (!/^\d{10}$/.test(cleaned)) return "Phone number must be exactly 10 digits";
-    if (!/^(984|985|986|974)\d{7}$/.test(cleaned)) return "Phone number must start with 984, 985, 986, or 974";
+    if (!/^\d{10}$/.test(cleaned)) return VALIDATION_ERRORS.phoneTooShort;
+    if (!/^(984|985|986|974)\d{7}$/.test(cleaned)) return VALIDATION_ERRORS.phoneStartInvalid;
     return "";
   },
   email: (v) => {
-    if (!v.trim()) return "Email is required";
+    if (!v.trim()) return VALIDATION_ERRORS.emailRequired;
     const emailLower = v.trim().toLowerCase();
-    if (emailLower.length > 100) return "Email must be less than 100 characters";
+    if (emailLower.length > 100) return VALIDATION_ERRORS.emailTooLong;
     
     // Basic email format validation
     const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!re.test(emailLower)) return "Enter a valid email address";
+    if (!re.test(emailLower)) return VALIDATION_ERRORS.emailInvalid;
     
     // Check for consecutive dots
-    if (/\.\./.test(emailLower)) return "Email cannot contain consecutive dots";
+    if (/\.\./.test(emailLower)) return VALIDATION_ERRORS.emailConsecutiveDots;
     
     // Extract domain
     const domain = emailLower.split("@")[1];
-    if (!domain || domain.length > 50) return "Email domain is invalid";
+    if (!domain || domain.length > 50) return VALIDATION_ERRORS.emailDomainInvalid;
     
     // List of allowed legitimate email domains
     const allowedDomains = [
-      "gmail.com",
-      "yahoo.com",
-      "hotmail.com",
-      "outlook.com",
-      "protonmail.com",
-      "icloud.com",
-      "mail.com",
-      "yandex.com",
-      "zoho.com",
-      "gmx.com",
-      "aol.com",
-      "tutanota.com",
-      "mailbox.org",
-      "fastmail.com",
-      "posteo.de",
-      "hey.com",
+      "gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "protonmail.com", "icloud.com",
+      "mail.com", "yandex.com", "zoho.com", "gmx.com", "aol.com", "tutanota.com",
+      "mailbox.org", "fastmail.com", "posteo.de", "hey.com",
     ];
     
-    // Check if domain is in allowed list
     if (!allowedDomains.includes(domain)) {
-      return `We only accept emails from: Gmail, Yahoo, Hotmail, Outlook, ProtonMail, iCloud, and other standard providers`;
+      return VALIDATION_ERRORS.emailDomainNotAllowed;
     }
     
     // Check for common typos
     const commonTypos = {
-      "gail.com": "gmail",
-      "gmial.com": "gmail",
-      "gamil.com": "gmail",
-      "yaho.com": "yahoo",
-      "hotnail.com": "hotmail",
-      "outloo.com": "outlook",
-      "yahooo.com": "yahoo",
-      "amil.com": "gmail", // Common typo from request
-      "amail.com": "gmail", // Another variation
+      "gail.com": "gmail", "gmial.com": "gmail", "gamil.com": "gmail", "amil.com": "gmail", "amail.com": "gmail",
+      "yaho.com": "yahoo", "yahooo.com": "yahoo", "hotnail.com": "hotmail", "outloo.com": "outlook",
     };
     
     if (commonTypos[domain]) {
@@ -137,26 +259,20 @@ const VALIDATORS = {
     return "";
   },
   password: (v) => {
-    if (!v) return "Password is required";
-    if (v.length < 10) return "Password must be at least 10 characters";
-    if (v.length > 50) return "Password must be less than 50 characters";
-    if (!/[A-Z]/.test(v)) return "Include at least one uppercase letter (A-Z)";
-    if (!/[a-z]/.test(v)) return "Include at least one lowercase letter (a-z)";
-    if (!/[0-9]/.test(v)) return "Include at least one number (0-9)";
-    if (!/[!@#$%^&*()_+={}';:"\\|,.<>/?-]/.test(v)) return "Include at least one special character (!@#$%^&* etc)";
+    if (!v) return VALIDATION_ERRORS.passwordRequired;
+    if (v.length < 10) return VALIDATION_ERRORS.passwordTooShort;
+    if (v.length > 50) return VALIDATION_ERRORS.passwordTooLong;
+    if (!/[A-Z]/.test(v)) return VALIDATION_ERRORS.passwordNeedUpper;
+    if (!/[a-z]/.test(v)) return VALIDATION_ERRORS.passwordNeedLower;
+    if (!/[0-9]/.test(v)) return VALIDATION_ERRORS.passwordNeedNumber;
+    if (!/[!@#$%^&*()_+={}';:"\\|,.<>/?-]/.test(v)) return VALIDATION_ERRORS.passwordNeedSpecial;
     return "";
   },
   confirm: (v, form) => {
-    if (!v) return "Please confirm your password";
-    if (v !== form.password) return "Passwords do not match";
+    if (!v) return VALIDATION_ERRORS.confirmRequired;
+    if (v !== form.password) return VALIDATION_ERRORS.confirmMismatch;
     return "";
   },
-};
-
-const STEP_FIELDS = {
-  1: ["firstName", "lastName", "dob", "gender"],
-  2: ["address", "city", "zip", "country", "phone", "email", "password", "confirm"],
-  3: ["security_questions"], // Security questions validation done separately
 };
 
 
@@ -332,6 +448,8 @@ export default function RegisterFull() {
         if (data.access && data.user) {
           localStorage.setItem("access_token", data.access);
           localStorage.setItem("user", JSON.stringify(data.user));
+          // Mark as new user to show bot alert
+          localStorage.setItem(`isNewUser_${data.user.id}`, "true");
           login(data.user, data.access); // Update AuthContext
         }
         navigate("/home");
@@ -416,17 +534,17 @@ export default function RegisterFull() {
           </div>
 
           <span className="mb-3 inline-block rounded-full border border-orange-500/20 bg-orange-500/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[2.5px] text-orange-500">
-            Step {step} of 3
+            {MESSAGES.stepBadge} {step} {MESSAGES.stepOf}
           </span>
           <h1 className="font-['Montserrat'] text-3xl font-light italic text-[#111827] leading-tight mb-1">
-            {step === 1 && <>Tell us about <strong className="font-semibold text-orange-500">yourself</strong></>}
-            {step === 2 && <>How to <strong className="font-semibold text-orange-500">reach you</strong></>}
-            {step === 3 && <>Secure your <strong className="font-semibold text-orange-500">account</strong></>}
+            {step === 1 && <>{MESSAGES.step1Heading} <strong className="font-semibold text-orange-500">{MESSAGES.step1HeadingAccent}</strong></>}
+            {step === 2 && <>{MESSAGES.step2Heading} <strong className="font-semibold text-orange-500">{MESSAGES.step2HeadingAccent}</strong></>}
+            {step === 3 && <>{MESSAGES.step3Heading} <strong className="font-semibold text-orange-500">{MESSAGES.step3HeadingAccent}</strong></>}
           </h1>
           <p className="mb-7 text-[13px] text-slate-400">
-            {step === 1 && "Your name, date of birth, and a clear profile photo."}
-            {step === 2 && "Your address, phone number, email and account password."}
-            {step === 3 && "Set up security questions for password recovery."}
+            {step === 1 && MESSAGES.step1Subheading}
+            {step === 2 && MESSAGES.step2Subheading}
+            {step === 3 && MESSAGES.step3Subheading}
           </p>
 
           <form onSubmit={step < 2 ? handleNext : (step === 2 ? handleNext : handleSubmit)} noValidate>
@@ -444,7 +562,7 @@ export default function RegisterFull() {
                     >
                       {profilePhoto
                         ? <img src={profilePhoto} alt="profile" className="h-full w-full object-cover" />
-                        : <span className="text-[10px] font-bold uppercase tracking-wide text-[#b0a99e]">Photo</span>
+                        : <span className="text-[10px] font-bold uppercase tracking-wide text-[#b0a99e]">{MESSAGES.photoLabel}</span>
                       }
                     </div>
                     {photoErrors.profile && <p className="mt-1 text-[11px] text-red-400 text-center w-20">{photoErrors.profile}</p>}
@@ -452,39 +570,39 @@ export default function RegisterFull() {
                   <input ref={profileRef} type="file" accept="image/*" className="hidden"
                     onChange={handlePhoto(setProfilePhoto, setProfileFile, "profile")} />
                   <div className="text-[12px] text-gray-400 leading-relaxed">
-                    <strong className="block text-[13px] font-semibold text-[#374151]">Profile Photo *</strong>
-                    Clear face photo. JPG or PNG, max 5MB.
+                    <strong className="block text-[13px] font-semibold text-[#374151]">{MESSAGES.uploadProfile} *</strong>
+                    {MESSAGES.uploadHint}
                     <br />This will be reviewed by admin.
                   </div>
                 </div>
 
-                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Personal Details</p>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">{MESSAGES.personalDetails}</p>
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("firstName")}>First Name *</label>
+                    <label className={lbl("firstName")}>{FORM_LABELS.firstName} *</label>
                     <input className={inp("firstName")} value={form.firstName} onChange={set("firstName")}
                       onFocus={() => setFocused("firstName")} onBlur={blur("firstName")} placeholder="Jane" />
                     {errMsg("firstName")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("lastName")}>Last Name *</label>
+                    <label className={lbl("lastName")}>{FORM_LABELS.lastName} *</label>
                     <input className={inp("lastName")} value={form.lastName} onChange={set("lastName")}
                       onFocus={() => setFocused("lastName")} onBlur={blur("lastName")} placeholder="Doe" />
                     {errMsg("lastName")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("dob")}>Date of Birth *</label>
+                    <label className={lbl("dob")}>{FORM_LABELS.dob} *</label>
                     <input type="date" className={inp("dob")} value={form.dob} onChange={set("dob")}
                       onFocus={() => setFocused("dob")} onBlur={blur("dob")} />
                     {errMsg("dob")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("gender")}>Gender *</label>
+                    <label className={lbl("gender")}>{FORM_LABELS.gender} *</label>
                     <select className={inp("gender")} value={form.gender} onChange={set("gender")}
                       onFocus={() => setFocused("gender")} onBlur={blur("gender")}>
-                      <option value="">Select...</option>
-                      <option>Male</option><option>Female</option>
-                      <option>Non-binary</option><option>Prefer not to say</option>
+                      <option value="">{MESSAGES.selectGender}</option>
+                      <option>{MESSAGES.male}</option><option>{MESSAGES.female}</option>
+                      <option>{MESSAGES.other}</option>
                     </select>
                     {errMsg("gender")}
                   </div>
@@ -495,57 +613,57 @@ export default function RegisterFull() {
             {/* Step 2 */}
             {step === 2 && (
               <>
-                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Address</p>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">{MESSAGES.addressSection}</p>
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
-                    <label className={lbl("address")}>Street Address *</label>
+                    <label className={lbl("address")}>{FORM_LABELS.address} *</label>
                     <input className={inp("address")} value={form.address} onChange={set("address")}
                       onFocus={() => setFocused("address")} onBlur={blur("address")} placeholder="123 Explorer Street" />
                     {errMsg("address")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("city")}>City *</label>
+                    <label className={lbl("city")}>{FORM_LABELS.city} *</label>
                     <input className={inp("city")} value={form.city} onChange={set("city")}
                       onFocus={() => setFocused("city")} onBlur={blur("city")} placeholder="Kathmandu" />
                     {errMsg("city")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("zip")}>ZIP / Postal Code *</label>
+                    <label className={lbl("zip")}>{FORM_LABELS.zip} *</label>
                     <input className={inp("zip")} value={form.zip} onChange={set("zip")}
                       onFocus={() => setFocused("zip")} onBlur={blur("zip")} placeholder="44600" />
                     {errMsg("zip")}
                   </div>
                   <div className="col-span-2 flex flex-col gap-1 max-sm:col-span-1">
-                    <label className={lbl("country")}>Country *</label>
+                    <label className={lbl("country")}>{FORM_LABELS.country} *</label>
                     <input className={inp("country")} value={form.country} onChange={set("country")}
                       onFocus={() => setFocused("country")} onBlur={blur("country")} placeholder="Nepal" />
                     {errMsg("country")}
                   </div>
                 </div>
 
-                <p className="mb-3.5 mt-6 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Contact & Account</p>
+                <p className="mb-3.5 mt-6 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">{MESSAGES.contactSection}</p>
                 <div className="grid grid-cols-2 gap-4 max-sm:grid-cols-1">
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("phone")}>Phone Number *</label>
+                    <label className={lbl("phone")}>{FORM_LABELS.phone} *</label>
                     <input type="tel" className={inp("phone")} value={form.phone} onChange={set("phone")}
                       onFocus={() => setFocused("phone")} onBlur={blur("phone")} placeholder="+977 98XXXXXXXX" />
                     {errMsg("phone")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("email")}>Email Address *</label>
+                    <label className={lbl("email")}>{FORM_LABELS.email} *</label>
                     <input type="email" className={inp("email")} value={form.email} onChange={set("email")}
                       onFocus={() => setFocused("email")} onBlur={blur("email")} placeholder="jane@example.com" />
                     {errMsg("email")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("password")}>Password *</label>
+                    <label className={lbl("password")}>{FORM_LABELS.password} *</label>
                     <div className="relative">
                       <input type={pwVisible ? "text" : "password"} className={inp("password")}
                         style={{ paddingRight: 40 }} value={form.password} onChange={set("password")}
                         onFocus={() => setFocused("password")} onBlur={blur("password")} placeholder="Min. 8 characters" />
                       <button type="button" onClick={() => setPwVisible(!pwVisible)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-sm opacity-35 hover:opacity-75">
-                        {pwVisible ? "Hide" : "Show"}
+                        {pwVisible ? MESSAGES.hidePassword : MESSAGES.showPassword}
                       </button>
                     </div>
                     {form.password.length > 0 && (
@@ -555,13 +673,13 @@ export default function RegisterFull() {
                             <div key={i} className={`h-[3px] w-4 rounded-full transition-all ${pwStrength >= i ? strengthBg : "bg-[#e2ddd6]"}`} />
                           ))}
                         </div>
-                        <span className={`text-[10px] font-bold ${strengthColor}`}>{strengthLabel}</span>
+                        <span className={`text-[10px] font-bold ${strengthColor}`}>{MESSAGES.strength} {strengthLabel}</span>
                       </div>
                     )}
                     {errMsg("password")}
                   </div>
                   <div className="flex flex-col gap-1">
-                    <label className={lbl("confirm")}>Confirm Password *</label>
+                    <label className={lbl("confirm")}>{FORM_LABELS.confirm} *</label>
                     <input type="password" className={inp("confirm")} value={form.confirm} onChange={set("confirm")}
                       onFocus={() => setFocused("confirm")} onBlur={blur("confirm")} placeholder="Repeat password" />
                     {errMsg("confirm")}
@@ -572,8 +690,7 @@ export default function RegisterFull() {
                   <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
                     className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500" />
                   <span className="text-[12px] text-gray-500 leading-relaxed">
-                    I agree to the <span className="font-semibold text-orange-500">Terms of Service</span> and{" "}
-                    <span className="font-semibold text-orange-500">Privacy Policy</span>. My data is handled securely.
+                    {MESSAGES.agreeTerms}
                   </span>
                 </label>
               </>
@@ -582,9 +699,9 @@ export default function RegisterFull() {
             {/* Step 3 - Security Questions */}
             {step === 3 && (
               <>
-                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">Security Setup</p>
+                <p className="mb-3.5 border-b border-[#e5e0d8] pb-2 text-[10px] font-bold uppercase tracking-[2px] text-gray-400">{MESSAGES.securitySection}</p>
                 <p className="mb-4 text-[13px] text-gray-600">
-                  Select 2-3 security questions and answer them. You'll use these to reset your password if you forget it.
+                  {MESSAGES.securityInstructions}
                 </p>
 
                 <div className="space-y-4">
@@ -618,7 +735,7 @@ export default function RegisterFull() {
                               [q.id]: e.target.value,
                             }))
                           }
-                          placeholder="Your answer..."
+                          placeholder={MESSAGES.answerPlaceholder}
                           className="mt-3 w-full bg-white border border-[#e2ddd6] rounded-xl px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-orange-500/10 focus:border-orange-500"
                         />
                       )}
@@ -627,7 +744,7 @@ export default function RegisterFull() {
                 </div>
 
                 <p className="mt-4 text-[12px] text-gray-500">
-                  You have selected: <strong>{Object.keys(selectedSecurityAnswers).length} question(s)</strong> (minimum 2 required)
+                  {MESSAGES.selectedQuestions} <strong>{Object.keys(selectedSecurityAnswers).length} {MESSAGES.questions}</strong> ({MESSAGES.minRequired})
                 </p>
               </>
             )}
@@ -642,14 +759,14 @@ export default function RegisterFull() {
               {step > 1 && (
                 <button type="button" onClick={() => setStep(step - 1)}
                   className="rounded-xl border border-[#e2ddd6] px-5 py-3 text-[13px] font-semibold text-gray-400 transition hover:border-gray-400 hover:text-gray-600">
-                  Back
+                  {MESSAGES.previous}
                 </button>
               )}
               <button type="submit" disabled={loading}
                 className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-orange-600 via-orange-500 to-orange-400 py-3.5 text-[14px] font-bold text-white shadow-[0_4px_18px_rgba(249,115,22,0.3)] transition hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(249,115,22,0.4)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-65">
                 {loading
-                  ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> Submitting...</>
-                  : step < 3 ? "Continue" : "Complete Registration"
+                  ? <><span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" /> {MESSAGES.processRegistering}</>
+                  : step < 3 ? MESSAGES.next : MESSAGES.finish
                 }
               </button>
             </div>

@@ -1,21 +1,46 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// ──── CONSTANTS ────
+const VALIDATION_ERRORS = {
+  emailRequired: "Please enter your email address",
+  emailTooLong: "Email must be less than 100 characters",
+  emailInvalid: "Enter a valid email address",
+  consecutiveDots: "Email cannot contain consecutive dots",
+  invalidDomain: "Email domain is invalid",
+  unsupportedDomain: "We only accept emails from: Gmail, Yahoo, Hotmail, Outlook, ProtonMail, iCloud, and other standard providers",
+  passwordRequired: "Password is required",
+  passwordTooShort: "Password must be at least 10 characters",
+  needsUppercase: "Include at least one uppercase letter",
+  needsLowercase: "Include at least one lowercase letter",
+  needsNumber: "Include at least one number",
+  needsSpecial: "Include at least one special character",
+  passwordMismatch: "Passwords do not match",
+  answerAllQuestions: "Please answer all security questions",
+};
+
+const MESSAGES = {
+  successReset: "Password reset successfully!",
+  connectError: "Unable to connect to the server",
+  emailNotFound: "Email not found or no security questions set",
+  failedReset: "Failed to reset password",
+};
+
 const validateEmail = (emailInput) => {
-  if (!emailInput.trim()) return "Please enter your email address";
+  if (!emailInput.trim()) return VALIDATION_ERRORS.emailRequired;
   const emailLower = emailInput.trim().toLowerCase();
-  if (emailLower.length > 100) return "Email must be less than 100 characters";
+  if (emailLower.length > 100) return VALIDATION_ERRORS.emailTooLong;
   
   // Basic email format validation
   const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-  if (!re.test(emailLower)) return "Enter a valid email address";
+  if (!re.test(emailLower)) return VALIDATION_ERRORS.emailInvalid;
   
   // Check for consecutive dots
-  if (/\.\./.test(emailLower)) return "Email cannot contain consecutive dots";
+  if (/\.\./.test(emailLower)) return VALIDATION_ERRORS.consecutiveDots;
   
   // Extract domain
   const domain = emailLower.split("@")[1];
-  if (!domain || domain.length > 50) return "Email domain is invalid";
+  if (!domain || domain.length > 50) return VALIDATION_ERRORS.invalidDomain;
   
   // List of allowed legitimate email domains
   const allowedDomains = [
@@ -26,7 +51,7 @@ const validateEmail = (emailInput) => {
   
   // Check if domain is in allowed list
   if (!allowedDomains.includes(domain)) {
-    return `We only accept emails from: Gmail, Yahoo, Hotmail, Outlook, ProtonMail, iCloud, and other standard providers`;
+    return VALIDATION_ERRORS.unsupportedDomain;
   }
   
   // Check for common typos
@@ -71,26 +96,26 @@ export default function ForgotPassword() {
       });
       const data = await response.json();
       if (response.ok && data.success) { setQuestions(data.questions); setAnswers({}); setStep(2); }
-      else { setError(data.message || "Email not found or no security questions set"); }
-    } catch { setError("Unable to connect to the server"); }
+      else { setError(data.message || MESSAGES.emailNotFound); }
+    } catch { setError(MESSAGES.connectError); }
     finally { setLoading(false); }
   };
 
   const handleStep2 = async (e) => {
     e.preventDefault();
-    if (!questions.every((q) => answers[q.id]?.trim())) { setError("Please answer all security questions"); return; }
+    if (!questions.every((q) => answers[q.id]?.trim())) { setError(VALIDATION_ERRORS.answerAllQuestions); return; }
     setStep(3); setError("");
   };
 
   const handleStep3 = async (e) => {
     e.preventDefault();
-    if (!newPassword) { setError("Password is required"); return; }
-    if (newPassword.length < 10) { setError("Password must be at least 10 characters"); return; }
-    if (!/[A-Z]/.test(newPassword)) { setError("Include at least one uppercase letter"); return; }
-    if (!/[a-z]/.test(newPassword)) { setError("Include at least one lowercase letter"); return; }
-    if (!/[0-9]/.test(newPassword)) { setError("Include at least one number"); return; }
-    if (!/[!@#$%^&*()_+=[\]{};':"\\|,.<>/?]/.test(newPassword)) { setError("Include at least one special character"); return; }
-    if (newPassword !== confirmPassword) { setError("Passwords do not match"); return; }
+    if (!newPassword) { setError(VALIDATION_ERRORS.passwordRequired); return; }
+    if (newPassword.length < 10) { setError(VALIDATION_ERRORS.passwordTooShort); return; }
+    if (!/[A-Z]/.test(newPassword)) { setError(VALIDATION_ERRORS.needsUppercase); return; }
+    if (!/[a-z]/.test(newPassword)) { setError(VALIDATION_ERRORS.needsLowercase); return; }
+    if (!/[0-9]/.test(newPassword)) { setError(VALIDATION_ERRORS.needsNumber); return; }
+    if (!/[!@#$%^&*()_+=\[\]{};':"\\|,.<>/?]/.test(newPassword)) { setError(VALIDATION_ERRORS.needsSpecial); return; }
+    if (newPassword !== confirmPassword) { setError(VALIDATION_ERRORS.passwordMismatch); return; }
     const formattedAnswers = {};
     questions.forEach((q) => { formattedAnswers[q.id] = answers[q.id].trim().toLowerCase(); });
     setLoading(true); setError("");
@@ -103,10 +128,10 @@ export default function ForgotPassword() {
       });
       const data = await response.json();
       if (response.ok && data.success) {
-        setSuccess("Password reset successfully!");
+        setSuccess(MESSAGES.successReset);
         setTimeout(() => navigate("/"), 2000);
-      } else { setError(data.message || "Failed to reset password"); }
-    } catch { setError("Unable to connect to the server"); }
+      } else { setError(data.message || MESSAGES.failedReset); }
+    } catch { setError(MESSAGES.connectError); }
     finally { setLoading(false); }
   };
 
