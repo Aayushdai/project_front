@@ -18,6 +18,9 @@ import {
   Loader2,
   LogIn,
   Clock,
+  Image,
+  Check,
+  Mail,
 } from "lucide-react";
 
 // ──── CONSTANTS ────
@@ -35,6 +38,18 @@ const TEXTS = {
   signedOut: "You have been signed out",
   loginMessage: "Please log in again to continue",
   welcome: "Welcome to Travel Sathi",
+};
+
+const TRIP_TAGS_CATEGORIES = {
+  "Trip Type": ["Adventure", "Relaxation", "Cultural", "Nature", "Road Trip", "Backpacking", "Trekking / Hiking", "Camping", "City Tour", "Beach Trip", "Wildlife / Safari"],
+  "Budget Level": ["Budget", "Mid-range", "Luxury"],
+  "Activity Level": ["High Activity", "Moderate Activity", "Chill / Low Activity"],
+  "Trip Style": ["Solo Friendly", "Group Trip", "Family Friendly", "Friends Trip", "Guided Tour", "DIY / Self-planned"],
+  "Environment": ["Mountain", "Hills", "Forest", "Lake / Riverside", "Desert", "Urban", "Rural / Village"],
+  "Duration": ["Weekend Trip", "Short Trip (2–3 days)", "Long Trip (4+ days)"],
+  "Transport": ["Road Trip", "Flight Travel", "Mixed Transport"],
+  "Purpose": ["Photography", "Food Exploration", "Sightseeing", "Spiritual / Religious", "Party / Nightlife", "Wellness / Retreat", "Festival Trip"],
+  "Stay Type": ["Hotel Stay", "Homestay", "Camping Stay", "Resort Stay"]
 };
 
 const styles = `
@@ -349,6 +364,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [myTrips, setMyTrips] = useState([]);
   const [availableTrips, setAvailableTrips] = useState([]);
+  const [tripHistory, setTripHistory] = useState([]);
   const [stats, setStats] = useState({ created: 0, joined: 0, total: 0 });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -357,11 +373,13 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPageMyTrips, setCurrentPageMyTrips] = useState(1);
   const [currentPageAvailable, setCurrentPageAvailable] = useState(1);
+  const [currentPageHistory, setCurrentPageHistory] = useState(1);
   const [userProfile, setUserProfile] = useState(null);
   const [kycLoading, setKycLoading] = useState(true);
-  const [selectedTags, setSelectedTags] = useState([]);
-  const [constraintTags, setConstraintTags] = useState([]);
+  const [selectedFilterTags, setSelectedFilterTags] = useState([]);
   const [showTagFilter, setShowTagFilter] = useState(false);
+  const [invitations, setInvitations] = useState([]);
+  const [invLoading, setInvLoading] = useState(false);
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -370,10 +388,10 @@ export default function Dashboard() {
   }, [user, navigate]);
 
   useEffect(() => {
-    api.get("users/constraint-tags/")
-      .then(r => setConstraintTags(r.data || []))
-      .catch(console.error);
-  }, []);
+    if (activeTab === "invitations") {
+      fetchInvitations();
+    }
+  }, [activeTab]);
 
   const fetchDashboardData = async () => {
     setLoading(true); setError("");
@@ -403,9 +421,15 @@ export default function Dashboard() {
       console.log("All trips:", allTrips);
       
       // Fetch trip history
-      const historyRes = await api.get("trips/history/");
-      const history = historyRes.data || [];
-      console.log("Trip history:", history);
+      try {
+        const historyRes = await api.get("trips/history/");
+        const history = historyRes.data || [];
+        console.log("Trip history:", history);
+        setTripHistory(history);
+      } catch (historyErr) {
+        console.error("Failed to fetch trip history:", historyErr);
+        setTripHistory([]);
+      }
       
       const userTripsCreated = allTrips.filter(t => {
         const isCreator = t.creator?.id === userId;
@@ -505,7 +529,41 @@ export default function Dashboard() {
     }
   };
 
+  const fetchInvitations = async () => {
+    setInvLoading(true);
+    try {
+      const res = await api.get("trips/invitations/my/");
+      setInvitations(res.data || []);
+      console.log("Fetched invitations:", res.data);
+    } catch (err) {
+      console.error("Failed to fetch invitations:", err.message);
+      setInvitations([]);
+    } finally {
+      setInvLoading(false);
+    }
+  };
+
+  const handleRespondToInvitation = async (invitationId, action) => {
+    try {
+      const res = await api.patch(`trips/invitations/${invitationId}/respond/`, { action });
+      console.log(`${action} invitation response:`, res.data);
+      
+      // Remove the invitation from the list
+      setInvitations(inv => inv.filter(i => i.id !== invitationId));
+      
+      if (action === "accept") {
+        setError("");
+        // Refresh trips to show the newly joined trip
+        setTimeout(() => fetchDashboardData(), 100);
+      }
+    } catch (err) {
+      console.error(`Failed to ${action} invitation:`, err.message);
+      setError(err.response?.data?.detail || `Failed to ${action} invitation`);
+    }
+  };
+
   const tabs = [
+    { id: "invitations", label: "Invitations",  icon: <Mail size={14} /> },
     { id: "myTrips",   label: "My Trips",      icon: <List size={14} /> },
     { id: "available", label: "Discover",       icon: <Compass size={14} /> },
     { id: "history",   label: "Trip History",   icon: <Clock size={14} /> },
@@ -527,10 +585,10 @@ export default function Dashboard() {
     }
     
     // Filter by selected tags - only show trips that have AT LEAST ONE of the selected tags
-    if (selectedTags.length > 0) {
+    if (selectedFilterTags.length > 0) {
       result = result.filter(t => {
-        const tripTagIds = (t.constraint_tags || []).map(tag => tag.id);
-        return selectedTags.some(tagId => tripTagIds.includes(tagId));
+        const tripTags = (t.trip_tags || []);
+        return selectedFilterTags.some(tag => tripTags.includes(tag));
       });
     }
     
@@ -551,6 +609,14 @@ export default function Dashboard() {
   const paginatedAvailableTrips = filteredAvailableTrips.slice(
     (currentPageAvailable - 1) * itemsPerPage,
     currentPageAvailable * itemsPerPage
+  );
+
+  // Get filtered and paginated trips for "History"
+  const filteredHistoryTrips = filterTrips(tripHistory);
+  const totalHistoryPages = Math.ceil(filteredHistoryTrips.length / itemsPerPage);
+  const paginatedHistoryTrips = filteredHistoryTrips.slice(
+    (currentPageHistory - 1) * itemsPerPage,
+    currentPageHistory * itemsPerPage
   );
 
   return (
@@ -670,8 +736,8 @@ export default function Dashboard() {
             </>
           ) : (
             <>
-              {/* Search Bar (visible on myTrips and available tabs) */}
-              {(activeTab === "myTrips" || activeTab === "available") && (
+              {/* Search Bar (visible on myTrips, available, and history tabs) */}
+              {(activeTab === "myTrips" || activeTab === "available" || activeTab === "history") && (
                 <div style={{ marginBottom: "1.5rem" }}>
                   <div style={{
                     display: 'flex',
@@ -694,6 +760,7 @@ export default function Dashboard() {
                         setSearchQuery(e.target.value);
                         setCurrentPageMyTrips(1);
                         setCurrentPageAvailable(1);
+                        setCurrentPageHistory(1);
                       }}
                       style={{
                         flex: 1,
@@ -729,8 +796,8 @@ export default function Dashboard() {
                 </div>
               )}
 
-              {/* Constraint Tags Filter - Click Only */}
-              {(activeTab === "myTrips" || activeTab === "available") && constraintTags.length > 0 && (
+              {/* Trip Tags Filter - Click to Toggle */}
+              {(activeTab === "myTrips" || activeTab === "available" || activeTab === "history") && (
                 <div 
                   style={{ marginBottom: "1.5rem", position: 'relative' }}
                 >
@@ -749,7 +816,7 @@ export default function Dashboard() {
                       fontFamily: 'Poppins'
                     }}
                   >
-                    🏷️ Filter by Requirements {selectedTags.length > 0 && `(${selectedTags.length})`}
+                     Filter by Requirements {selectedFilterTags.length > 0 && `(${selectedFilterTags.length})`}
                   </button>
 
                   {showTagFilter && (
@@ -764,110 +831,61 @@ export default function Dashboard() {
                       background: 'rgba(10,12,22,0.95)',
                       backdropFilter: 'blur(10px)',
                       zIndex: 100,
-                      minWidth: '300px',
+                      minWidth: '400px',
+                      maxHeight: '400px',
+                      overflowY: 'auto',
                       boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                     }}>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-                        {constraintTags.map(tag => (
-                          <button
-                            key={tag.id}
-                            onClick={() => {
-                              setSelectedTags(prev => {
-                                if (prev.includes(tag.id)) {
-                                  return prev.filter(id => id !== tag.id);
-                                }
-                                // Remove any conflicting tags
-                                const filteredTags = prev.filter(id => {
-                                  const otherTag = constraintTags.find(t => t.id === id);
-                                  if (!otherTag) return true;
-                                  
-                                  const n1 = tag.name.toLowerCase();
-                                  const n2 = otherTag.name.toLowerCase();
-                                  const c1 = tag.category;
-                                  const c2 = otherTag.category;
-                                  
-                                  // Age ranges conflict
-                                  if (c1 === 'age_range' && c2 === 'age_range') return false;
-                                  
-                                  // Diet conflicts
-                                  if (c1 === 'diet' && c2 === 'diet') {
-                                    const dietConflicts = [
-                                      ['vegetarian', 'non-vegetarian'],
-                                      ['vegan', 'non-vegan'],
-                                      ['halal', 'non-halal'],
-                                      ['kosher', 'non-kosher'],
-                                      ['gluten-free', 'gluten']
-                                    ];
-                                    for (let [a, b] of dietConflicts) {
-                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-                                        return false;
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {Object.entries(TRIP_TAGS_CATEGORIES).map(([category, tags]) => (
+                          <div key={category}>
+                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 600, color: '#ffd580', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                              {category}
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                              {tags.map(tag => (
+                                <button
+                                  key={tag}
+                                  onClick={() => {
+                                    setSelectedFilterTags(prev => {
+                                      if (prev.includes(tag)) {
+                                        return prev.filter(t => t !== tag);
+                                      } else {
+                                        return [...prev, tag];
                                       }
-                                    }
-                                  }
-                                  
-                                  // Lifestyle conflicts
-                                  if (c1 === 'lifestyle' && c2 === 'lifestyle') {
-                                    const lifestyleConflicts = [
-                                      ['smoker', 'non-smoker'],
-                                      ['drinker', 'non-drinker'],
-                                      ['drinks alcohol', 'non-drinker'],
-                                      ['early riser', 'night owl'],
-                                      ['party person', 'quiet & homebody'],
-                                      ['party person', 'quiet']
-                                    ];
-                                    for (let [a, b] of lifestyleConflicts) {
-                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-                                        return false;
-                                      }
-                                    }
-                                  }
-                                  
-                                  // Values conflicts
-                                  if (c1 === 'values' && c2 === 'values') {
-                                    const valuesConflicts = [
-                                      ['introvert', 'extrovert'],
-                                      ['social butterfly', 'quiet traveler'],
-                                      ['budget conscious', 'luxury lover'],
-                                      ['eco-conscious', 'luxury lover'],
-                                      ['minimalist', 'luxury lover']
-                                    ];
-                                    for (let [a, b] of valuesConflicts) {
-                                      if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-                                        return false;
-                                      }
-                                    }
-                                  }
-                                  
-                                  return true;
-                                });
-                                return [...filteredTags, tag.id];
-                              });
-                              setCurrentPageMyTrips(1);
-                              setCurrentPageAvailable(1);
-                            }}
-                            style={{
-                              padding: '0.5rem 0.8rem',
-                              borderRadius: '6px',
-                              border: `1px solid ${selectedTags.includes(tag.id) ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.2)'}`,
-                              background: selectedTags.includes(tag.id) ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.05)',
-                              color: selectedTags.includes(tag.id) ? '#ffd580' : 'rgba(255,255,255,0.6)',
-                              cursor: 'pointer',
-                              fontSize: '0.8rem',
-                              fontWeight: 500,
-                              transition: 'all 0.2s',
-                              fontFamily: 'Poppins'
-                            }}
-                          >
-                            {tag.name}
-                          </button>
+                                    });
+                                    setCurrentPageMyTrips(1);
+                                    setCurrentPageAvailable(1);
+                                    setCurrentPageHistory(1);
+                                  }}
+                                  style={{
+                                    padding: '0.4rem 0.7rem',
+                                    borderRadius: '6px',
+                                    border: `1px solid ${selectedFilterTags.includes(tag) ? 'rgba(201,168,76,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                                    background: selectedFilterTags.includes(tag) ? 'rgba(201,168,76,0.2)' : 'rgba(255,255,255,0.05)',
+                                    color: selectedFilterTags.includes(tag) ? '#ffd580' : 'rgba(255,255,255,0.6)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 500,
+                                    transition: 'all 0.2s',
+                                    fontFamily: 'Poppins',
+                                    whiteSpace: 'nowrap'
+                                  }}
+                                >
+                                  {selectedFilterTags.includes(tag) && '✓ '}{tag}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
                         ))}
                       </div>
-                      {selectedTags.length > 0 && (
+                      {selectedFilterTags.length > 0 && (
                         <button
                           onClick={() => {
-                            setSelectedTags([]);
+                            setSelectedFilterTags([]);
                             setCurrentPageMyTrips(1);
                             setCurrentPageAvailable(1);
+                            setCurrentPageHistory(1);
                           }}
                           style={{
                             marginTop: '0.8rem',
@@ -889,6 +907,112 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+              )}
+
+              {activeTab === "invitations" && (
+                <>
+                  {invLoading ? (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
+                      <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
+                    </div>
+                  ) : invitations.length === 0 ? (
+                    <EmptyState 
+                      icon={<Mail size={28} />} 
+                      title="No invitations yet" 
+                      subtitle="When someone invites you to a trip, it will show here." 
+                      action={() => setActiveTab("available")} 
+                      buttonText="Discover Trips"
+                    />
+                  ) : (
+                    <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
+                      {invitations.map(inv => (
+                        <div
+                          key={inv.id}
+                          style={{
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(201,168,76,0.3)',
+                            background: 'rgba(15,17,32,0.7)',
+                            backdropFilter: 'blur(10px)',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                          }}
+                        >
+                          <div>
+                            <h3 style={{ margin: '0 0 0.5rem 0', color: '#ffd580', fontSize: '1.1rem', fontWeight: 600 }}>
+                              {inv.trip?.title || 'Trip'}
+                            </h3>
+                            <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
+                              📍 {inv.trip?.destination || 'Destination unknown'}
+                            </p>
+                            <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                              Invited by <strong>{inv.invited_by?.user?.first_name || 'Someone'}</strong>
+                            </p>
+                            {inv.sentAt && (
+                              <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
+                                {inv.sentAt}
+                              </p>
+                            )}
+                          </div>
+
+                          <div style={{ borderTop: '1px solid rgba(201,168,76,0.2)', paddingTop: '1rem' }}>
+                            <p style={{ margin: '0 0 0.75rem 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem', fontWeight: 500 }}>
+                              Dates: {inv.trip?.start_date ? new Date(inv.trip.start_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'TBD'} - {inv.trip?.end_date ? new Date(inv.trip.end_date).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) : 'TBD'}
+                            </p>
+                            <p style={{ margin: '0 0 1rem 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
+                              {inv.trip?.description && inv.trip.description.length > 100 ? inv.trip.description.substring(0, 100) + '...' : inv.trip?.description}
+                            </p>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.75rem' }}>
+                            <button
+                              onClick={() => handleRespondToInvitation(inv.id, "accept")}
+                              style={{
+                                flex: 1,
+                                padding: '0.75rem 1rem',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #4CAF50 0%, #45a049 100%)',
+                                color: 'white',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                fontFamily: 'Poppins',
+                                transition: 'all 0.3s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                            >
+                              ✓ Accept
+                            </button>
+                            <button
+                              onClick={() => handleRespondToInvitation(inv.id, "reject")}
+                              style={{
+                                flex: 1,
+                                padding: '0.75rem 1rem',
+                                borderRadius: '8px',
+                                border: '1px solid rgba(255,100,100,0.3)',
+                                background: 'rgba(255,100,100,0.1)',
+                                color: '#ff6464',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '0.9rem',
+                                fontFamily: 'Poppins',
+                                transition: 'all 0.3s'
+                              }}
+                              onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                              onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                            >
+                              ✗ Reject
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
 
               {activeTab === "myTrips" && (
@@ -950,8 +1074,40 @@ export default function Dashboard() {
                 </>
               )}
 
+              {activeTab === "history" && (
+                <>
+                  {paginatedHistoryTrips.length === 0 ? (
+                    <EmptyState icon={<Clock size={28} />} title={searchQuery ? "No past trips found" : "No trip history yet"} subtitle={searchQuery ? "Try a different search" : "Your completed trips will appear here."} action={() => searchQuery ? setSearchQuery("") : setActiveTab("discover")} buttonText={searchQuery ? "Clear Search" : "Discover Trips"} />
+                  ) : (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.2rem', marginBottom: '2rem' }}>
+                        {paginatedHistoryTrips.map(trip => (
+                          <TripCard
+                            key={trip.id}
+                            trip={trip}
+                            isCreator={trip.creator?.id === userProfileId}
+                            onView={() => navigate(`/trip/${trip.id}`)}
+                            kycApproved={userProfile?.status === "approved"}
+                          />
+                        ))}
+                      </div>
+                      {totalHistoryPages > 1 && (
+                        <PaginationControls
+                          currentPage={currentPageHistory}
+                          totalPages={totalHistoryPages}
+                          onPageChange={(page) => {
+                            setCurrentPageHistory(page);
+                            window.scrollTo(0, 0);
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+
               {activeTab === "create" && (
-                <CreateTripSection onTripCreated={() => { fetchDashboardData(); setActiveTab("myTrips"); }} />
+                <CreateTripSection onTripCreated={() => { fetchDashboardData(); setActiveTab("myTrips"); }} setActiveTab={setActiveTab} />
               )}
             </>
           )}
@@ -1139,28 +1295,30 @@ function EmptyState({ icon, title, subtitle, action, buttonText }) {
   );
 }
 
-function CreateTripSection({ onTripCreated }) {
+function CreateTripSection({ onTripCreated, setActiveTab }) {
+  // New structured trip tags
   const [formData, setFormData] = useState({
     title: "", description: "", destination: "",
-    start_date: "", end_date: "", is_public: true, constraint_tags: [],
+    start_date: "", end_date: "", is_public: true
   });
+  const [selectedTags, setSelectedTags] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [cities, setCities] = useState([]);
-  const [constraintTags, setConstraintTags] = useState({
-    diet: [], lifestyle: [], values: [], age_range: []
-  });
-  const navigate = useNavigate();
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [newExpense, setNewExpense] = useState({ category: "", amount: "" });
+
+  const getApiUrl = () => {
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+    return backendUrl.replace('/api/', '');
+  };
+  
+  const token = () => localStorage.getItem("access_token");
 
   useEffect(() => {
     api.get("trips/cities/").then(r => setCities(r.data || [])).catch(console.error);
-    api.get("users/constraint-tags/").then(r => {
-      const grouped = { diet: [], lifestyle: [], values: [], age_range: [] };
-      (r.data || []).forEach(tag => {
-        if (grouped[tag.category]) grouped[tag.category].push(tag);
-      });
-      setConstraintTags(grouped);
-    }).catch(console.error);
   }, []);
 
   const handleChange = (e) => {
@@ -1168,106 +1326,155 @@ function CreateTripSection({ onTripCreated }) {
     setFormData(prev => ({ ...prev, [name]: type === "checkbox" ? checked : value }));
   };
 
-  // Helper: Check if two tags conflict (mutually exclusive pairs)
-  const tagsConflict = (tagId1, tagId2) => {
-    let tag1, tag2;
-    Object.keys(constraintTags).forEach(cat => {
-      if (constraintTags[cat].find(t => t.id === tagId1)) tag1 = constraintTags[cat].find(t => t.id === tagId1);
-      if (constraintTags[cat].find(t => t.id === tagId2)) tag2 = constraintTags[cat].find(t => t.id === tagId2);
+  const handleTagToggle = (tag) => {
+    setSelectedTags(prev => {
+      if (prev.includes(tag)) {
+        return prev.filter(t => t !== tag);
+      } else {
+        return [...prev, tag];
+      }
     });
-    if (!tag1 || !tag2) return false;
-    
-    const n1 = tag1.name.toLowerCase();
-    const n2 = tag2.name.toLowerCase();
-    const c1 = tag1.category;
-    const c2 = tag2.category;
-    
-    // Age ranges conflict with each other
-    if (c1 === 'age_range' && c2 === 'age_range') return true;
-    
-    // Same category diet conflicts
-    if (c1 === 'diet' && c2 === 'diet') {
-      const dietConflicts = [
-        ['vegetarian', 'non-vegetarian'],
-        ['vegan', 'non-vegan'],
-        ['halal', 'non-halal'],
-        ['kosher', 'non-kosher'],
-        ['gluten-free', 'gluten']
-      ];
-      for (let [a, b] of dietConflicts) {
-        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-          return true;
-        }
-      }
-    }
-    
-    // Lifestyle - smoking/drinking/time/social conflicts
-    if (c1 === 'lifestyle' && c2 === 'lifestyle') {
-      const lifestyleConflicts = [
-        ['smoker', 'non-smoker'],
-        ['drinker', 'non-drinker'],
-        ['drinks alcohol', 'non-drinker'],
-        ['early riser', 'night owl'],
-        ['party person', 'quiet & homebody'],
-        ['party person', 'quiet']
-      ];
-      for (let [a, b] of lifestyleConflicts) {
-        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-          return true;
-        }
-      }
-    }
-    
-    // Values - personality/social/budget conflicts
-    if (c1 === 'values' && c2 === 'values') {
-      const valuesConflicts = [
-        ['introvert', 'extrovert'],
-        ['social butterfly', 'quiet traveler'],
-        ['budget conscious', 'luxury lover'],
-        ['eco-conscious', 'luxury lover'],
-        ['minimalist', 'luxury lover']
-      ];
-      for (let [a, b] of valuesConflicts) {
-        if ((n1.includes(a) && n2.includes(b)) || (n1.includes(b) && n2.includes(a))) {
-          return true;
-        }
-      }
-    }
-    
-    return false;
   };
 
-  const handleTagToggle = (tagId) => {
-    setFormData(prev => {
-      if (prev.constraint_tags.includes(tagId)) {
-        return { ...prev, constraint_tags: prev.constraint_tags.filter(id => id !== tagId) };
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddExpense = () => {
+    if (newExpense.category.trim() && newExpense.amount.trim()) {
+      const amount = parseFloat(newExpense.amount);
+      if (!isNaN(amount) && amount > 0) {
+        setExpenses([...expenses, { id: Date.now(), category: newExpense.category, amount }]);
+        setNewExpense({ category: "", amount: "" });
       }
-      
-      // Remove any conflicting tags
-      const filteredTags = prev.constraint_tags.filter(id => !tagsConflict(id, tagId));
-      return { ...prev, constraint_tags: [...filteredTags, tagId] };
-    });
+    }
+  };
+
+  const handleRemoveExpense = (id) => {
+    setExpenses(expenses.filter(exp => exp.id !== id));
+  };
+
+  const calculateTotalExpense = () => {
+    return expenses.reduce((sum, exp) => sum + exp.amount, 0);
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setLoading(true); setError("");
+    e.preventDefault(); 
+    setLoading(true); 
+    setError("");
+    
+    // Validate date range
+    if (formData.start_date && formData.end_date) {
+      const startDate = new Date(formData.start_date);
+      const endDate = new Date(formData.end_date);
+      
+      if (endDate < startDate) {
+        setError("End date cannot be before start date. No time travel allowed! 🚫");
+        setLoading(false);
+        return;
+      }
+    }
+    
+    // DEBUG: Log expenses array
+    console.log(" FORM SUBMISSION DEBUG");
+    console.log("Expenses array:", expenses);
+    console.log("Expenses count:", expenses.length);
+    expenses.forEach((exp, idx) => {
+      console.log(`  [${idx}] ${exp.category}: Rs ${exp.amount}`);
+    });
+    
     try {
-      const submitData = {
-        title: formData.title,
-        description: formData.description,
-        destination_id: parseInt(formData.destination),
-        start_date: formData.start_date,
-        end_date: formData.end_date,
-        is_public: formData.is_public,
-        constraint_tag_ids: formData.constraint_tags,
-      };
-      console.log('Submitting trip with tags:', formData.constraint_tags);
-      const res = await api.post("trips/", submitData);
-      if (res.status === 201) onTripCreated();
+      // Step 1: Create trip with cover image
+      const tripFormData = new FormData();
+      tripFormData.append("title", formData.title);
+      tripFormData.append("destination_id", parseInt(formData.destination));
+      tripFormData.append("start_date", formData.start_date);
+      tripFormData.append("end_date", formData.end_date);
+      tripFormData.append("description", formData.description);
+      tripFormData.append("is_public", formData.is_public);
+      if (coverImage) {
+        tripFormData.append("cover_image", coverImage);
+      }
+      // Store selected tags as JSON string in description or as a new field
+      if (selectedTags.length > 0) {
+        tripFormData.append("trip_tags", JSON.stringify(selectedTags));
+      }
+
+      const tripRes = await fetch(`${getApiUrl()}/api/trips/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token()}` },
+        body: tripFormData
+      });
+
+      if (!tripRes.ok) {
+        const errData = await tripRes.json();
+        throw new Error(errData.detail || "Failed to create trip");
+      }
+
+      const tripData = await tripRes.json();
+      const tripId = tripData.id;
+      console.log(`✅ Trip created successfully with ID: ${tripId}`);
+
+      // Step 2: Add expenses if any
+      if (expenses.length > 0) {
+        console.log(`Adding ${expenses.length} expenses...`);
+        for (const expense of expenses) {
+          try {
+            const expenseUrl = `${getApiUrl()}/api/trips/${tripId}/expenses/`;
+            const expensePayload = {
+              category: expense.category,
+              amount: expense.amount
+            };
+            
+            console.log(`📤 Posting to: ${expenseUrl}`);
+            console.log(`📦 Payload:`, expensePayload);
+            
+            const expRes = await fetch(expenseUrl, {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${token()}`,
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify(expensePayload)
+            });
+            
+            console.log(`📥 Response status: ${expRes.status}`);
+            
+            if (!expRes.ok) {
+              const errData = await expRes.json();
+              console.error(`❌ Failed to add expense "${expense.category}":`, {
+                status: expRes.status,
+                error: errData
+              });
+              setError(`Failed to add expense: ${expense.category}`);
+            } else {
+              const savedExpense = await expRes.json();
+              console.log(`✅ Added expense "${expense.category}" for Rs ${expense.amount}`, savedExpense);
+            }
+          } catch (expErr) {
+            console.error(`❌ Error adding expense "${expense.category}":`, expErr);
+            setError(`Error adding expense: ${expense.category}`);
+          }
+        }
+      } else {
+        console.log("No expenses to add");
+      }
+
+      onTripCreated();
     } catch (err) {
       console.error("Trip creation error:", err);
-      setError(err.response?.data?.detail || "Failed to create trip.");
-    } finally { setLoading(false); }
+      setError(err.message || "Failed to create trip.");
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   return (
@@ -1287,53 +1494,252 @@ function CreateTripSection({ onTripCreated }) {
           <textarea className="form-textarea" name="description" value={formData.description} onChange={handleChange} placeholder="Tell others what this trip is about..." rows="4" />
         </div>
 
+        {/* Cover Image Upload */}
+        <div className="form-group">
+          <label className="form-label">Trip Cover Photo</label>
+          <div style={{
+            position: 'relative',
+            border: '2px dashed rgba(255,213,128,0.3)',
+            borderRadius: '12px',
+            padding: '2rem',
+            textAlign: 'center',
+            background: 'rgba(255,255,255,0.02)',
+            cursor: 'pointer',
+            transition: 'all 0.2s',
+            overflow: 'hidden'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255,213,128,0.6)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.04)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255,213,128,0.3)';
+            e.currentTarget.style.background = 'rgba(255,255,255,0.02)';
+          }}>
+            {coverImagePreview ? (
+              <>
+                <img src={coverImagePreview} alt="Cover preview" style={{ width: '100%', height: '180px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.8rem' }} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCoverImage(null);
+                    setCoverImagePreview(null);
+                  }}
+                  style={{
+                    padding: '6px 14px',
+                    background: 'rgba(239,68,68,0.2)',
+                    border: '1px solid rgba(239,68,68,0.3)',
+                    color: '#fca5a5',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+                >
+                  Remove Image
+                </button>
+              </>
+            ) : (
+              <label style={{ cursor: 'pointer' }}>
+                <div style={{ marginBottom: '0.5rem' }}><Image size={40} style={{ margin: '0 auto', color: 'rgba(255,255,255,0.5)' }} /></div>
+                <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9rem', fontWeight: 600, marginBottom: '0.3rem' }}>Click to upload cover image</div>
+                <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>PNG, JPG up to 10MB</div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverImageChange}
+                  style={{ display: 'none' }}
+                />
+              </label>
+            )}
+          </div>
+        </div>
+
+        {/* Trip Tags Section */}
+        <div className="form-group" style={{ background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.2)', borderRadius: '12px', padding: '1.2rem' }}>
+          <label className="form-label">Trip Characteristics (Select Tags)</label>
+          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>Choose tags that describe your trip - select multiple from any category</p>
+          
+          {Object.entries(TRIP_TAGS_CATEGORIES).map(([category, tags]) => (
+            <div key={category} style={{ marginBottom: '1.2rem' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffd580', marginBottom: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                {category}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
+                {tags.map((tag) => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleTagToggle(tag)}
+                      style={{
+                        padding: '0.6rem 1rem',
+                        borderRadius: '20px',
+                        border: `1px solid ${isSelected ? 'rgba(249,115,22,0.6)' : 'rgba(255,255,255,0.2)'}`,
+                        background: isSelected ? 'rgba(249,115,22,0.2)' : 'rgba(255,255,255,0.05)',
+                        color: isSelected ? '#ff9f43' : 'rgba(255,255,255,0.6)',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: isSelected ? 600 : 500,
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.3)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isSelected) {
+                          e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                          e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+                        }
+                      }}
+                    >
+                      {isSelected ? '✓ ' : ''}{tag}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+          
+          {/* Selected Tags Summary */}
+          {selectedTags.length > 0 && (
+            <div style={{ marginTop: '1.2rem', paddingTop: '1rem', borderTop: '1px solid rgba(249,115,22,0.3)' }}>
+              <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.6rem' }}>Selected tags ({selectedTags.length}):</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                {selectedTags.map(tag => (
+                  <div key={tag} style={{
+                    padding: '0.4rem 0.8rem',
+                    borderRadius: '16px',
+                    background: 'rgba(249,115,22,0.3)',
+                    border: '1px solid rgba(249,115,22,0.4)',
+                    color: '#ff9f43',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem'
+                  }}>
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => handleTagToggle(tag)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ff9f43',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        padding: '0',
+                        marginLeft: '0.2rem'
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Expenses Section */}
+        <div className="form-group" style={{ background: 'rgba(147,197,253,0.08)', border: '1px solid rgba(147,197,253,0.2)', borderRadius: '12px', padding: '1.2rem' }}>
+          <label className="form-label">Trip Budget & Expenses (Optional)</label>
+          
+          {/* Add Expense Form */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 50px', gap: '0.8rem', marginBottom: '0.8rem' }}>
+            <input
+              type="text"
+              placeholder="e.g., Bus, Hotel, Food"
+              value={newExpense.category}
+              onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+              className="form-input"
+            />
+            <input
+              type="number"
+              placeholder="Amount"
+              value={newExpense.amount}
+              onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+              className="form-input"
+              step="0.01"
+              min="0"
+            />
+            <button
+              type="button"
+              onClick={handleAddExpense}
+              style={{
+                padding: '0',
+                background: 'linear-gradient(135deg, #f97316, #ea580c)',
+                border: 'none',
+                color: '#fff',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontSize: '1.2rem',
+                fontWeight: 700,
+                transition: 'opacity 0.2s'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+            >
+              +
+            </button>
+          </div>
+
+          {/* Expenses List */}
+          {expenses.length > 0 ? (
+            <div style={{ marginBottom: '0.8rem' }}>
+              {expenses.map((expense) => (
+                <div key={expense.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.03)', padding: '0.8rem', borderRadius: '8px', marginBottom: '0.6rem', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <div>
+                    <div style={{ color: '#fff', fontSize: '0.9rem', fontWeight: 600 }}>{expense.category}</div>
+                    <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>Rs {expense.amount.toFixed(2)}</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveExpense(expense.id)}
+                    style={{
+                      padding: '4px 10px',
+                      background: 'rgba(239,68,68,0.2)',
+                      border: '1px solid rgba(239,68,68,0.3)',
+                      color: '#fca5a5',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontSize: '0.8rem',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.3)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(239,68,68,0.2)'; }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              
+              {/* Total Expense */}
+              <div style={{ paddingTop: '0.8rem', borderTop: '1px solid rgba(255,213,128,0.2)', marginTop: '0.8rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>Total Expense:</span>
+                <span style={{ fontSize: '1.3rem', fontWeight: 700, color: '#ffd580' }}>Rs {calculateTotalExpense().toFixed(2)}</span>
+              </div>
+            </div>
+          ) : (
+            <div style={{ color: 'rgba(255,255,255,0.3)', fontSize: '0.85rem', padding: '0.8rem 0' }}>No expenses added yet</div>
+          )}
+        </div>
+
         <div className="form-group">
           <label className="form-label">Destination *</label>
           <select className="form-select" name="destination" value={formData.destination} onChange={handleChange} required>
             <option value="">Select a destination...</option>
             {cities.map(c => <option key={c.id} value={c.id}>{c.name}, {c.country}</option>)}
           </select>
-        </div>
-
-        {/* Constraint Tags Section */}
-        <div className="form-group">
-          <label className="form-label">Trip Requirements (Absolute Tags)</label>
-          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1rem' }}>Select tags that describe mandatory requirements for this trip</p>
-          
-          {['diet', 'lifestyle', 'values'].map(category => (
-            constraintTags[category].length > 0 && (
-              <div key={category} style={{ marginBottom: '1.2rem' }}>
-                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)', marginBottom: '0.6rem', textTransform: 'capitalize' }}>
-                  {category}:
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.6rem' }}>
-                  {constraintTags[category].map(tag => (
-                    <label key={tag.id} style={{
-                      display: 'flex', alignItems: 'center', gap: '0.5rem',
-                      padding: '0.6rem 1rem', borderRadius: '8px',
-                      background: formData.constraint_tags.includes(tag.id) 
-                        ? 'rgba(201,168,76,0.2)' 
-                        : 'rgba(255,255,255,0.05)',
-                      border: `1px solid ${formData.constraint_tags.includes(tag.id) 
-                        ? 'rgba(201,168,76,0.4)' 
-                        : 'rgba(255,255,255,0.1)'}`,
-                      cursor: 'pointer', transition: 'all 0.2s'
-                    }}>
-                      <input
-                        type="checkbox"
-                        checked={formData.constraint_tags.includes(tag.id)}
-                        onChange={() => handleTagToggle(tag.id)}
-                        style={{ cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '0.9rem', color: formData.constraint_tags.includes(tag.id) ? '#ffd580' : 'rgba(255,255,255,0.7)' }}>
-                        {tag.name}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )
-          ))}
         </div>
 
         <div className="form-group form-grid">
@@ -1343,7 +1749,12 @@ function CreateTripSection({ onTripCreated }) {
           </div>
           <div>
             <label className="form-label">End Date *</label>
-            <input className="form-input" type="date" name="end_date" value={formData.end_date} onChange={handleChange} required />
+            <input className="form-input" type="date" name="end_date" value={formData.end_date} onChange={handleChange} min={formData.start_date} required />
+            {formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date) && (
+              <div style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '4px' }}>
+                ⚠️ End date must be on or after start date
+              </div>
+            )}
           </div>
         </div>
 
@@ -1359,10 +1770,14 @@ function CreateTripSection({ onTripCreated }) {
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="form-submit" disabled={loading}>
+          <button 
+            type="submit" 
+            className="form-submit" 
+            disabled={loading || (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date))}
+          >
             {loading ? <><Loader2 size={15} className="db-spinner" /> Creating...</> : "Create Trip"}
           </button>
-          <button type="button" className="form-cancel" onClick={() => navigate("/dashboard")}>Cancel</button>
+          <button type="button" className="form-cancel" onClick={() => setActiveTab("myTrips")}>Cancel</button>
         </div>
       </form>
     </div>

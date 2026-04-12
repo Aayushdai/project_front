@@ -9,52 +9,34 @@ import ShieldIcon from "@mui/icons-material/Shield";
 
 // ──── CONSTANTS ────
 const ITEMS_PER_PAGE = 8;
-const PLACEHOLDER = "Search destination, people, or trips…";
-const HERO_TITLE_PART_1 = "Find Your Partner";
-const HERO_TITLE_PART_2 = "for the Adventure";
-
-const COLORS = {
-  primary: "#ffd580",
-  darkBg: "#111827",
-  lightBg: "#f8f6f1",
-  textDark: "#1a1a2e",
-  darkContent: "#0a0f1e",
-  gray300: "rgb(209 213 219)",
-  gray400: "rgb(156 163 175)",
-  gray500: "rgb(107 114 128)",
-  gray900: "rgb(17 24 39)",
-  white: "#ffffff",
-  orange50: "#fed7aa",
-  orange100: "#fed7aa",
-};
+const PLACEHOLDER = "Search destinations, people, or trips…";
 
 const FEATURES = [
-  { 
-    icon: <PeopleIcon />, 
-    title: "Smart Matching", 
-    desc: "Connect with travelers who share your pace and interests", 
-    tag: "AI-Powered" 
+  {
+    icon: <PeopleIcon style={{ fontSize: 18 }} />,
+    title: "Smart Matching",
+    desc: "Connect with travelers who share your pace and interests",
+    tag: "AI-Powered",
   },
-  { 
-    icon: <RoomIcon />, 
-    title: "Trip Planning", 
-    desc: "Build itineraries together in real time", 
-    tag: "Collaborative" 
+  {
+    icon: <RoomIcon style={{ fontSize: 18 }} />,
+    title: "Trip Planning",
+    desc: "Build itineraries together in real time, no back-and-forth",
+    tag: "Collaborative",
   },
-  { 
-    icon: <ShieldIcon />, 
-    title: "Safe & Verified", 
-    desc: "Verified members and 24/7 support keep you safe", 
-    tag: "Trusted" 
+  {
+    icon: <ShieldIcon style={{ fontSize: 18 }} />,
+    title: "Safe & Verified",
+    desc: "Verified members and 24/7 support keep every journey safe",
+    tag: "Trusted",
   },
 ];
 
-const DESTINATION_NOT_FOUND_MSG = "No destinations found";
-const PAGINATION_PREV_TEXT = "← Previous";
-const PAGINATION_NEXT_TEXT = "Next →";
-const SECTION_TITLE = "Why Travel Sathi?";
-const SECTION_SUBTITLE_1 = "Your journey,";
-const SECTION_SUBTITLE_2 = "elevated";
+const STATS = [
+  { number: "12k+", label: "Travelers" },
+  { number: "340+", label: "Destinations" },
+  { number: "8k+",  label: "Trips Planned" },
+];
 
 export default function Home() {
   const navigate = useNavigate();
@@ -63,7 +45,8 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
-    api.get("trips/destinations/")
+    api
+      .get("trips/destinations/")
       .then((res) => setDestinations(res.data))
       .catch((err) => console.error("Destinations fetch failed:", err));
   }, []);
@@ -72,89 +55,199 @@ export default function Home() {
     navigate("/explore", { state: { destinationName } });
   };
 
-  // Pagination logic
+  const filtered = destinations.filter((d) =>
+    d.name.toLowerCase().includes(query.toLowerCase())
+  );
+
   const totalPages = Math.ceil(destinations.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const paginatedDestinations = destinations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  const paginated = destinations.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handleSearch = () => {
+    const match = filtered[0];
+    if (match) handleDestinationClick(match.name);
+  };
 
   return (
-    <div className="font-[Poppins,sans-serif] bg-[#f8f6f1] text-[#1a1a2e]">
+    <div style={{ fontFamily: "'Poppins', sans-serif", background: "#0a0f1e", color: "#fff", minHeight: "100vh" }}>
 
       {/* ── Hero ── */}
-      <section className="relative flex h-screen flex-col items-center justify-center overflow-hidden text-center">
-        <div
-          className="absolute inset-0 bg-cover bg-[center_30%]"
-          style={{ backgroundImage: `url(${bg})` }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-black/45 to-[#0a0f1e]/90" />
+      <section style={{
+        position: "relative",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        padding: "2rem 1rem",
+        overflow: "hidden",
+        background: "linear-gradient(160deg, #0a0f1e 0%, #111827 55%, #0d1526 100%)",
+      }}>
+        {/* Gold glow blob */}
+        <div style={{
+          position: "absolute",
+          top: "-140px", left: "50%",
+          transform: "translateX(-50%)",
+          width: 640, height: 640,
+          background: "radial-gradient(circle, rgba(255,213,128,0.07) 0%, transparent 68%)",
+          pointerEvents: "none",
+        }} />
 
-        <div className="relative z-10 max-w-2xl px-4">
-          <h1 className="mb-4 text-4xl font-bold leading-tight text-white drop-shadow-lg md:text-5xl">
-            Find Your Partner<br />
-            <span className="text-[#ffd580]">for the Adventure</span>
+        {/* Background image overlay */}
+        <div style={{
+          position: "absolute", inset: 0,
+          backgroundImage: `url(${bg})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center 30%",
+          opacity: 0.45,
+        }} />
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to bottom, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.55) 60%, #0a0f1e 100%)",
+        }} />
+
+        {/* Content */}
+        <div style={{ position: "relative", zIndex: 10, maxWidth: 560, width: "100%" }}>
+          {/* Eyebrow */}
+          <div style={{
+            display: "inline-flex", alignItems: "center", gap: 7,
+            background: "rgba(255,213,128,0.08)",
+            border: "0.5px solid rgba(255,213,128,0.28)",
+            borderRadius: 100,
+            padding: "5px 15px",
+            fontSize: 11, fontWeight: 600,
+            color: "#ffd580",
+            letterSpacing: "0.07em",
+            textTransform: "uppercase",
+            marginBottom: "1.5rem",
+          }}>
+            <span style={{
+              width: 6, height: 6, borderRadius: "50%",
+              background: "#ffd580",
+              animation: "pulse 2s infinite",
+              flexShrink: 0,
+            }} />
+            Now live in Nepal
+          </div>
+
+          <h1 style={{
+            fontSize: "clamp(2.2rem, 5vw, 3.4rem)",
+            fontWeight: 700,
+            lineHeight: 1.15,
+            letterSpacing: "-0.02em",
+            color: "#fff",
+            marginBottom: "1.1rem",
+          }}>
+            Find Your Partner
+            <br />
+            <span style={{ color: "#ffd580" }}>for the Adventure</span>
           </h1>
 
-          <p className="mb-6 font-light text-white/75">
+          <p style={{
+            fontSize: 15,
+            color: "rgba(255,255,255,0.5)",
+            lineHeight: 1.75,
+            marginBottom: "2.5rem",
+            maxWidth: 440,
+            margin: "0 auto 2.5rem",
+          }}>
             Connect with like-minded travelers, plan trips together,
             and explore the world — one journey at a time.
           </p>
 
-          {/* Search */}
-          <div className="mx-auto flex max-w-lg items-center gap-2 rounded-full bg-white px-5 py-2 shadow-lg relative">
-            <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={PLACEHOLDER}
-              className="flex-1 bg-transparent text-sm outline-none placeholder-gray-400"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && query.trim()) {
-                  const match = destinations.find(d => d.name.toLowerCase().includes(query.toLowerCase()));
-                  if (match) {
-                    handleDestinationClick(match.name);
-                  }
-                }
-              }}
-            />
-            <button 
-              onClick={() => {
-                const match = destinations.find(d => d.name.toLowerCase().includes(query.toLowerCase()));
-                if (match) {
-                  handleDestinationClick(match.name);
-                }
-              }}
-              className="rounded-full bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-1.5 text-sm font-medium text-white hover:brightness-110 transition"
-            >
-              Explore →
-            </button>
+          {/* Search bar */}
+          <div style={{ position: "relative", maxWidth: 520, margin: "0 auto" }}>
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              background: "rgba(255,255,255,0.05)",
+              border: "0.5px solid rgba(255,255,255,0.12)",
+              borderRadius: 100,
+              padding: "8px 8px 8px 20px",
+              backdropFilter: "blur(12px)",
+              transition: "border-color 0.2s",
+            }}>
+              <svg style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }} width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+              </svg>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => { setQuery(e.target.value); }}
+                placeholder={PLACEHOLDER}
+                onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) handleSearch(); }}
+                style={{
+                  flex: 1, background: "transparent", border: "none",
+                  outline: "none", fontSize: 14, color: "#fff",
+                  fontFamily: "inherit",
+                }}
+              />
+              <button
+                onClick={handleSearch}
+                style={{
+                  background: "#ffd580", color: "#0a0f1e",
+                  border: "none", borderRadius: 100,
+                  padding: "9px 22px", fontSize: 13, fontWeight: 700,
+                  cursor: "pointer", fontFamily: "inherit",
+                  transition: "opacity 0.2s, transform 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "scale(1.02)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "scale(1)"; }}
+              >
+                Explore →
+              </button>
+            </div>
 
-            {/* Search dropdown */}
+            {/* Dropdown */}
             {query.trim() && (
-              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl border border-gray-200 z-50 max-h-60 overflow-y-auto">
-                {destinations.filter(d => d.name.toLowerCase().includes(query.toLowerCase())).length > 0 ? (
-                  destinations.filter(d => d.name.toLowerCase().includes(query.toLowerCase())).map(d => (
+              <div style={{
+                position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0,
+                background: "#111827",
+                border: "0.5px solid rgba(255,255,255,0.12)",
+                borderRadius: 14,
+                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
+                zIndex: 50,
+                maxHeight: 260,
+                overflowY: "auto",
+              }}>
+                {filtered.length > 0 ? (
+                  filtered.map((d) => (
                     <button
                       key={d.id}
                       onClick={() => handleDestinationClick(d.name)}
-                      className="w-full text-left px-5 py-3 border-b last:border-b-0 hover:bg-orange-50 transition flex items-center gap-3"
+                      style={{
+                        width: "100%", textAlign: "left",
+                        padding: "12px 16px",
+                        background: "transparent", border: "none",
+                        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+                        cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
+                        fontFamily: "inherit",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,213,128,0.07)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
                     >
                       {d.image ? (
-                        <img src={d.image} alt={d.name} className="w-10 h-10 rounded object-cover" />
+                        <img src={d.image} alt={d.name} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
                       ) : (
-                        <MapPin className="w-10 h-10 text-gray-400" />
+                        <div style={{
+                          width: 38, height: 38, borderRadius: 8,
+                          background: "rgba(255,213,128,0.1)",
+                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+                        }}>
+                          <MapPin size={16} style={{ color: "#ffd580" }} />
+                        </div>
                       )}
                       <div>
-                        <div className="font-semibold text-gray-900">{d.name}</div>
-                        <div className="text-xs text-gray-500">{d.location}</div>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{d.name}</div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>{d.location}</div>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div className="px-5 py-3 text-center text-sm text-gray-500">
-                    {DESTINATION_NOT_FOUND_MSG}
+                  <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
+                    No destinations found
                   </div>
                 )}
               </div>
@@ -163,119 +256,221 @@ export default function Home() {
         </div>
 
         {/* Scroll cue */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-white/40 animate-bounce">
-          <span className="text-[11px] uppercase tracking-widest">Scroll</span>
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div style={{
+          position: "absolute", bottom: 32, left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+          color: "rgba(255,255,255,0.22)",
+          fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase",
+          animation: "scrollBounce 2.5s ease-in-out infinite",
+        }}>
+          <span>scroll</span>
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
           </svg>
         </div>
       </section>
 
+      {/* ── Stats Bar ── */}
+      <div style={{
+        display: "flex", justifyContent: "center",
+        borderTop: "0.5px solid rgba(255,255,255,0.07)",
+        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+        background: "rgba(255,255,255,0.02)",
+      }}>
+        {STATS.map((s, i) => (
+          <div key={s.label} style={{
+            flex: 1, maxWidth: 200, textAlign: "center",
+            padding: "1.4rem 1rem",
+            borderRight: i < STATS.length - 1 ? "0.5px solid rgba(255,255,255,0.07)" : "none",
+          }}>
+            <span style={{ display: "block", fontSize: 22, fontWeight: 700, color: "#ffd580" }}>{s.number}</span>
+            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+
       {/* ── Destinations ── */}
-      <section className="mx-auto max-w-6xl px-4 py-16">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-3xl font-semibold">Popular Destinations</h2>
-          <p className="text-sm text-gray-500">
-            Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, destinations.length)} of {destinations.length}
-          </p>
-        </div>
-
-        {destinations.length === 0 ? (
-          <p className="text-gray-400">{DESTINATION_NOT_FOUND_MSG}</p>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-              {paginatedDestinations.map((d) => (
-                <div 
-                  key={d.id} 
-                  onClick={() => handleDestinationClick(d.name)}
-                  className="group rounded-xl bg-white overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer"
-                >
-                  <div className="relative h-40 bg-gradient-to-br from-orange-100 to-orange-50 overflow-hidden">
-                    {d.image ? (
-                      <img 
-                        src={d.image} 
-                        alt={d.name}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                      />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <MapPin className="w-16 h-16 text-gray-300" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4">
-                    <h3 className="text-lg font-semibold text-gray-900">{d.name}</h3>
-                    <p className="text-sm text-gray-500 mt-1">{d.location}</p>
-                    {d.description && <p className="text-xs text-gray-400 mt-2 line-clamp-2">{d.description}</p>}
-                  </div>
-                </div>
-              ))}
+      <section style={{ padding: "5rem 1rem", background: "#0a0f1e" }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "2.5rem", flexWrap: "wrap", gap: "1rem" }}>
+            <div>
+              <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", marginBottom: 6 }}>
+                Explore
+              </p>
+              <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 600, color: "#fff" }}>
+                Popular Destinations
+              </h2>
             </div>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", paddingBottom: 4 }}>
+              Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, destinations.length)} of {destinations.length}
+            </span>
+          </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="mt-8 flex items-center justify-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {PAGINATION_PREV_TEXT}
-                </button>
+          {destinations.length === 0 ? (
+            <p style={{ color: "rgba(255,255,255,0.3)", textAlign: "center", padding: "3rem 0" }}>No destinations found</p>
+          ) : (
+            <>
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                gap: 16,
+              }}>
+                {paginated.map((d) => (
+                  <div
+                    key={d.id}
+                    onClick={() => handleDestinationClick(d.name)}
+                    style={{
+                      background: "rgba(255,255,255,0.04)",
+                      border: "0.5px solid rgba(255,255,255,0.09)",
+                      borderRadius: 14,
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      transition: "transform 0.2s, border-color 0.2s, background 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = "translateY(-4px)";
+                      e.currentTarget.style.borderColor = "rgba(255,213,128,0.3)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)";
+                      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                    }}
+                  >
+                    {/* Image area */}
+                    <div style={{
+                      width: "100%", height: 140,
+                      background: "linear-gradient(135deg, #1a2236 0%, #0d1526 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      position: "relative", overflow: "hidden",
+                    }}>
+                      {d.image ? (
+                        <img
+                          src={d.image}
+                          alt={d.name}
+                          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
+                          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                        />
+                      ) : (
+                        <MapPin size={32} style={{ color: "rgba(255,255,255,0.1)" }} />
+                      )}
+                    </div>
 
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                    {/* Body */}
+                    <div style={{ padding: "14px 16px 16px" }}>
+                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 5 }}>{d.name}</div>
+                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ffd580", opacity: 0.6, flexShrink: 0 }} />
+                        {d.location}
+                      </div>
+                      {d.description && (
+                        <p style={{
+                          fontSize: 12, color: "rgba(255,255,255,0.3)",
+                          marginTop: 8, lineHeight: 1.5,
+                          display: "-webkit-box", WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical", overflow: "hidden",
+                        }}>
+                          {d.description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: "2.5rem" }}>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                    disabled={currentPage === 1}
+                    style={paginationBtnStyle(false)}
+                  >
+                    ← Prev
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      className={`px-3 py-2 rounded-lg transition ${
-                        currentPage === page
-                          ? "bg-orange-500 text-white"
-                          : "border border-gray-300 text-gray-700 hover:bg-gray-50"
-                      }`}
+                      style={paginationBtnStyle(page === currentPage)}
                     >
                       {page}
                     </button>
                   ))}
-                </div>
 
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {PAGINATION_NEXT_TEXT}
-                </button>
-              </div>
-            )}
-          </>
-        )}
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    style={paginationBtnStyle(false)}
+                  >
+                    Next →
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </section>
 
       {/* ── Features ── */}
-      <section className="bg-[#111827] py-20">
-        <div className="mx-auto max-w-6xl px-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-[#ffd580]">
-            {SECTION_TITLE}
-          </p>
-          <h2 className="mb-12 text-3xl font-semibold text-white">
-            {SECTION_SUBTITLE_1}{" "}
-            <span className="italic text-[#ffd580]">{SECTION_SUBTITLE_2}</span>
-          </h2>
+      <section style={{
+        padding: "5rem 1rem",
+        background: "rgba(255,255,255,0.015)",
+        borderTop: "0.5px solid rgba(255,255,255,0.07)",
+        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
+      }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ marginBottom: "2.5rem" }}>
+            <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", marginBottom: 8 }}>
+              Why Travel Sathi?
+            </p>
+            <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 600, color: "#fff" }}>
+              Your journey,{" "}
+              <em style={{ color: "#ffd580", fontStyle: "italic" }}>elevated</em>
+            </h2>
+          </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
             {FEATURES.map(({ icon, title, desc, tag }) => (
               <div
                 key={title}
-                className="group rounded-2xl border border-white/8 bg-white/[0.04] p-8 transition-all duration-300 hover:-translate-y-1.5 hover:border-[#ffd580]/30"
+                style={{
+                  background: "rgba(255,255,255,0.03)",
+                  border: "0.5px solid rgba(255,255,255,0.08)",
+                  borderRadius: 16,
+                  padding: 28,
+                  transition: "border-color 0.25s, transform 0.25s, background 0.25s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255,213,128,0.28)";
+                  e.currentTarget.style.background = "rgba(255,213,128,0.03)";
+                  e.currentTarget.style.transform = "translateY(-3px)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
+                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
+                  e.currentTarget.style.transform = "translateY(0)";
+                }}
               >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[#ffd580]/10 text-[#ffd580]">
+                <div style={{
+                  width: 44, height: 44, borderRadius: 10,
+                  background: "rgba(255,213,128,0.1)",
+                  border: "0.5px solid rgba(255,213,128,0.2)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  color: "#ffd580",
+                  marginBottom: 18,
+                }}>
                   {icon}
                 </div>
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-[#ffd580]">{tag}</p>
-                <h3 className="mb-1 text-lg font-semibold text-white">{title}</h3>
-                <p className="text-sm text-white/50">{desc}</p>
+                <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", opacity: 0.7, marginBottom: 6 }}>
+                  {tag}
+                </p>
+                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 8 }}>{title}</h3>
+                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.42)", lineHeight: 1.65 }}>{desc}</p>
               </div>
             ))}
           </div>
@@ -283,11 +478,35 @@ export default function Home() {
       </section>
 
       <style>{`
-        @keyframes bounce {
+        @keyframes pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(0.8); }
+        }
+        @keyframes scrollBounce {
           0%, 100% { transform: translateX(-50%) translateY(0); }
           50% { transform: translateX(-50%) translateY(8px); }
         }
+        * { box-sizing: border-box; }
+        input::placeholder { color: rgba(255,255,255,0.3); }
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,213,128,0.25); border-radius: 4px; }
       `}</style>
     </div>
   );
+}
+
+function paginationBtnStyle(isActive) {
+  return {
+    background: isActive ? "#ffd580" : "rgba(255,255,255,0.05)",
+    border: isActive ? "0.5px solid #ffd580" : "0.5px solid rgba(255,255,255,0.12)",
+    borderRadius: 8,
+    color: isActive ? "#0a0f1e" : "rgba(255,255,255,0.6)",
+    padding: "8px 16px",
+    fontSize: 13,
+    fontWeight: isActive ? 700 : 400,
+    fontFamily: "inherit",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  };
 }

@@ -511,9 +511,9 @@ function ProfilePage() {
           return r.json();
         })
         .then(d => {
-          // Filter for trips where current user is a member (joined)
+          // Filter for completed trips where current user is a member (joined) or creator
           const myTrips = (d.results || d || []).filter(trip => 
-            trip.members?.some(m => m.id === profile?.id) || trip.created_by?.id === profile?.id
+            (trip.members?.some(m => m.id === profile?.id) || trip.created_by?.id === profile?.id) && trip.is_completed
           );
           setJoinedTrips(myTrips);
         })

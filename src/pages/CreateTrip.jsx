@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import API from "../services/api";
 import Sidebar from "../components/Sidebar";
 import { useNavigate, Link } from "react-router-dom";
-import { X } from "lucide-react";
+import { X, Plus, Trash2, Image as ImageIcon } from "lucide-react";
 import KYCBanner from "../components/KYCBanner";
 
 // ──── CONSTANTS ────
@@ -24,6 +24,8 @@ const FORM_LABELS = {
   startDate: "Start Date *",
   endDate: "End Date *",
   description: "Description",
+  coverImage: "Trip Cover Photo",
+  expenses: "Trip Budget & Expenses",
   tags: "Trip Tags (Diet, Lifestyle, Values)",
   isPublic: "Make this trip public (other travelers can find it)",
 };
@@ -35,7 +37,15 @@ const TEXTS = {
   creating: "Creating...",
   createTrip: "Create Trip",
   kycRequired: "Complete KYC verification to create trips",
+  addExpense: "Add Expense",
+  expenseCategory: "Category",
+  expenseAmount: "Amount",
+  totalExpense: "Total Expense",
+  noExpenses: "No expenses added yet",
+  errorAddingTrip: "Error creating trip",
 };
+
+const inp = "w-full rounded-lg bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-[#1976D2] focus:ring-2 focus:ring-[#1976D2]/20 transition";
 
 const getApiUrl = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
@@ -54,6 +64,11 @@ export default function CreateTrip() {
     description: "",
     is_public: true
   });
+
+  const [coverImage, setCoverImage] = useState(null);
+  const [coverImagePreview, setCoverImagePreview] = useState(null);
+  const [expenses, setExpenses] = useState([]);
+  const [newExpense, setNewExpense] = useState({ category: "", amount: "" });
 
 
   const [cities, setCities] = useState([]);
@@ -99,6 +114,36 @@ export default function CreateTrip() {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
+  const handleCoverImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setCoverImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleAddExpense = () => {
+    if (newExpense.category.trim() && newExpense.amount.trim()) {
+      const amount = parseFloat(newExpense.amount);
+      if (!isNaN(amount) && amount > 0) {
+        setExpenses([...expenses, { id: Date.now(), category: newExpense.category, amount }]);
+        setNewExpense({ category: "", amount: "" });
+      }
+    }
+  };
+
+  const handleRemoveExpense = (id) => {
+    setExpenses(expenses.filter(exp => exp.id !== id));
+  };
+
+  const calculateTotalExpense = () => {
+    return expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  };
+
   const groupedTags = allConstraintTags.reduce((acc, tag) => {
     if (!acc[tag.category]) acc[tag.category] = [];
     acc[tag.category].push(tag);
@@ -122,6 +167,11 @@ export default function CreateTrip() {
     });
   };
 
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -130,20 +180,79 @@ export default function CreateTrip() {
       return;
     }
 
+    // Validate that start date is not before today
+    const today = getTodayDate();
+    if (form.start_date < today) {
+      setError("Trip start date cannot be before today");
+      return;
+    }
+
+    // Validate that end date is not before start date
+    if (form.end_date < form.start_date) {
+      setError("End date cannot be before start date");
+      return;
+    }
+
     setLoading(true);
     setError("");
 
     try {
-      const payload = {
-        ...form,
-        destination_id: parseInt(form.destination_id),
-        constraint_tag_ids: selectedTagIds
-      };
+      // Step 1: Create the trip
+      const formData = new FormData();
+      formData.append("title", form.title);
+      formData.append("destination_id", parseInt(form.destination_id));
+      formData.append("start_date", form.start_date);
+      formData.append("end_date", form.end_date);
+      formData.append("description", form.description);
+      formData.append("is_public", form.is_public);
+      if (coverImage) {
+        formData.append("cover_image", coverImage);
+      }
 
-      const res = await API.post("trips/", payload);
-      navigate(`/trip/${res.data.id}`);
+      // Add constraint tags as array
+      selectedTagIds.forEach((tagId, index) => {
+        formData.append(`constraint_tag_ids[${index}]`, tagId);
+      });
+
+      const tripRes = await fetch(`${getApiUrl()}/api/trips/`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token()}` },
+        body: formData
+      });
+
+      if (!tripRes.ok) {
+        const errData = await tripRes.json();
+        throw new Error(errData.detail || TEXTS.failedCreate);
+      }
+
+      const tripData = await tripRes.json();
+      const tripId = tripData.id;
+
+      // Step 2: Add expenses if any
+      if (expenses.length > 0) {
+        for (const expense of expenses) {
+          const expenseRes = await fetch(`${getApiUrl()}/api/trips/${tripId}/expenses/`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${token()}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              category: expense.category,
+              amount: expense.amount
+            })
+          });
+
+          if (!expenseRes.ok) {
+            console.error("Error adding expense:", await expenseRes.json());
+            // Don't throw, just log the error - trip was still created
+          }
+        }
+      }
+
+      navigate(`/trip/${tripId}`);
     } catch (err) {
-      setError(err.response?.data?.message || TEXTS.failedCreate);
+      setError(err.message || TEXTS.failedCreate);
       console.error(err);
     } finally {
       setLoading(false);
@@ -202,11 +311,11 @@ export default function CreateTrip() {
     <div className="flex min-h-screen bg-[#0a0c16]">
       <Sidebar />
 
-      <div className="flex-1 p-6 md:p-10">
+      <div className="flex-1 p-6 md:p-10 overflow-y-auto">
         {/* KYC Banner */}
         {userProfile && <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />}
 
-        <div className="max-w-2xl mt-6">
+        <div className="max-w-3xl mt-6">
           <h2 className="text-3xl font-bold text-white mb-8">{TEXTS.heading}</h2>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -249,6 +358,7 @@ export default function CreateTrip() {
                   name="start_date"
                   value={form.start_date}
                   onChange={handleChange}
+                  min={getTodayDate()}
                   className={inp}
                 />
               </div>
@@ -259,6 +369,7 @@ export default function CreateTrip() {
                   name="end_date"
                   value={form.end_date}
                   onChange={handleChange}
+                  min={form.start_date || getTodayDate()}
                   className={inp}
                 />
               </div>
@@ -266,7 +377,7 @@ export default function CreateTrip() {
 
             {/* Description */}
             <div className="flex flex-col gap-2">
-              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">Description</label>
+              <label className="text-[11px] font-bold uppercase tracking-widest text-white/40">{FORM_LABELS.description}</label>
               <textarea
                 name="description"
                 placeholder="Tell others about your trip..."
@@ -275,6 +386,108 @@ export default function CreateTrip() {
                 rows={4}
                 className={`${inp} resize-none`}
               />
+            </div>
+
+            {/* Cover Image Upload */}
+            <div className="flex flex-col gap-2">
+              <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: COLORS.white40 }}>{FORM_LABELS.coverImage}</label>
+              
+              <div className="relative">
+                <label className="flex items-center justify-center w-full h-40 border-2 border-dashed border-white/20 rounded-lg bg-white/5 cursor-pointer hover:bg-white/10 transition">
+                  {coverImagePreview ? (
+                    <img src={coverImagePreview} alt="Cover preview" className="w-full h-full object-cover rounded-lg" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <ImageIcon size={32} className="text-white/40 mb-2" />
+                      <span className="text-sm text-white/60">Click to upload cover image</span>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverImageChange}
+                    className="hidden"
+                  />
+                </label>
+                {coverImagePreview && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoverImage(null);
+                      setCoverImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 p-1 bg-red-500 rounded hover:bg-red-600 transition"
+                  >
+                    <X size={16} className="text-white" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Expenses Section */}
+            <div className="flex flex-col gap-3 p-4 rounded-lg border border-white/10 bg-white/5">
+              <label className="text-[11px] font-bold uppercase tracking-widest" style={{ color: COLORS.white40 }}>{FORM_LABELS.expenses}</label>
+              
+              {/* Add Expense Form */}
+              <div className="flex flex-col gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="e.g., Bus, Room, Food"
+                    value={newExpense.category}
+                    onChange={(e) => setNewExpense({ ...newExpense, category: e.target.value })}
+                    className={inp}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Amount"
+                    value={newExpense.amount}
+                    onChange={(e) => setNewExpense({ ...newExpense, amount: e.target.value })}
+                    className={inp}
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddExpense}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg py-2 text-sm font-semibold bg-white/10 text-white hover:bg-white/20 transition"
+                >
+                  <Plus size={18} />
+                  {TEXTS.addExpense}
+                </button>
+              </div>
+
+              {/* Expenses List */}
+              {expenses.length > 0 ? (
+                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto">
+                  {expenses.map((expense) => (
+                    <div key={expense.id} className="flex items-center justify-between bg-white/5 p-3 rounded-lg border border-white/10">
+                      <div className="flex-1">
+                        <p className="text-sm text-white font-medium">{expense.category}</p>
+                        <p className="text-xs text-white/60">${expense.amount.toFixed(2)}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExpense(expense.id)}
+                        className="ml-2 p-1 hover:bg-red-500/20 rounded transition"
+                      >
+                        <Trash2 size={16} className="text-red-400" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-white/40 py-2">{TEXTS.noExpenses}</p>
+              )}
+
+              {/* Total Expense */}
+              {expenses.length > 0 && (
+                <div className="mt-2 pt-3 border-t border-white/10 flex justify-between items-center">
+                  <span className="text-sm font-semibold text-white">{TEXTS.totalExpense}:</span>
+                  <span className="text-lg font-bold" style={{ color: COLORS.golden }}>${calculateTotalExpense().toFixed(2)}</span>
+                </div>
+              )}
             </div>
 
             {/* Constraint Tags */}

@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { useAuthRequired } from "../hooks/useAuthRequired";
 import logo from "../assets/content.png";
 import UserSearchBar from "./UserSearchBar";
+import NotificationBell from "./NotificationBell";
 import { apiFetch, getBaseUrl, getToken } from "../utils/api";
 
 const NAV_LINKS = [
@@ -142,8 +143,10 @@ export default function NavbarComponent() {
           </div>
         </div>
 
-        {/* Right — avatar + hamburger */}
+        {/* Right — notifications + avatar + hamburger */}
         <div className="flex items-center gap-3">
+          {user && <NotificationBell />}
+          
           <div ref={dropdownRef} className="relative">
             <button onClick={() => setDropdownOpen((p) => !p)} className="transition hover:brightness-110">
               <Avatar size="h-9 w-9" textSize="text-sm" showBadge={true} />
