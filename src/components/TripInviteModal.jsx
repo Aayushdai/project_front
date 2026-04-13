@@ -422,7 +422,20 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
                 <div className="invite-people-list">
                   {filteredPeople.map((person) => (
                     <div key={person.id} className="invite-person-card">
-                      <div className="invite-person-avatar">{person.avatar}</div>
+                      <div
+                        className="invite-person-avatar"
+                        style={
+                          person.profile_pic || person.profile_picture
+                            ? {
+                                backgroundImage: `url(${person.profile_pic || person.profile_picture})`,
+                                backgroundSize: "cover",
+                                backgroundPosition: "center",
+                              }
+                            : {}
+                        }
+                      >
+                        {!person.profile_pic && !person.profile_picture && person.avatar}
+                      </div>
                       <div className="invite-person-content">
                         <p className="invite-person-name">{person.name}</p>
                         <div className="invite-person-interests">
@@ -482,6 +495,19 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
                 <div className="invite-pending-list">
                   {pendingInvites.map((invite) => (
                     <div key={invite.id} className="invite-pending-item">
+                      {invite.profile_pic && (
+                        <div
+                          style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: "50%",
+                            backgroundImage: `url(${invite.profile_pic})`,
+                            backgroundSize: "cover",
+                            backgroundPosition: "center",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
                       <div className="invite-pending-item__info">
                         <p className="invite-pending-item__email">{invite.email}</p>
                         <div className="invite-pending-item__meta">

@@ -138,8 +138,6 @@ const BUTTONS = {
   delete: "Delete",
 };
 
-const REQUESTS_LABEL = "Requests";
-
 const PROFILE_MESSAGES = {
   loadingError: "Could not load profile.",
   defaultName: "Traveller",
@@ -471,8 +469,6 @@ function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [pendingRequests, setPendingRequests] = useState([]);
-  const [requestAction, setRequestAction] = useState({});
   const [friends, setFriends] = useState([]);
   const [joinedTrips, setJoinedTrips] = useState([]);
   const [activeTab, setActiveTab] = useState("overview");
@@ -481,15 +477,6 @@ function ProfilePage() {
     fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
       .then(r => r.json()).then(d => { setProfile(d); setLoading(false); })
       .catch(() => setLoading(false));
-
-    const fetchPending = () => {
-      fetch(`${API}users/friend-requests/pending/`, { headers: { Authorization: `Bearer ${token()}` } })
-        .then(r => r.json()).then(d => setPendingRequests(d.pending_requests || []))
-        .catch(() => setPendingRequests([]));
-    };
-    fetchPending();
-    const i1 = setInterval(fetchPending, 3000);
-    return () => clearInterval(i1);
   }, []);
 
   useEffect(() => {
@@ -524,19 +511,6 @@ function ProfilePage() {
     };
     if (profile?.id) fetchJoinedTrips();
   }, [profile?.id]);
-
-  const handleFriendRequestResponse = async (requestId, action) => {
-    setRequestAction(p => ({ ...p, [requestId]: true }));
-    try {
-      const res = await fetch(`${API}users/friend-request/${requestId}/respond/`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      if (res.ok) setPendingRequests(p => p.filter(r => r.id !== requestId));
-    } catch {}
-    finally { setRequestAction(p => ({ ...p, [requestId]: false })); }
-  };
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-[#080808]">
@@ -646,45 +620,6 @@ function ProfilePage() {
               </div>
             ))}
           </div>
-
-          {/* ── Pending requests ── */}
-          {pendingRequests.length > 0 && (
-            <div className="mb-6">
-              <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 mb-3">
-                {REQUESTS_LABEL} - {pendingRequests.length}
-              </p>
-              <div className="flex flex-col gap-2">
-                {pendingRequests.map(req => (
-                  <div key={req.id} className="flex items-center gap-3 rounded-2xl bg-white/3 border border-white/8 px-4 py-3">
-                    <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
-                      {req.profile_picture
-                        ? <img src={req.profile_picture} alt={req.username} className="h-full w-full object-cover" onError={e => e.target.style.display = "none"} />
-                        : <span className="text-sm font-bold text-[#C9A84C]" style={{ fontFamily: FONTS.display }}>{req.username[0].toUpperCase()}</span>
-                      }
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p style={{ fontFamily: FONTS.body }} className="text-sm font-semibold text-white truncate">
-                        {req.first_name && req.last_name ? `${req.first_name} ${req.last_name}` : req.username}
-                      </p>
-                      <p style={{ fontFamily: FONTS.mono }} className="text-xs text-white/35 truncate">@{req.username}</p>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button onClick={() => handleFriendRequestResponse(req.id, "accept")} disabled={requestAction[req.id]}
-                        style={{ fontFamily: FONTS.body }}
-                        className="rounded-xl bg-[#C9A84C] px-4 py-1.5 text-xs font-semibold text-black hover:bg-[#e8c96d] disabled:opacity-40 transition">
-                        {BUTTONS.confirm}
-                      </button>
-                      <button onClick={() => handleFriendRequestResponse(req.id, "reject")} disabled={requestAction[req.id]}
-                        style={{ fontFamily: FONTS.body }}
-                        className="rounded-xl bg-white/8 px-4 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/12 disabled:opacity-40 transition">
-                        {BUTTONS.delete}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* ── Tabs ── */}
           <div className="flex border-b border-white/8 mb-6 -mx-1">

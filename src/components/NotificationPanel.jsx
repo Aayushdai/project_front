@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { X, CheckCircle, XCircle, Mail, AlertCircle, Loader2 } from "lucide-react";
+import { X, CheckCircle, XCircle, Mail, AlertCircle, Loader2, UserPlus } from "lucide-react";
 import api from "../API/api";
 
 export default function NotificationPanel({ onClose, onUnreadChange }) {
@@ -7,6 +7,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
+  const [requestAction, setRequestAction] = useState({});
 
   useEffect(() => {
     fetchNotifications();
@@ -15,8 +16,30 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await api.get("trips/notifications/");
-      setNotifications(res.data || []);
+      // Fetch trip notifications
+      const [tripRes, friendRes] = await Promise.all([
+        api.get("trips/notifications/"),
+        api.get("users/friend-requests/pending/")
+      ]);
+      
+      const tripNotifs = tripRes.data || [];
+      const friendRequests = (friendRes.data?.pending_requests || []).map((req, idx) => ({
+        id: `friend_${req.id}`,
+        notification_type: "friend_request",
+        notification_type_display: "Friend request",
+        actor_name: req.first_name && req.last_name ? `${req.first_name} ${req.last_name}` : req.username,
+        message: `${req.first_name && req.last_name ? `${req.first_name} ${req.last_name}` : req.username} sent you a friend request`,
+        time_ago: "Just now",
+        is_read: false,
+        friend_request_id: req.id,
+        requester: req,
+        profile_picture: req.profile_picture,
+        username: req.username
+      }));
+      
+      // Combine and sort by time (friend requests first as "new")
+      const allNotifs = [...friendRequests, ...tripNotifs];
+      setNotifications(allNotifs);
       setError("");
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
@@ -61,7 +84,6 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
       // Use the invitation_id stored in the notification directly
       if (!notification.invitation) {
         console.warn("Invitation ID not found in notification");
-        alert("Invitation has already been responded to or is no longer available");
         // Remove the notification from the list anyway
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
         return;
@@ -73,29 +95,33 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         // Mark notification as read and remove from list
         await handleMarkAsRead(notification);
         setNotifications(prev => prev.filter(n => n.id !== notification.id));
-        // Show success message
-        const successMsg = action === 'accept' 
-          ? `Successfully joined the trip!` 
-          : `Invitation declined`;
-        alert(successMsg);
       }
     } catch (err) {
       console.error(`Failed to ${action} invitation:`, err);
-      
-      // Provide more specific error messages
-      let errorMessage = `Failed to ${action} invitation`;
-      if (err.response?.status === 403) {
-        errorMessage = err.response.data?.detail || "You don't have permission to respond to this invitation";
-      } else if (err.response?.status === 400) {
-        errorMessage = err.response.data?.error || "Invalid action";
-      }
-      
-      alert(errorMessage);
       
       // Refresh notifications to sync with server state
       setTimeout(() => fetchNotifications(), 1000);
     } finally {
       setActionLoading(prev => ({ ...prev, [notification.id]: false }));
+    }
+  };
+
+  const handleFriendRequestResponse = async (notification, action) => {
+    setRequestAction(prev => ({ ...prev, [notification.id]: true }));
+    try {
+      const response = await api.post(`users/friend-request/${notification.friend_request_id}/respond/`, { action });
+      
+      if (response.status === 200 || response.status === 201) {
+        // Remove the notification from the list
+        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+      }
+    } catch (err) {
+      console.error(`Failed to ${action} friend request:`, err);
+      
+      // Refresh notifications to sync with server state
+      setTimeout(() => fetchNotifications(), 1000);
+    } finally {
+      setRequestAction(prev => ({ ...prev, [notification.id]: false }));
     }
   };
 
@@ -131,6 +157,8 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         return <CheckCircle size={16} className="text-green-400" />;
       case "member_left":
         return <XCircle size={16} className="text-red-400" />;
+      case "friend_request":
+        return <UserPlus size={16} className="text-purple-400" />;
       default:
         return <AlertCircle size={16} className="text-yellow-400" />;
     }
@@ -148,13 +176,15 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         return "bg-green-500/10 border-green-500/30 hover:bg-green-500/15";
       case "member_left":
         return "bg-red-500/10 border-red-500/30 hover:bg-red-500/15";
+      case "friend_request":
+        return "bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/15";
       default:
         return "bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15";
     }
   };
 
   const isActionableNotification = (type) => {
-    return type === "invitation_received";
+    return type === "invitation_received" || type === "friend_request";
   };
 
   return (
@@ -192,68 +222,121 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
           </div>
         ) : (
           <div className="divide-y divide-white/10">
-            {notifications.map(notif => (
-              <div
-                key={notif.id}
-                className={`p-3 border-l-4 transition ${
-                  notif.is_read
-                    ? "bg-white/3 border-l-white/10"
-                    : "bg-white/5 border-l-blue-500"
-                }`}
-              >
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 mt-1">
-                    {getNotificationIcon(notif.notification_type)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 cursor-pointer" onClick={() => handleMarkAsRead(notif)}>
-                        <p className="text-sm font-medium text-white">
-                          {notif.trip_title}
-                        </p>
-                        <p className="text-xs text-white/60 mt-0.5">
-                          {notif.actor_name && `${notif.actor_name} - `}
-                          {notif.notification_type_display}
-                        </p>
-                        <p className="text-xs text-white/40 mt-1">{notif.message}</p>
+            {notifications.map(notif => {
+              // Render friend requests differently
+              if (notif.notification_type === "friend_request") {
+                const pic = notif.profile_picture || null;
+                const initial = notif.username?.[0]?.toUpperCase() || "U";
+                
+                return (
+                  <div
+                    key={notif.id}
+                    className="p-4 border-l-4 border-l-purple-500 bg-white/5 hover:bg-white/8 transition"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
+                        {pic ? (
+                          <img 
+                            src={pic} 
+                            alt={notif.username} 
+                            className="h-full w-full object-cover"
+                            onError={e => e.target.style.display = "none"}
+                          />
+                        ) : (
+                          <span className="text-sm font-bold text-purple-400">{initial}</span>
+                        )}
                       </div>
-                      {!notif.is_read && (
-                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">
+                          {notif.actor_name}
+                        </p>
+                        <p className="text-xs text-white/35 truncate">@{notif.username}</p>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          onClick={() => handleFriendRequestResponse(notif, "accept")}
+                          disabled={requestAction[notif.id]}
+                          className="rounded-lg bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 disabled:opacity-40 transition"
+                        >
+                          {requestAction[notif.id] ? "..." : "✓"}
+                        </button>
+                        <button
+                          onClick={() => handleFriendRequestResponse(notif, "reject")}
+                          disabled={requestAction[notif.id]}
+                          className="rounded-lg bg-white/8 px-3 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/12 disabled:opacity-40 transition"
+                        >
+                          {requestAction[notif.id] ? "..." : "✗"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Render trip notifications
+              return (
+                <div
+                  key={notif.id}
+                  className={`p-3 border-l-4 transition ${
+                    notif.is_read
+                      ? "bg-white/3 border-l-white/10"
+                      : "bg-white/5 border-l-blue-500"
+                  }`}
+                >
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 mt-1">
+                      {getNotificationIcon(notif.notification_type)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 cursor-pointer" onClick={() => handleMarkAsRead(notif)}>
+                          <p className="text-sm font-medium text-white">
+                            {notif.trip_title}
+                          </p>
+                          <p className="text-xs text-white/60 mt-0.5">
+                            {notif.actor_name && `${notif.actor_name} - `}
+                            {notif.notification_type_display}
+                          </p>
+                          <p className="text-xs text-white/40 mt-1">{notif.message}</p>
+                        </div>
+                        {!notif.is_read && (
+                          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1" />
+                        )}
+                      </div>
+                      <p className="text-xs text-white/40 mt-2">{notif.time_ago}</p>
+
+                      {/* Show expiration time for pending invitations */}
+                      {notif.notification_type === "invitation_received" && notif.is_expired && (
+                        <p className="text-xs text-red-400 mt-1">⚠ {getTimeRemaining(notif.expires_at)}</p>
+                      )}
+                      {notif.notification_type === "invitation_received" && !notif.is_expired && (
+                        <p className="text-xs text-yellow-400/70 mt-1">⏱ {getTimeRemaining(notif.expires_at)}</p>
+                      )}
+
+                      {/* Action Buttons for Invitations */}
+                      {notif.notification_type === "invitation_received" && !notif.is_expired && (
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            onClick={() => handleInvitationAction(notif, "accept")}
+                            disabled={actionLoading[notif.id]}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-500/20 text-green-300 hover:bg-green-500/30 rounded-lg transition disabled:opacity-50"
+                          >
+                            {actionLoading[notif.id] ? "..." : "✓ Accept"}
+                          </button>
+                          <button
+                            onClick={() => handleInvitationAction(notif, "reject")}
+                            disabled={actionLoading[notif.id]}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition disabled:opacity-50"
+                          >
+                            {actionLoading[notif.id] ? "..." : "✗ Decline"}
+                          </button>
+                        </div>
                       )}
                     </div>
-                    <p className="text-xs text-white/40 mt-2">{notif.time_ago}</p>
-
-                    {/* Show expiration time for pending invitations */}
-                    {notif.notification_type === "invitation_received" && notif.is_expired && (
-                      <p className="text-xs text-red-400 mt-1">⚠ {getTimeRemaining(notif.expires_at)}</p>
-                    )}
-                    {notif.notification_type === "invitation_received" && !notif.is_expired && (
-                      <p className="text-xs text-yellow-400/70 mt-1">⏱ {getTimeRemaining(notif.expires_at)}</p>
-                    )}
-
-                    {/* Action Buttons for Invitations */}
-                    {isActionableNotification(notif.notification_type) && !notif.is_expired && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          onClick={() => handleInvitationAction(notif, "accept")}
-                          disabled={actionLoading[notif.id]}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-500/20 text-green-300 hover:bg-green-500/30 rounded-lg transition disabled:opacity-50"
-                        >
-                          {actionLoading[notif.id] ? "..." : "✓ Accept"}
-                        </button>
-                        <button
-                          onClick={() => handleInvitationAction(notif, "reject")}
-                          disabled={actionLoading[notif.id]}
-                          className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition disabled:opacity-50"
-                        >
-                          {actionLoading[notif.id] ? "..." : "✗ Decline"}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

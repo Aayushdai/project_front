@@ -111,7 +111,7 @@ export default function NavbarComponent() {
   );
 
   return (
-    <nav className="sticky top-0 z-50 bg-[rgba(10,12,22,0.85)] backdrop-blur-md font-[Poppins,sans-serif]">
+    <nav className="sticky top-0 z-[9995] bg-[rgba(10,12,22,0.85)] backdrop-blur-md font-[Poppins,sans-serif]">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
 
         {/* Logo */}
@@ -149,7 +149,7 @@ export default function NavbarComponent() {
           
           <div ref={dropdownRef} className="relative">
             <button onClick={() => setDropdownOpen((p) => !p)} className="transition hover:brightness-110">
-              <Avatar size="h-9 w-9" textSize="text-sm" showBadge={true} />
+              <Avatar size="h-9 w-9" textSize="text-sm" showBadge={false} />
             </button>
 
             {dropdownOpen && (
@@ -166,6 +166,10 @@ export default function NavbarComponent() {
                 <Link to="/profile" onClick={() => setDropdownOpen(false)}
                   className="mt-1 block rounded-lg px-3 py-2 text-sm text-white/80 no-underline hover:bg-white/10 hover:text-white">
                   Profile
+                </Link>
+                <Link to="/settings" onClick={() => setDropdownOpen(false)}
+                  className="mt-0.5 block rounded-lg px-3 py-2 text-sm text-white/80 no-underline hover:bg-white/10 hover:text-white">
+                  Settings
                 </Link>
                 <button onClick={handleLogout}
                   className="mt-0.5 w-full rounded-lg px-3 py-2 text-left text-sm text-red-400 hover:bg-white/10 hover:text-red-300">

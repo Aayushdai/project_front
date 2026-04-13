@@ -18,6 +18,7 @@ import {
   X,
   Globe,
   MessageCircle,
+  Clock,
 } from "lucide-react";
 import { ProfileHeaderSkeleton, ProfileFriendsListSkeleton } from "../components/SkeletonLoaders";
 
@@ -115,6 +116,7 @@ export default function UserProfile() {
   const [friendUserFriends, setFriendUserFriends] = useState([]);
   const [userKycStatus, setUserKycStatus] = useState(null);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
+  const [cooldownMessage, setCooldownMessage] = useState(null);
 
   const fetchUserKycStatus = useCallback(async () => {
     try {
@@ -136,6 +138,7 @@ export default function UserProfile() {
   const fetchUserProfile = useCallback(async () => {
     try {
       setLoading(true);
+      setError(null);
       const token = localStorage.getItem('access_token');
       
       // Fetch user by username from search results
@@ -160,6 +163,27 @@ export default function UserProfile() {
           'Authorization': `Bearer ${token}`,
         },
       });
+      
+      // ✅ Handle private profile (403 Forbidden)
+      if (profileResponse.status === 403) {
+        const errorData = await profileResponse.json();
+        setError(errorData.detail || "This profile is private. Send a friend request to view it.");
+        // Still set basic user data so they can send friend request
+        setUserData(foundUser);
+        
+        // Still fetch friend status
+        const statusResponse = await fetch(`http://127.0.0.1:8000/api/users/friend-request/status/${foundUser.id}/`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+        if (statusResponse.ok) {
+          const statusData = await statusResponse.json();
+          setFriendStatus(statusData);
+        }
+        return;
+      }
+      
       if (!profileResponse.ok) throw new Error(`Profile fetch failed: ${profileResponse.status}`);
       const profileData = await profileResponse.json();
       setUserData({
@@ -218,6 +242,7 @@ export default function UserProfile() {
     if (!userData) return;
     try {
       setActionLoading(true);
+      setCooldownMessage(null);
       const token = localStorage.getItem('access_token');
       const response = await fetch(`http://127.0.0.1:8000/api/users/friend-request/send/${userData.id}/`, {
         method: 'POST',
@@ -231,9 +256,17 @@ export default function UserProfile() {
         setFriendStatus({ status: result.status, type: result.type, request_id: result.request_id });
       } else {
         console.error("Error sending friend request:", result);
+        // Handle cooldown message
+        if (result.status === 'rejected' && result.cooldown_remaining) {
+          const { days, hours } = result.cooldown_remaining;
+          setCooldownMessage(`You can send another request in ${days}d ${hours}h`);
+        } else {
+          setCooldownMessage(result.detail || "Unable to send friend request");
+        }
       }
     } catch (err) {
       console.error("Error sending friend request:", err);
+      setCooldownMessage("An error occurred while sending the request");
     } finally {
       setActionLoading(false);
     }
@@ -347,18 +380,80 @@ export default function UserProfile() {
   }
 
   if (error) {
+    const isPrivateProfileError = error.toLowerCase().includes("private");
+    
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <AlertCircle className="w-8 h-8 text-red-400" />
-          <p className="text-white/80">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition flex items-center gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            {MESSAGES.goBack}
-          </button>
+        <div className="flex flex-col items-center gap-6 text-center max-w-sm">
+          <AlertCircle className="w-12 h-12 text-[#C9A84C]" />
+          
+          {isPrivateProfileError && userData ? (
+            <>
+              {/* Show basic profile info for private profiles */}
+              <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-[#C9A84C] to-[#9a7a3f] overflow-hidden flex items-center justify-center shadow-lg">
+                {userData.profile_picture ? (
+                  <img
+                    src={userData.profile_picture.startsWith("http") 
+                      ? userData.profile_picture 
+                      : `${API_URL}${userData.profile_picture}`}
+                    alt={userData.username}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-4xl font-bold text-[#0a0c16]">
+                    {(userData.first_name || userData.username)[0].toUpperCase()}
+                  </span>
+                )}
+              </div>
+              
+              <div>
+                <h2 className="text-2xl font-bold text-white" style={{ fontFamily: FONTS.display }}>
+                  {userData.first_name && userData.last_name
+                    ? `${userData.first_name} ${userData.last_name}`
+                    : userData.username}
+                </h2>
+                <p className="text-[#C9A84C] text-sm">@{userData.username}</p>
+              </div>
+              
+              <p className="text-white/70">{error}</p>
+              
+              {/* Show friend request button */}
+              {!isOwnProfile && friendStatus?.status !== "accepted" && (
+                <button
+                  onClick={sendFriendRequest}
+                  disabled={actionLoading}
+                  className="mt-4 flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-white transition bg-gradient-to-r from-[#C9A84C] to-[#d4b76a] hover:from-[#d4b76a] hover:to-[#e0c383] disabled:opacity-50"
+                  style={{ fontFamily: FONTS.body }}
+                >
+                  {actionLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Users className="w-4 h-4" />
+                  )}
+                  {actionLoading ? MESSAGES.sending : MESSAGES.addFriend}
+                </button>
+              )}
+              
+              <button
+                onClick={() => navigate(-1)}
+                className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition flex items-center gap-2 mx-auto"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {MESSAGES.goBack}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-white/80">{error}</p>
+              <button
+                onClick={() => navigate(-1)}
+                className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition flex items-center gap-2"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                {MESSAGES.goBack}
+              </button>
+            </>
+          )}
         </div>
       </div>
     );
@@ -544,6 +639,14 @@ export default function UserProfile() {
                   )}
                 </div>
                 </>
+              )}
+
+              {/* Cooldown Message */}
+              {cooldownMessage && (
+                <div className="mt-3 p-3 rounded-lg bg-red-500/15 border border-red-500/40 text-red-400 text-sm flex items-center gap-2">
+                  <Clock className="w-4 h-4 flex-shrink-0" />
+                  <span style={{ fontFamily: FONTS.body }}>{cooldownMessage}</span>
+                </div>
               )}
             </div>
           </div>

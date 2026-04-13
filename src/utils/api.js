@@ -8,7 +8,9 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api
  * Get the base URL without /api/
  */
 export const getBaseUrl = () => {
-  return API_BASE.replace('/api/', '');
+  const url = API_BASE.replace('/api/', '');
+  // Ensure trailing slash
+  return url.endsWith('/') ? url : url + '/';
 };
 
 /**

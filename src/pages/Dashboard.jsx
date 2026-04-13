@@ -488,6 +488,28 @@ export default function Dashboard() {
       console.log("Trip data from response:", res.data.trip);
       console.log("Participants from response:", res.data.trip?.participants);
       
+      // Send system message to trip chat
+      try {
+        const token = localStorage.getItem("access_token");
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+        const userName = user?.user?.first_name || user?.user?.username || "A user";
+        await fetch(`${backendUrl.replace('/api/', '')}/api/chat/messages/`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: `${userName} joined the trip`,
+            trip_id: tripId,
+            is_system: true,
+          }),
+        });
+      } catch (chatErr) {
+        console.warn("Failed to send join notification:", chatErr);
+        // Don't fail the join if chat message fails
+      }
+      
       // Wait a moment for backend to process, then refresh and switch to My Trips
       setTimeout(() => {
         console.log("Refreshing dashboard data...");
@@ -507,6 +529,29 @@ export default function Dashboard() {
       console.log("Leaving trip:", tripId);
       const res = await api.patch(`trips/${tripId}/`, { action: "leave" });
       console.log("Leave response:", res.data);
+      
+      // Send system message to trip chat
+      try {
+        const token = localStorage.getItem("access_token");
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+        const userName = user?.user?.first_name || user?.user?.username || "A user";
+        await fetch(`${backendUrl.replace('/api/', '')}/api/chat/messages/`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content: `${userName} left the trip`,
+            trip_id: tripId,
+            is_system: true,
+          }),
+        });
+      } catch (chatErr) {
+        console.warn("Failed to send leave notification:", chatErr);
+        // Don't fail the leave if chat message fails
+      }
+      
       fetchDashboardData(); 
       setError("");
     } catch (err) { 

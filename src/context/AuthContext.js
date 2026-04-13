@@ -19,11 +19,31 @@ export function AuthProvider({ children }) {
     setToken(accessToken);
   };
 
-  const logout = () => {
-    localStorage.removeItem("user");
-    localStorage.removeItem("access_token");
-    setUser(null);
-    setToken(null);
+  const logout = async () => {
+    try {
+      // Call backend logout endpoint
+      const accessToken = localStorage.getItem("access_token");
+      if (accessToken) {
+        const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
+        await fetch(`${API_BASE.replace('/api/', '')}/api/users/me/logout/`, {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${accessToken}`,
+            "Content-Type": "application/json"
+          }
+        }).catch(() => {
+          // Logout even if backend call fails (in case of network error)
+        });
+      }
+    } finally {
+      // Always clear localStorage and redirect to login, regardless of backend response
+      localStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      setUser(null);
+      setToken(null);
+      // Redirect to login page using window.location (works without Router context)
+      window.location.href = "/";
+    }
   };
 
   return (

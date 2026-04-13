@@ -490,18 +490,31 @@ export default function Chat() {
           const friends = Array.isArray(friendsData)
             ? friendsData
             : friendsData.friends || friendsData.results || [];
-          convos = friends.map(friend => ({
-            id: `friend-${friend.id}`,
-            type: "direct",
-            name: friend.first_name
-              ? `${friend.first_name} ${friend.last_name || ""}`.trim()
-              : friend.username || "Friend",
-            avatar: friend.profile_pic || null,
-            userId: friend.id,
-            unread: 0,
-            lastMessage: "",
-            lastMessageTime: null,
-          }));
+          
+          const baseUrl = backendUrl.replace('/api/', '');
+          
+          convos = friends.map(friend => {
+            // Get profile picture - API returns relative path, need to make it absolute
+            let profilePic = friend.profile_pic || friend.avatar || friend.profile_picture || friend.profile_image || null;
+            
+            // If it's a relative path (starts with /), prepend the base URL
+            if (profilePic && profilePic.startsWith('/')) {
+              profilePic = `${baseUrl}${profilePic}`;
+            }
+            
+            return {
+              id: `friend-${friend.id}`,
+              type: "direct",
+              name: friend.first_name
+                ? `${friend.first_name} ${friend.last_name || ""}`.trim()
+                : friend.username || "Friend",
+              avatar: profilePic,
+              userId: friend.id,
+              unread: 0,
+              lastMessage: "",
+              lastMessageTime: null,
+            };
+          });
         }
 
         if (tripsRes?.ok) {
@@ -581,7 +594,6 @@ export default function Chat() {
         try {
           const user = JSON.parse(localStorage.getItem("user") || "{}");
           userId = user?.id;
-          console.log("🔵 Current user ID:", userId, "Type:", typeof userId);
         } catch (e) {
           console.error("Failed to get user ID:", e);
         }
@@ -602,32 +614,26 @@ export default function Chat() {
         if (res.ok) {
           const data = await res.json();
           const messagesData = Array.isArray(data) ? data : data.results || [];
-          console.log("📨 Fetched messages:", messagesData.length);
           
-          // Mark each message with isSent based on current user ID
-          const messagesWithSender = messagesData.map((msg, idx) => {
+          let messagesWithSender = messagesData.map((msg, idx) => {
             // Backend sends 'isSent' (camelCase) as a boolean field
             let isSent = msg.isSent;
             const senderId = getSenderId(msg);
             
             if (isSent === undefined) {
-              // Fallback: compare sender ID with current user ID
               isSent = Number(senderId) === Number(userId);
             }
-            
-            console.log(`[Message ${idx}]`, {
-              content: msg.content?.slice(0, 20),
-              backendIsSent: msg.isSent,
-              senderId,
-              userId,
-              finalIsSent: isSent,
-            });
             
             return {
               ...msg,
               isSent,
             };
           });
+
+          // For direct messages, use conversation avatar (friend's profile pic)
+          // For group messages, profile pics should already be in message.sender
+          // No need to fetch - we have what we need!
+
           setMessages(messagesWithSender);
         }
       } catch (error) {
@@ -806,12 +812,17 @@ export default function Chat() {
                 style={
                   selectedConversation.type === "group"
                     ? { borderRadius: 10, background: "#dcfce7", color: "#15803d" }
+                    : selectedConversation.avatar
+                    ? {
+                        borderRadius: "50%",
+                        backgroundImage: `url(${selectedConversation.avatar})`,
+                        backgroundSize: "cover",
+                        backgroundPosition: "center",
+                      }
                     : avatarStyle(0)
                 }
               >
-                {selectedConversation.type === "group"
-                  ? "👥"
-                  : initials(selectedConversation.name)}
+                {selectedConversation.type === "group" ? "👥" : !selectedConversation.avatar && initials(selectedConversation.name)}
               </div>
               <div className="thread-info">
                 <div className="thread-name">{selectedConversation.name}</div>
@@ -864,6 +875,65 @@ export default function Chat() {
                   {groupedMessages.map((group, gi) => {
                     const first = group[0];
                     const isSent = first.isSent || first.is_sender;
+                    const isSystem = first.is_system;
+
+                    // System messages are rendered differently
+                    if (isSystem) {
+                      // Get the actual username from sender_name
+                      const username = first.sender_name || "A user";
+                      const displayText = `${username} joined`;
+                      
+                      return (
+                        <div
+                          key={gi}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            margin: "16px 0",
+                            opacity: 0.8,
+                          }}
+                        >
+                          <div
+                            style={{
+                              flex: 1,
+                              height: "1px",
+                              background: `var(--border)`,
+                            }}
+                          />
+                          <div
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 8,
+                              whiteSpace: "nowrap",
+                              padding: "0 12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: "50%",
+                                background: "var(--online)",
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>
+                              {displayText}
+                            </span>
+                          </div>
+                          <div
+                            style={{
+                              flex: 1,
+                              height: "1px",
+                              background: `var(--border)`,
+                            }}
+                          />
+                        </div>
+                      );
+                    }
+
                     return (
                       <div
                         key={gi}
@@ -871,8 +941,24 @@ export default function Chat() {
                         style={{ marginBottom: 8 }}
                       >
                         {!isSent && (
-                          <div className="avatar sm" style={avatarStyle(gi)}>
-                            {initials(
+                          <div
+                            className="avatar sm"
+                            style={
+                              first.sender?.profile_pic || first.profile_pic || selectedConversation.avatar
+                                ? {
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: "50%",
+                                    backgroundImage: `url(${first.sender?.profile_pic || first.profile_pic || selectedConversation.avatar})`,
+                                    backgroundSize: "cover",
+                                    backgroundPosition: "center",
+                                    flexShrink: 0,
+                                    alignSelf: "flex-end",
+                                  }
+                                : { ...avatarStyle(gi), fontSize: 10 }
+                            }
+                          >
+                            {!first.sender?.profile_pic && !first.profile_pic && !selectedConversation.avatar && initials(
                               first.sender?.username ||
                               first.sender_name ||
                               selectedConversation.name

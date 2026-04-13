@@ -24,7 +24,7 @@ import {
   Popup, Circle, Polyline, useMap,
 } from "react-leaflet";
 import {
-  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin
+  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin, Lock, Radio, Archive
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -763,7 +763,7 @@ export default function NepalMap() {
                 {/* KYC Registration Box */}
                 {kycStatus && kycStatus !== "approved" && (
                   <div style={{ background: COLORS.gold08, border: `.5px solid ${COLORS.gold25}`, borderRadius: 12, padding: "16px 14px", marginBottom: 16, animation: "tm-fade .3s ease", textAlign: "center" }}>
-                    <div style={{ fontSize: 32, marginBottom: 10 }}>🔐</div>
+                    <Lock size={32} color={COLORS.gold} style={{ margin: "0 auto 10px" }} />
                     <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.gold, marginBottom: 6, letterSpacing: "-.5px" }}>
                       {kycStatus === "pending" ? MESSAGES.kycPending : kycStatus === "under_review" ? MESSAGES.kycUnderReview : MESSAGES.completeRegistration}
                     </div>
@@ -909,7 +909,7 @@ export default function NepalMap() {
             {activeTab === "nearby" && (
               nearby.length === 0
                 ? <div style={S.empty}>
-                    <div style={{ fontSize:28, marginBottom:10 }}>📡</div>
+                    <Radio size={28} color={COLORS.gold} style={{ margin: "0 auto 10px" }} />
                     <p>{MESSAGES.enableLocation}</p>
                     <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.discoverPlaces}</p>
                   </div>
@@ -930,7 +930,7 @@ export default function NepalMap() {
             {activeTab === "saved" && (
               favorites.length === 0
                 ? <div style={S.empty}>
-                    <div style={{ fontSize:28, marginBottom:10 }}>🗂</div>
+                    <Archive size={28} color={COLORS.gold} style={{ margin: "0 auto 10px" }} />
                     <p>{MESSAGES.noSavedPlaces}</p>
                     <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.savePlaces}</p>
                   </div>
