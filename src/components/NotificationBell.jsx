@@ -11,7 +11,7 @@ export default function NotificationBell() {
   // Fetch unread count on mount and at intervals
   useEffect(() => {
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // Poll every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 5000); // Poll every 5 seconds
     return () => clearInterval(interval);
   }, []);
 
@@ -28,9 +28,28 @@ export default function NotificationBell() {
 
   const fetchUnreadCount = async () => {
     try {
-      const res = await api.get("trips/notifications/unread-count/");
-      setUnreadCount(res.data?.unread_count || 0);
+      // Only fetch if user is logged in
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setUnreadCount(0);
+        return;
+      }
+      
+      const [tripRes, messagesRes] = await Promise.all([
+        api.get("trips/notifications/unread-count/"),
+        api.get("chat/messages/unread/")
+      ]);
+      const tripCount = tripRes.data?.unread_count || 0;
+      // Only count truly unread messages (is_read: false)
+      const unreadMessageCount = (messagesRes.data?.results || [])
+        .filter(msg => msg.is_read === false).length;
+      setUnreadCount(tripCount + unreadMessageCount);
     } catch (err) {
+      // Silently fail if not authenticated
+      if (err.response?.status === 401) {
+        setUnreadCount(0);
+        return;
+      }
       console.error("Failed to fetch unread count:", err);
       setUnreadCount(0);
     }

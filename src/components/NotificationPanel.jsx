@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { X, CheckCircle, XCircle, Mail, AlertCircle, Loader2, UserPlus } from "lucide-react";
 import api from "../API/api";
+import { useToast } from "../hooks/useToast";
 
 export default function NotificationPanel({ onClose, onUnreadChange }) {
+  const navigate = useNavigate();
+  const { success, error: showError, info } = useToast();
   const [notifications, setNotifications] = useState([]);
+  const [prevNotifications, setPrevNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actionLoading, setActionLoading] = useState({});
@@ -16,13 +21,25 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      // Fetch trip notifications
-      const [tripRes, friendRes] = await Promise.all([
+      // Check if user is logged in
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setNotifications([]);
+        onUnreadChange(0);
+        setError("");
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch trip notifications, friend requests, and unread messages
+      const [tripRes, friendRes, messagesRes] = await Promise.all([
         api.get("trips/notifications/"),
-        api.get("users/friend-requests/pending/")
+        api.get("users/friend-requests/pending/"),
+        api.get("chat/messages/unread/")
       ]);
       
       const tripNotifs = tripRes.data || [];
+      
       const friendRequests = (friendRes.data?.pending_requests || []).map((req, idx) => ({
         id: `friend_${req.id}`,
         notification_type: "friend_request",
@@ -37,13 +54,105 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         username: req.username
       }));
       
-      // Combine and sort by time (friend requests first as "new")
-      const allNotifs = [...friendRequests, ...tripNotifs];
+      const unreadMessages = (messagesRes.data?.results || [])
+        .filter(msg => msg.is_read === false)  // Only show truly unread messages
+        .map((msg) => ({
+        id: `message_${msg.id}`,
+        notification_type: "message",
+        notification_type_display: "Message",
+        actor_name: msg.sender_name,
+        message: msg.content,
+        time_ago: new Date(msg.timestamp).toLocaleString(),
+        is_read: msg.is_read,
+        message_id: msg.id,
+        sender_name: msg.sender_name,
+        sender_id: msg.sender,
+        profile_picture: msg.profile_picture || null,
+        timestamp: msg.timestamp,
+        trip_id: msg.trip,
+        trip_name: msg.trip_name,
+        is_group: msg.trip ? true : false
+      }));
+      
+      console.log("Unread messages processed:", unreadMessages.length, unreadMessages);
+      
+      // Group messages by sender and keep latest 3 per sender
+      const groupedMessages = {};
+      unreadMessages.forEach(msg => {
+        // For group messages, group by trip+sender instead of just sender
+        const groupKey = msg.is_group ? `group_${msg.trip_id}_${msg.sender_id}` : `direct_${msg.sender_id}`;
+        
+        if (!groupedMessages[groupKey]) {
+          groupedMessages[groupKey] = {
+            sender_id: msg.sender_id,
+            sender_name: msg.sender_name,
+            profile_picture: msg.profile_picture,
+            messages: [msg],
+            total_count: 1,
+            latest_timestamp: msg.timestamp,
+            trip_id: msg.trip_id,
+            trip_name: msg.trip_name,
+            is_group: msg.is_group
+          };
+        } else {
+          groupedMessages[groupKey].messages.push(msg);
+          groupedMessages[groupKey].total_count += 1;
+          if (new Date(msg.timestamp) > new Date(groupedMessages[groupKey].latest_timestamp)) {
+            groupedMessages[groupKey].latest_timestamp = msg.timestamp;
+          }
+        }
+      });
+      
+      // Convert to notification format (keep only latest 3 messages per sender/group)
+      const groupedMessageNotifs = Object.values(groupedMessages).map(group => ({
+        id: group.is_group ? `message_group_${group.trip_id}_${group.sender_id}` : `message_group_${group.sender_id}`,
+        notification_type: "message",
+        notification_type_display: "Message",
+        actor_name: group.sender_name,
+        sender_name: group.sender_name,
+        sender_id: group.sender_id,
+        profile_picture: group.profile_picture,
+        message_id: group.messages[group.messages.length - 1].message_id, // latest message ID for marking as read
+        messages: group.messages.slice(-3), // Keep last 3 messages
+        total_count: group.total_count, // Total unread from this sender
+        is_read: false,
+        time_ago: new Date(group.latest_timestamp).toLocaleString(),
+        trip_id: group.trip_id,
+        trip_name: group.trip_name,
+        is_group: group.is_group
+      }));
+      
+      // Combine and sort by time (friend requests and grouped messages first)
+      const allNotifs = [...friendRequests, ...groupedMessageNotifs, ...tripNotifs];
       setNotifications(allNotifs);
+      // Update parent with accurate count of actual unread notifications
+      onUnreadChange(allNotifs.length);
+      
+      // Show toasts for new notifications
+      allNotifs.forEach(notif => {
+        const prevNotif = prevNotifications.find(p => p.id === notif.id);
+        if (!prevNotif) {
+          // This is a new notification, show toast
+          if (notif.notification_type === "friend_request") {
+            info(`${notif.actor_name} sent you a friend request`);
+          } else if (notif.notification_type === "message") {
+            info(`${notif.sender_name} sent you a message: "${notif.messages?.[0]?.message || 'New message'}"`);
+          } else if (notif.notification_type === "trip_invitation") {
+            info(`${notif.actor_name} invited you to ${notif.trip_name}`);
+          } else if (notif.notification_type.includes("trip") || notif.notification_type.includes("expense")) {
+            info(`New update: ${notif.message || notif.notification_type_display}`);
+          }
+        }
+      });
+      
+      // Update previous notifications for next comparison
+      setPrevNotifications(allNotifs);
       setError("");
     } catch (err) {
       console.error("Failed to fetch notifications:", err);
       setNotifications([]);
+      // Update parent - no notifications
+      onUnreadChange(0);
       setError("Failed to load notifications");
     } finally {
       setLoading(false);
@@ -55,23 +164,116 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
 
     try {
       await api.patch(`trips/notifications/${notification.id}/read/`);
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notification.id ? { ...n, is_read: true } : n
-        )
-      );
-      // Update parent state
-      const unreadCount = notifications.filter(n => !n.is_read).length - 1;
-      onUnreadChange(Math.max(0, unreadCount));
+      // Remove notification from list once marked as read
+      setNotifications(prev => {
+        const updated = prev.filter(n => n.id !== notification.id);
+        // Update parent with new count
+        onUnreadChange(updated.length);
+        return updated;
+      });
     } catch (err) {
       console.error("Failed to mark as read:", err);
+    }
+  };
+
+  const handleMessageNotificationClick = async (notification) => {
+    try {
+      console.log("Handling message notification click:", notification);
+      console.log("Messages in notification:", notification.messages);
+      
+      if (!notification.messages || notification.messages.length === 0) {
+        console.warn("No messages found in notification");
+        // Still navigate even if no messages to mark
+        if (notification.is_group) {
+          navigate(`/trip/${notification.trip_id}`);
+        } else {
+          sessionStorage.setItem("selectedFriendId", notification.sender_id.toString());
+          sessionStorage.setItem("selectedFriendName", notification.sender_name);
+          navigate("/chat");
+        }
+        onClose();
+        return;
+      }
+      
+      // Mark all messages in this group as read
+      const markReadRequests = notification.messages.map(msg => {
+        console.log("Processing message:", msg);
+        const msgId = msg.message_id || msg.id;
+        if (!msgId) {
+          console.warn("Message has no ID:", msg);
+          return Promise.resolve();
+        }
+        console.log("Marking message ID:", msgId);
+        return api.patch(`chat/messages/${msgId}/mark_as_read/`)
+          .catch(err => {
+            console.error(`Failed to mark message ${msgId} as read:`, err);
+            // Continue with other messages even if one fails
+            return null;
+          });
+      });
+      
+      const responses = await Promise.all(markReadRequests);
+      console.log("Mark as read responses:", responses);
+      
+      // Count successful responses
+      const successCount = responses.filter(r => r !== null).length;
+      console.log(`Successfully marked ${successCount} out of ${notification.messages.length} messages as read`);
+      
+      // Show success toast
+      if (successCount > 0) {
+        success(`Marked ${successCount} message${successCount > 1 ? 's' : ''} as read`);
+      }
+      
+      // Remove notification from list (it's now read)
+      setNotifications(prev => {
+        const updated = prev.filter(n => n.id !== notification.id);
+        console.log(`Removed notification ${notification.id}. Remaining: ${updated.length}`);
+        // Update parent's unread count
+        onUnreadChange(updated.length);
+        return updated;
+      });
+      
+      // Navigate based on message type
+      if (notification.is_group) {
+        console.log("Navigating to trip:", notification.trip_id);
+        navigate(`/trip/${notification.trip_id}`);
+      } else {
+        console.log("Navigating to chat with user:", notification.sender_id);
+        sessionStorage.setItem("selectedFriendId", notification.sender_id.toString());
+        sessionStorage.setItem("selectedFriendName", notification.sender_name);
+        navigate("/chat");
+      }
+      
+      onClose();
+    } catch (err) {
+      console.error("Failed to handle message notification click:", err);
+      console.error("Error response:", err.response?.data);
+      console.error("Error message:", err.message);
+      
+      // Show error toast
+      showError("Failed to mark message as read", 3000);
+      
+      // Still navigate and close even if marking as read fails
+      try {
+        if (notification.is_group) {
+          navigate(`/trip/${notification.trip_id}`);
+        } else {
+          sessionStorage.setItem("selectedFriendId", notification.sender_id.toString());
+          sessionStorage.setItem("selectedFriendName", notification.sender_name);
+          navigate("/chat");
+        }
+      } catch (navErr) {
+        console.error("Failed to navigate:", navErr);
+      }
+      onClose();
     }
   };
 
   const handleMarkAllAsRead = async () => {
     try {
       await api.patch("trips/notifications/read-all/");
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+      // Clear all notifications (they're all now read)
+      setNotifications([]);
       onUnreadChange(0);
     } catch (err) {
       console.error("Failed to mark all as read:", err);
@@ -85,19 +287,30 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
       if (!notification.invitation) {
         console.warn("Invitation ID not found in notification");
         // Remove the notification from the list anyway
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setNotifications(prev => {
+          const updated = prev.filter(n => n.id !== notification.id);
+          onUnreadChange(updated.length);
+          return updated;
+        });
         return;
       }
       
       const response = await api.patch(`trips/invitations/${notification.invitation}/respond/`, { action });
       
       if (response.status === 200 || response.status === 201) {
-        // Mark notification as read and remove from list
-        await handleMarkAsRead(notification);
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        // Remove notification from list
+        setNotifications(prev => {
+          const updated = prev.filter(n => n.id !== notification.id);
+          onUnreadChange(updated.length);
+          return updated;
+        });
+        // Show success toast
+        const actionText = action === 'accept' ? 'Accepted' : 'Declined';
+        success(`${actionText} invitation to ${notification.trip_name || 'trip'}`);
       }
     } catch (err) {
       console.error(`Failed to ${action} invitation:`, err);
+      showError(`Failed to ${action} invitation`, 3000);
       
       // Refresh notifications to sync with server state
       setTimeout(() => fetchNotifications(), 1000);
@@ -113,9 +326,18 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
       
       if (response.status === 200 || response.status === 201) {
         // Remove the notification from the list
-        setNotifications(prev => prev.filter(n => n.id !== notification.id));
+        setNotifications(prev => {
+          const updated = prev.filter(n => n.id !== notification.id);
+          onUnreadChange(updated.length);
+          return updated;
+        });
+        // Show success toast
+        const actionText = action === 'accept' ? 'Accepted' : 'Declined';
+        success(`${actionText} friend request from ${notification.requester.first_name || notification.requester.username}`);
       }
     } catch (err) {
+      console.error(`Failed to ${action} friend request:`, err);
+      showError(`Failed to ${action} friend request`, 3000);
       console.error(`Failed to ${action} friend request:`, err);
       
       // Refresh notifications to sync with server state
@@ -159,6 +381,8 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         return <XCircle size={16} className="text-red-400" />;
       case "friend_request":
         return <UserPlus size={16} className="text-purple-400" />;
+      case "message":
+        return <Mail size={16} className="text-cyan-400" />;
       default:
         return <AlertCircle size={16} className="text-yellow-400" />;
     }
@@ -178,6 +402,8 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         return "bg-red-500/10 border-red-500/30 hover:bg-red-500/15";
       case "friend_request":
         return "bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/15";
+      case "message":
+        return "bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/15";
       default:
         return "bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15";
     }
@@ -189,41 +415,42 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
 
   return (
     <div
-      className="absolute right-0 top-12 w-96 rounded-2xl bg-[#111] shadow-2xl z-50 border border-white/10 overflow-hidden"
-      style={{ maxHeight: "500px", display: "flex", flexDirection: "column" }}
+      className="absolute right-0 top-12 w-[420px] rounded-2xl bg-gradient-to-b from-[#111827]/95 to-[#0f1419]/95 shadow-2xl z-50 border border-white/10 overflow-hidden backdrop-blur-xl"
+      style={{ maxHeight: "600px", display: "flex", flexDirection: "column" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0a0c16]">
-        <h3 className="font-semibold text-white flex items-center gap-2">
-          <AlertCircle size={16} />
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent">
+        <h3 className="font-bold text-white text-lg flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+            <AlertCircle size={18} className="text-cyan-400" />
+          </div>
           Notifications
-          {unreadCount > 0 && (
-            <span className="ml-2 px-2 py-0.5 text-xs font-bold bg-red-500/30 text-red-300 rounded-full">
-              {unreadCount}
-            </span>
-          )}
         </h3>
-        <button onClick={onClose} className="text-white/50 hover:text-white">
-          <X size={18} />
+        <button onClick={onClose} className="text-white/50 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+          <X size={20} />
         </button>
       </div>
 
-      {/* Notifications  List */}
-      <div style={{ flex: 1, overflowY: "auto" }}>
+      {/* Notifications List */}
+      <div style={{ flex: 1, overflowY: "auto" }} className="scrollbar-hide">
         {loading ? (
-          <div className="flex items-center justify-center h-32">
-            <Loader2 size={20} className="text-white/40 animate-spin" />
+          <div className="flex items-center justify-center h-48">
+            <Loader2 size={24} className="text-cyan-400 animate-spin" />
           </div>
         ) : error ? (
-          <div className="p-4 text-center text-red-400 text-sm">{error}</div>
+          <div className="p-8 text-center text-red-400/80 text-sm font-medium">{error}</div>
         ) : notifications.length === 0 ? (
-          <div className="p-6 text-center text-white/40 text-sm">
-            No notifications yet. Stay tuned!
+          <div className="p-8 text-center">
+            <div className="mx-auto w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
+              <AlertCircle size={24} className="text-white/40" />
+            </div>
+            <p className="text-white/40 text-sm font-medium">No notifications yet</p>
+            <p className="text-white/20 text-xs mt-1">Stay tuned for updates!</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-white/5">
             {notifications.map(notif => {
-              // Render friend requests differently
+              // Render friend requests
               if (notif.notification_type === "friend_request") {
                 const pic = notif.profile_picture || null;
                 const initial = notif.username?.[0]?.toUpperCase() || "U";
@@ -231,10 +458,11 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                 return (
                   <div
                     key={notif.id}
-                    className="p-4 border-l-4 border-l-purple-500 bg-white/5 hover:bg-white/8 transition"
+                    className="p-4 border-l-4 border-l-purple-500/50 bg-gradient-to-r from-purple-500/8 to-transparent hover:from-purple-500/12 transition-all duration-200 cursor-pointer group"
+                    onClick={() => navigate(`/user/${notif.username}`)}
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 flex-shrink-0 rounded-full overflow-hidden bg-[#1a1a1a] border border-white/8 flex items-center justify-center">
+                    <div className="flex items-center gap-3.5">
+                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-purple-500/30 to-purple-600/30 border border-purple-500/30 flex items-center justify-center group-hover:ring-2 ring-purple-500/30 transition-all">
                         {pic ? (
                           <img 
                             src={pic} 
@@ -243,30 +471,100 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                             onError={e => e.target.style.display = "none"}
                           />
                         ) : (
-                          <span className="text-sm font-bold text-purple-400">{initial}</span>
+                          <span className="text-sm font-bold text-purple-300">{initial}</span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate">
+                        <p className="text-sm font-semibold text-white truncate group-hover:text-purple-300 transition">
                           {notif.actor_name}
                         </p>
-                        <p className="text-xs text-white/35 truncate">@{notif.username}</p>
+                        <p className="text-xs text-white/40">@{notif.username}</p>
+                        <p className="text-xs text-purple-300/70 mt-1 font-medium">sent you a friend request</p>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <button
-                          onClick={() => handleFriendRequestResponse(notif, "accept")}
+                          onClick={(e) => {e.stopPropagation(); handleFriendRequestResponse(notif, "accept");}}
                           disabled={requestAction[notif.id]}
-                          className="rounded-lg bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 disabled:opacity-40 transition"
+                          className="h-8 w-8 rounded-lg bg-purple-500/30 border border-purple-500/50 text-purple-200 hover:bg-purple-500/50 disabled:opacity-40 flex items-center justify-center transition-all font-medium text-sm"
                         >
-                          {requestAction[notif.id] ? "..." : "✓"}
+                          {requestAction[notif.id] ? <Loader2 size={16} className="animate-spin" /> : "✓"}
                         </button>
                         <button
-                          onClick={() => handleFriendRequestResponse(notif, "reject")}
+                          onClick={(e) => {e.stopPropagation(); handleFriendRequestResponse(notif, "reject");}}
                           disabled={requestAction[notif.id]}
-                          className="rounded-lg bg-white/8 px-3 py-1.5 text-xs font-semibold text-white/60 hover:bg-white/12 disabled:opacity-40 transition"
+                          className="h-8 w-8 rounded-lg bg-white/8 border border-white/15 text-white/60 hover:bg-white/12 disabled:opacity-40 flex items-center justify-center transition-all font-medium text-sm"
                         >
-                          {requestAction[notif.id] ? "..." : "✗"}
+                          {requestAction[notif.id] ? <Loader2 size={16} className="animate-spin" /> : "✕"}
                         </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Render message notifications
+              if (notif.notification_type === "message") {
+                const pic = notif.profile_picture || null;
+                const initial = notif.sender_name?.[0]?.toUpperCase() || "U";
+                const latestMsg = notif.messages?.[notif.messages.length - 1];
+                const hasMultiple = notif.total_count > 1;
+                
+                return (
+                  <div
+                    key={notif.id}
+                    className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
+                      notif.is_read
+                        ? "border-l-white/15 bg-white/2 hover:bg-white/5"
+                        : "border-l-cyan-500/50 bg-gradient-to-r from-cyan-500/8 to-transparent hover:from-cyan-500/12"
+                    }`}
+                    onClick={() => handleMessageNotificationClick(notif)}
+                  >
+                    <div className="flex gap-3.5">
+                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-cyan-500/30 flex items-center justify-center relative group-hover:ring-2 ring-cyan-500/30 transition-all">
+                        {pic ? (
+                          <img 
+                            src={pic} 
+                            alt={notif.sender_name} 
+                            className="h-full w-full object-cover"
+                            onError={e => e.target.style.display = "none"}
+                          />
+                        ) : (
+                          <span className="text-xs font-bold text-cyan-300">{initial}</span>
+                        )}
+                        {hasMultiple && (
+                          <div className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border border-cyan-400/50 shadow-lg">
+                            {notif.total_count > 9 ? "9+" : notif.total_count}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-white group-hover:text-cyan-300 transition">
+                                {notif.sender_name}
+                              </p>
+                              {hasMultiple && (
+                                <span className="text-xs bg-cyan-500/30 text-cyan-200 px-2 py-0.5 rounded-full border border-cyan-500/20 font-medium">
+                                  +{notif.total_count}
+                                </span>
+                              )}
+                            </div>
+                            {notif.is_group ? (
+                              <p className="text-xs text-cyan-300/70 mt-0.5 font-medium">
+                                message in <span className="text-cyan-200 font-semibold">{notif.trip_name}</span>
+                              </p>
+                            ) : (
+                              <p className="text-xs text-white/50 mt-0.5">sent you a message</p>
+                            )}
+                            
+                            <p className="text-xs text-white/50 mt-2 line-clamp-2 leading-relaxed">{latestMsg?.message}</p>
+                          </div>
+                          {!notif.is_read && (
+                            <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 shadow-lg mt-1.5" />
+                          )}
+                        </div>
+                        <p className="text-xs text-white/35 mt-2.5 font-medium">{notif.time_ago}</p>
                       </div>
                     </div>
                   </div>
@@ -277,41 +575,39 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
               return (
                 <div
                   key={notif.id}
-                  className={`p-3 border-l-4 transition ${
+                  className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
                     notif.is_read
-                      ? "bg-white/3 border-l-white/10"
-                      : "bg-white/5 border-l-blue-500"
+                      ? "border-l-white/15 bg-white/2 hover:bg-white/5"
+                      : "border-l-blue-500/50 bg-gradient-to-r from-blue-500/8 to-transparent hover:from-blue-500/12"
                   }`}
+                  onClick={() => {
+                    handleMarkAsRead(notif);
+                    navigate(`/trip/${notif.trip}`);
+                  }}
                 >
-                  <div className="flex gap-3">
-                    <div className="flex-shrink-0 mt-1">
+                  <div className="flex gap-3.5">
+                    <div className="flex-shrink-0 mt-0.5 p-2 rounded-lg bg-blue-500/15 border border-blue-500/20 text-blue-400 group-hover:bg-blue-500/25 transition-all">
                       {getNotificationIcon(notif.notification_type)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 cursor-pointer" onClick={() => handleMarkAsRead(notif)}>
-                          <p className="text-sm font-medium text-white">
+                        <div className="flex-1">
+                          <p className="text-sm font-semibold text-white group-hover:text-blue-300 transition">
                             {notif.trip_title}
                           </p>
-                          <p className="text-xs text-white/60 mt-0.5">
-                            {notif.actor_name && `${notif.actor_name} - `}
+                          <p className="text-xs text-white/50 mt-0.5 font-medium">
+                            {notif.actor_name && `${notif.actor_name} • `}
                             {notif.notification_type_display}
                           </p>
-                          <p className="text-xs text-white/40 mt-1">{notif.message}</p>
+                          {notif.message && (
+                            <p className="text-xs text-white/40 mt-2 line-clamp-2">{notif.message}</p>
+                          )}
                         </div>
                         {!notif.is_read && (
-                          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-blue-500 mt-1" />
+                          <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 shadow-lg mt-1.5" />
                         )}
                       </div>
-                      <p className="text-xs text-white/40 mt-2">{notif.time_ago}</p>
-
-                      {/* Show expiration time for pending invitations */}
-                      {notif.notification_type === "invitation_received" && notif.is_expired && (
-                        <p className="text-xs text-red-400 mt-1">⚠ {getTimeRemaining(notif.expires_at)}</p>
-                      )}
-                      {notif.notification_type === "invitation_received" && !notif.is_expired && (
-                        <p className="text-xs text-yellow-400/70 mt-1">⏱ {getTimeRemaining(notif.expires_at)}</p>
-                      )}
+                      <p className="text-xs text-white/35 mt-2.5 font-medium">{notif.time_ago}</p>
 
                       {/* Action Buttons for Invitations */}
                       {notif.notification_type === "invitation_received" && !notif.is_expired && (
@@ -319,16 +615,16 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                           <button
                             onClick={() => handleInvitationAction(notif, "accept")}
                             disabled={actionLoading[notif.id]}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-green-500/20 text-green-300 hover:bg-green-500/30 rounded-lg transition disabled:opacity-50"
+                            className="flex-1 px-3 py-2 text-xs font-semibold bg-gradient-to-r from-green-500/40 to-green-600/20 text-green-200 hover:from-green-500/60 border border-green-500/40 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                           >
-                            {actionLoading[notif.id] ? "..." : "✓ Accept"}
+                            {actionLoading[notif.id] ? <Loader2 size={14} className="animate-spin" /> : <>✓ Accept</>}
                           </button>
                           <button
                             onClick={() => handleInvitationAction(notif, "reject")}
                             disabled={actionLoading[notif.id]}
-                            className="flex-1 px-3 py-1.5 text-xs font-medium bg-red-500/20 text-red-300 hover:bg-red-500/30 rounded-lg transition disabled:opacity-50"
+                            className="flex-1 px-3 py-2 text-xs font-semibold bg-white/8 text-white/70 hover:bg-white/12 border border-white/15 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                           >
-                            {actionLoading[notif.id] ? "..." : "✗ Decline"}
+                            {actionLoading[notif.id] ? <Loader2 size={14} className="animate-spin" /> : <>✕ Decline</>}
                           </button>
                         </div>
                       )}

@@ -499,9 +499,10 @@ function ProfilePage() {
         })
         .then(d => {
           // Filter for completed trips where current user is a member (joined) or creator
-          const myTrips = (d.results || d || []).filter(trip => 
-            (trip.members?.some(m => m.id === profile?.id) || trip.created_by?.id === profile?.id) && trip.is_completed
-          );
+          const myTrips = (d.results || d || []).filter(trip => {
+            const isParticipant = trip.participants?.some(p => p.id === profile?.id) || trip.creator?.id === profile?.id;
+            return isParticipant && trip.is_completed;
+          });
           setJoinedTrips(myTrips);
         })
         .catch(err => {
@@ -509,7 +510,12 @@ function ProfilePage() {
           setJoinedTrips([]);
         });
     };
-    if (profile?.id) fetchJoinedTrips();
+    if (profile?.id) {
+      fetchJoinedTrips();
+      // Refresh completed trips every 30 seconds to catch newly completed trips
+      const interval = setInterval(fetchJoinedTrips, 30000);
+      return () => clearInterval(interval);
+    }
   }, [profile?.id]);
 
   if (loading) return (

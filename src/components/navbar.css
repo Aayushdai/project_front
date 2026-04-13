@@ -30,7 +30,10 @@ nav button:hover {
 }
 
 /* Override specific Tailwind classes */
-nav .bg-\[\#111\],
+nav .bg-\[\#111\] {
+  background-color: rgba(17, 17, 17, 1) !important;
+}
+
 nav .bg-\[\#0a0c16\],
 nav .bg-\[\rgba\(10\,12\,22\,0\.85\)\] {
   background-color: transparent !important;

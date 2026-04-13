@@ -121,6 +121,15 @@ export default function TripDetail() {
   const [reviewText, setReviewText] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [submittingReview, setSubmittingReview] = useState(false);
+  const [userReview, setUserReview] = useState(null); // Track user's own review if exists
+
+  // Edit modes
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [newDescription, setNewDescription] = useState("");
+  const [savingDescription, setSavingDescription] = useState(false);
+  const [editingExpenses, setEditingExpenses] = useState(false);
+  const [newExpenses, setNewExpenses] = useState([]);
+  const [savingExpenses, setSavingExpenses] = useState(false);
 
   const isTripCompleted = trip && new Date(trip.end_date) < new Date();
   const isCreator = trip && userProfileId && trip.creator?.id === userProfileId;
@@ -162,7 +171,16 @@ export default function TripDetail() {
 
         try {
           const reviewsRes = await API.get(`trips/${id}/reviews/`);
-          setReviews(reviewsRes.data);
+          const reviewsList = Array.isArray(reviewsRes.data) ? reviewsRes.data : reviewsRes.data.results || [];
+          setReviews(reviewsList);
+          
+          // Check if current user has already reviewed this trip
+          const userReviewData = reviewsList.find(r => r.reviewer_name === userProfile?.first_name + " " + userProfile?.last_name);
+          if (userReviewData) {
+            setUserReview(userReviewData);
+            setReviewText(userReviewData.text);
+            setReviewRating(userReviewData.rating);
+          }
         } catch { setReviews([]); }
 
         fetchMessages();
@@ -224,14 +242,134 @@ export default function TripDetail() {
     setSubmittingReview(true);
     try {
       const response = await API.post(`http://127.0.0.1:8000/api/trips/${id}/reviews/`, {
-        rating: reviewRating, text: reviewText.trim()
+        rating: reviewRating, 
+        text: reviewText.trim()
       });
-      if (response.status === 201) {
-        setReviews([...reviews, response.data]);
-        setReviewText(""); setReviewRating(5);
+      
+      if (response.status === 201 || response.status === 200) {
+        // Update or add review in the list
+        if (userReview) {
+          // Update existing review in list
+          const updatedReviews = reviews.map(r => 
+            r.id === response.data.id ? response.data : r
+          );
+          setReviews(updatedReviews);
+          setUserReview(response.data);
+        } else {
+          // Add new review to list
+          setReviews([response.data, ...reviews]);
+          setUserReview(response.data);
+        }
+        
+        // Show success message
+        alert(userReview ? "Review updated successfully!" : "Review submitted successfully!");
       }
-    } catch (err) { alert("Failed to submit review: " + (err.response?.data?.detail || err.message)); }
-    finally { setSubmittingReview(false); }
+    } catch (err) { 
+      alert("Failed to submit review: " + (err.response?.data?.detail || err.message)); 
+    }
+    finally { 
+      setSubmittingReview(false); 
+    }
+  };
+
+  const handleDeleteReview = async () => {
+    if (!userReview || !window.confirm("Delete your review?")) return;
+    try {
+      await API.delete(`http://127.0.0.1:8000/api/trips/${id}/reviews/${userReview.id}/`);
+      setReviews(reviews.filter(r => r.id !== userReview.id));
+      setUserReview(null);
+      setReviewText("");
+      setReviewRating(5);
+      alert("Review deleted successfully!");
+    } catch (err) {
+      alert("Failed to delete review: " + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleEditDescription = () => {
+    setNewDescription(trip.description || "");
+    setEditingDescription(true);
+  };
+
+  const handleSaveDescription = async () => {
+    setSavingDescription(true);
+    try {
+      const response = await API.patch(`trips/${id}/`, {
+        action: 'update_description',
+        description: newDescription.trim()
+      });
+      if (response.status === 200) {
+        setTrip(response.data.trip);
+        setEditingDescription(false);
+        alert("Description updated successfully!");
+      }
+    } catch (err) {
+      alert("Failed to update description: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingDescription(false);
+    }
+  };
+
+  const handleEditExpenses = () => {
+    setNewExpenses([...trip.expense_budgets]);
+    setEditingExpenses(true);
+  };
+
+  const handleUpdateExpense = (index, field, value) => {
+    const updated = [...newExpenses];
+    updated[index] = { ...updated[index], [field]: value };
+    setNewExpenses(updated);
+  };
+
+  const handleAddExpense = () => {
+    setNewExpenses([...newExpenses, { category: "", amount: 0 }]);
+  };
+
+  const handleRemoveExpense = (index) => {
+    setNewExpenses(newExpenses.filter((_, i) => i !== index));
+  };
+
+  const handleSaveExpenses = async () => {
+    setSavingExpenses(true);
+    try {
+      // Get existing expense IDs
+      const existingIds = new Set(trip.expense_budgets.map(e => e.id));
+      const newIds = new Set(newExpenses.filter(e => e.id).map(e => e.id));
+
+      // Delete removed expenses
+      for (const expense of trip.expense_budgets) {
+        if (!newIds.has(expense.id)) {
+          await API.delete(`trips/expenses/${expense.id}/`);
+        }
+      }
+
+      // Update existing and create new expenses
+      for (const expense of newExpenses) {
+        if (expense.id && existingIds.has(expense.id)) {
+          // Update existing
+          await API.patch(`trips/expenses/${expense.id}/`, {
+            category: expense.category,
+            amount: parseFloat(expense.amount)
+          });
+        } else if (!expense.id) {
+          // Create new
+          await API.post(`trips/${id}/expenses/`, {
+            category: expense.category,
+            amount: parseFloat(expense.amount)
+          });
+        }
+      }
+
+      // Refresh trip data
+      const response = await API.get(`trips/${id}/`);
+      setTrip(response.data);
+      setEditingExpenses(false);
+      alert("Expenses updated successfully!");
+    } catch (err) {
+      alert("Failed to update expenses: " + (err.response?.data?.message || err.message));
+    } finally {
+      setSavingExpenses(false);
+    }
   };
 
   // ─── Group messages by sender + time proximity ───────────────────────────
@@ -351,9 +489,19 @@ export default function TripDetail() {
             </div>
 
             {/* Description */}
-            <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.75, maxWidth: 620 }}>
-              {trip.description || TEXTS.noDescription}
-            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16 }}>
+              <p style={{ fontSize: 14, color: C.textSub, lineHeight: 1.75, maxWidth: 620 }}>
+                {trip.description || TEXTS.noDescription}
+              </p>
+              {isCreator && (
+                <button
+                  onClick={handleEditDescription}
+                  style={{ padding: "6px 10px", background: C.goldBg, border: `1px solid ${C.goldRing}`, borderRadius: 6, color: C.gold, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", whiteSpace: "nowrap", flexShrink: 0 }}
+                >
+                  Edit
+                </button>
+              )}
+            </div>
 
             {/* Tags */}
             {trip.trip_tags?.length > 0 && (
@@ -368,7 +516,17 @@ export default function TripDetail() {
           {/* ── BUDGET & EXPENSES ── */}
           {trip.expense_budgets?.length > 0 && (
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, marginBottom: 16 }}>
-              <SectionTitle>Budget & Expenses</SectionTitle>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+                <SectionTitle>Budget & Expenses</SectionTitle>
+                {isCreator && (
+                  <button
+                    onClick={handleEditExpenses}
+                    style={{ padding: "6px 10px", background: C.goldBg, border: `1px solid ${C.goldRing}`, borderRadius: 6, color: C.gold, fontSize: 11, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 16 }}>
                 {trip.expense_budgets.map((exp, i) => (
                   <div key={exp.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: C.surface, borderRadius: 10, border: `1px solid ${C.border}` }}>
@@ -459,7 +617,7 @@ export default function TripDetail() {
               <SectionTitle>Reviews</SectionTitle>
               {isParticipant && (
                 <div style={{ background: C.surface, border: `1px solid ${C.border}`, borderRadius: 12, padding: 16, marginBottom: 20 }}>
-                  <p style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 12 }}>Share your experience</p>
+                  <p style={{ fontSize: 13, fontWeight: 500, color: C.text, marginBottom: 12 }}>{userReview ? "Edit your review" : "Share your experience"}</p>
                   <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
                     {[1, 2, 3, 4, 5].map(r => (
                       <button key={r} className="td-star-btn" onClick={() => setReviewRating(r)}
@@ -476,11 +634,21 @@ export default function TripDetail() {
                   />
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span style={{ fontSize: 11, color: C.textMuted }}>{reviewText.length}/500</span>
-                    <button
-                      onClick={handleSubmitReview}
-                      disabled={submittingReview || !reviewText.trim()}
-                      style={{ padding: "8px 18px", background: C.gold, border: "none", borderRadius: 9, color: "#0d0f1c", fontSize: 13, fontWeight: 600, cursor: submittingReview || !reviewText.trim() ? "not-allowed" : "pointer", opacity: submittingReview || !reviewText.trim() ? 0.4 : 1, fontFamily: "inherit" }}
-                    >{submittingReview ? "Submitting…" : "Submit"}</button>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {userReview && (
+                        <button
+                          onClick={handleDeleteReview}
+                          style={{ padding: "8px 14px", background: C.redBg, border: `1px solid ${C.red}40`, borderRadius: 9, color: C.red, fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit" }}
+                        >
+                          Delete
+                        </button>
+                      )}
+                      <button
+                        onClick={handleSubmitReview}
+                        disabled={submittingReview || !reviewText.trim()}
+                        style={{ padding: "8px 18px", background: C.gold, border: "none", borderRadius: 9, color: "#0d0f1c", fontSize: 13, fontWeight: 600, cursor: submittingReview || !reviewText.trim() ? "not-allowed" : "pointer", opacity: submittingReview || !reviewText.trim() ? 0.4 : 1, fontFamily: "inherit" }}
+                      >{submittingReview ? (userReview ? "Updating…" : "Submitting…") : (userReview ? "Update" : "Submit")}</button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -634,6 +802,97 @@ export default function TripDetail() {
         currentUserId={userProfileId}
         isAdmin={isCreator}
       />
+
+      {/* Edit Description Modal */}
+      {editingDescription && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, maxWidth: 500, width: "90%", maxHeight: "80vh", overflow: "auto" }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 16 }}>Edit Description</h3>
+            <textarea
+              value={newDescription}
+              onChange={(e) => setNewDescription(e.target.value)}
+              placeholder="Enter trip description..."
+              style={{
+                width: "100%", minHeight: 120, padding: 12, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 10,
+                color: C.text, fontFamily: "inherit", fontSize: 13, resize: "vertical", marginBottom: 16
+              }}
+            />
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setEditingDescription(false)}
+                disabled={savingDescription}
+                style={{ padding: "8px 16px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveDescription}
+                disabled={savingDescription}
+                style={{ padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: "#0d0f1c", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: savingDescription ? 0.6 : 1 }}
+              >
+                {savingDescription ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Expenses Modal */}
+      {editingExpenses && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 16, padding: 24, maxWidth: 500, width: "90%", maxHeight: "80vh", overflow: "auto" }}>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: C.text, marginBottom: 16 }}>Edit Expenses</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 16 }}>
+              {newExpenses.map((exp, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                  <input
+                    type="text"
+                    value={exp.category}
+                    onChange={(e) => handleUpdateExpense(idx, 'category', e.target.value)}
+                    placeholder="Category"
+                    style={{ flex: 1, padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontFamily: "inherit", fontSize: 13 }}
+                  />
+                  <input
+                    type="number"
+                    value={exp.amount}
+                    onChange={(e) => handleUpdateExpense(idx, 'amount', parseFloat(e.target.value) || 0)}
+                    placeholder="Amount"
+                    style={{ width: 100, padding: 10, background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontFamily: "inherit", fontSize: 13 }}
+                  />
+                  <button
+                    onClick={() => handleRemoveExpense(idx)}
+                    style={{ padding: "8px 10px", background: C.redBg, border: `1px solid ${C.red}40`, borderRadius: 6, color: C.red, fontSize: 12, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={handleAddExpense}
+              style={{ width: "100%", padding: "10px 16px", background: C.goldBg, border: `1px solid ${C.goldRing}`, borderRadius: 8, color: C.gold, fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit", marginBottom: 16 }}
+            >
+              + Add Expense
+            </button>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setEditingExpenses(false)}
+                disabled={savingExpenses}
+                style={{ padding: "8px 16px", background: C.surface, border: `1px solid ${C.border}`, borderRadius: 8, color: C.text, fontSize: 13, fontWeight: 500, cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveExpenses}
+                disabled={savingExpenses}
+                style={{ padding: "8px 16px", background: C.gold, border: "none", borderRadius: 8, color: "#0d0f1c", fontSize: 13, fontWeight: 600, cursor: "pointer", fontFamily: "inherit", opacity: savingExpenses ? 0.6 : 1 }}
+              >
+                {savingExpenses ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

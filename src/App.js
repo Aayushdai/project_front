@@ -3,6 +3,8 @@ import { useAuth } from "./context/AuthContext";
 import NavbarComponent from "./components/navbar";
 import Footer from "./components/Footer";
 import ChatbotWidget from "./components/ChatbotWidget";
+import ToastContainer from "./components/ToastContainer";
+import NotificationPoller from "./components/NotificationPoller";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -42,6 +44,8 @@ function Layout() {
 
   return (
     <>
+      <ToastContainer />
+      <NotificationPoller />
       {!hideNav && <NavbarComponent />}
       {!hideChatbot && <ChatbotWidget />}
       <Routes>

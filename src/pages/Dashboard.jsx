@@ -380,6 +380,8 @@ export default function Dashboard() {
   const [showTagFilter, setShowTagFilter] = useState(false);
   const [invitations, setInvitations] = useState([]);
   const [invLoading, setInvLoading] = useState(false);
+  const [destinationRecommendations, setDestinationRecommendations] = useState([]);
+  const [isSearchingDestination, setIsSearchingDestination] = useState(false);
   const itemsPerPage = 6;
 
   useEffect(() => {
@@ -420,6 +422,17 @@ export default function Dashboard() {
       const allTrips = tripsRes.data || [];
       console.log("All trips:", allTrips);
       
+      // Fetch recommended trips
+      let recommendedTrips = [];
+      try {
+        const recommendedRes = await api.get("trips/recommended/?limit=20");
+        recommendedTrips = recommendedRes.data?.results || recommendedRes.data || [];
+        console.log("Recommended trips:", recommendedTrips);
+      } catch (recErr) {
+        console.error("Failed to fetch recommended trips:", recErr);
+        // Fallback to basic filtering
+      }
+      
       // Fetch trip history
       try {
         const historyRes = await api.get("trips/history/");
@@ -456,14 +469,18 @@ export default function Dashboard() {
       });
       
       const combined = [...userTripsCreated, ...userTripsJoined];
-      const publicTrips = allTrips.filter(t =>
-        t.is_public && !combined.some(mt => mt.id === t.id)
-      );
+      
+      // Use recommended trips if available, otherwise fallback to basic filtering
+      const publicTrips = recommendedTrips.length > 0 
+        ? recommendedTrips 
+        : allTrips.filter(t =>
+            t.is_public && !combined.some(mt => mt.id === t.id)
+          );
       
       console.log("User trips created:", userTripsCreated);
       console.log("User trips joined:", userTripsJoined);
       console.log("Combined:", combined);
-      console.log("Public trips:", publicTrips);
+      console.log("Recommended/Public trips:", publicTrips);
       
       setMyTrips(combined);
       setAvailableTrips(publicTrips);
@@ -607,6 +624,27 @@ export default function Dashboard() {
     }
   };
 
+  // Search for destination-specific recommendations
+  const searchDestinationRecommendations = async (destination) => {
+    if (!destination.trim()) {
+      setDestinationRecommendations([]);
+      return;
+    }
+    
+    try {
+      setIsSearchingDestination(true);
+      const res = await api.get(`trips/recommended/?destination=${encodeURIComponent(destination)}&limit=20`);
+      const recommendations = res.data?.results || res.data || [];
+      console.log("Destination recommendations:", recommendations);
+      setDestinationRecommendations(recommendations);
+    } catch (err) {
+      console.error("Failed to search destination recommendations:", err);
+      setDestinationRecommendations([]);
+    } finally {
+      setIsSearchingDestination(false);
+    }
+  };
+
   const tabs = [
     { id: "invitations", label: "Invitations",  icon: <Mail size={14} /> },
     { id: "myTrips",   label: "My Trips",      icon: <List size={14} /> },
@@ -615,7 +653,6 @@ export default function Dashboard() {
     { id: "create",    label: "Create Trip",    icon: <PlusCircle size={14} /> },
   ];
 
-  // Filter trips based on search query
   // Filter trips based on search query and tags
   const filterTrips = (trips) => {
     let result = trips;
@@ -640,6 +677,20 @@ export default function Dashboard() {
     return result;
   };
 
+  // Handle search input change and fetch destination recommendations
+  const handleSearchChange = (query) => {
+    setSearchQuery(query);
+    setCurrentPageAvailable(1);
+    
+    // If user is typing a destination-like query, fetch recommendations
+    if (query.trim().length > 0 && activeTab === "available") {
+      // Debounced destination search
+      searchDestinationRecommendations(query);
+    } else {
+      setDestinationRecommendations([]);
+    }
+  };
+
   // Get filtered and paginated trips for "My Trips"
   const filteredMyTrips = filterTrips(myTrips);
   const totalMyTripPages = Math.ceil(filteredMyTrips.length / itemsPerPage);
@@ -649,7 +700,12 @@ export default function Dashboard() {
   );
 
   // Get filtered and paginated trips for "Available"
-  const filteredAvailableTrips = filterTrips(availableTrips);
+  // Use destination recommendations if available, otherwise use filtered available trips
+  const tripsToShow = destinationRecommendations.length > 0 && searchQuery.trim() && activeTab === "available" 
+    ? destinationRecommendations 
+    : filterTrips(availableTrips);
+  
+  const filteredAvailableTrips = tripsToShow;
   const totalAvailablePages = Math.ceil(filteredAvailableTrips.length / itemsPerPage);
   const paginatedAvailableTrips = filteredAvailableTrips.slice(
     (currentPageAvailable - 1) * itemsPerPage,
@@ -802,9 +858,8 @@ export default function Dashboard() {
                       placeholder={TEXTS.search}
                       value={searchQuery}
                       onChange={(e) => {
-                        setSearchQuery(e.target.value);
+                        handleSearchChange(e.target.value);
                         setCurrentPageMyTrips(1);
-                        setCurrentPageAvailable(1);
                         setCurrentPageHistory(1);
                       }}
                       style={{
@@ -1089,10 +1144,12 @@ export default function Dashboard() {
 
               {activeTab === "available" && (
                 <>
-                  {filteredAvailableTrips.length === 0
+                  {isSearchingDestination ? (
+                    <EmptyState icon={<Loader2 size={28} style={{ animation: 'spin 1s linear infinite' }} />} title="Searching for recommendations..." subtitle="Finding trips that match your interests in this destination..." />
+                  ) : filteredAvailableTrips.length === 0
                     ? <EmptyState icon={<Compass size={28} />} title={searchQuery ? "No trips found" : "No public trips available"} subtitle={searchQuery ? "Try a different search" : "Be the first to create a trip."} action={() => searchQuery ? setSearchQuery("") : setActiveTab("create")} buttonText={searchQuery ? "Clear Search" : "Create Trip"} />
                     : <>
-                        <p className="discover-tip"><Globe size={13} /> Public trips others have opened up — join one to start traveling together</p>
+                        <p className="discover-tip"><Globe size={13} /> {destinationRecommendations.length > 0 ? "Recommended trips based on your interests" : "Public trips others have opened up — join one to start traveling together"}</p>
                         <div style={{ marginBottom: '1rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.88rem' }}>
                           Showing {((currentPageAvailable - 1) * itemsPerPage) + 1}–{Math.min(currentPageAvailable * itemsPerPage, filteredAvailableTrips.length)} of {filteredAvailableTrips.length} trips
                         </div>
@@ -1308,6 +1365,14 @@ function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView, kycAppro
             <span className="trip-meta-val">{trip.participants?.length || 0} joined</span>
           </div>
         </div>
+        {trip.match_count !== undefined && trip.match_count > 0 && (
+          <div className="trip-meta-item" style={{ backgroundColor: 'rgba(76, 175, 80, 0.15)' }}>
+            <div style={{ color: '#81c784', fontSize: '0.75rem', fontWeight: '600' }}>
+              <span className="trip-meta-label" style={{ color: 'rgba(129, 199, 132, 0.7)' }}>Match Score</span>
+              <span className="trip-meta-val" style={{ color: '#81c784' }}>{trip.match_count} people • {trip.avg_similarity}%</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="trip-actions">
