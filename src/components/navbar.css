@@ -1,0 +1,112 @@
+/* Navbar Styles */
+
+nav {
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #ffffff;
+}
+
+nav.sticky {
+  backdrop-filter: blur(10px);
+  background-color: rgba(10, 12, 22, 0.85) !important;
+}
+
+nav a {
+  color: #b3b3b3;
+  transition: color 0.2s ease;
+}
+
+nav a:hover {
+  color: #ffffff;
+}
+
+nav button {
+  color: #b3b3b3;
+  transition: color 0.2s ease;
+}
+
+nav button:hover {
+  color: #ffffff;
+}
+
+/* Override specific Tailwind classes */
+nav .bg-\[\#111\],
+nav .bg-\[\#0a0c16\],
+nav .bg-\[\rgba\(10\,12\,22\,0\.85\)\] {
+  background-color: transparent !important;
+}
+
+nav .bg-black {
+  background-color: transparent !important;
+}
+
+nav .text-white {
+  color: #ffffff;
+}
+
+nav .text-white\/80 {
+  color: #cccccc;
+}
+
+nav .text-white\/70 {
+  color: #b3b3b3;
+}
+
+nav .text-white\/50 {
+  color: #808080;
+}
+
+nav .text-slate-300 {
+  color: #cbd5e1;
+}
+
+nav .text-slate-400 {
+  color: #94a3b8;
+}
+
+nav .text-red-400,
+nav .text-red-300 {
+  color: #f87171;
+}
+
+nav .hover\:text-white:hover {
+  color: #ffffff !important;
+}
+
+nav .hover\:bg-white\/10:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+nav .border-white\/10 {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+nav .border-t {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+nav .border-b {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Avatar and icon styling */
+nav .bg-\[\#1976D2\] {
+  background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%) !important;
+}
+
+nav .ring-white\/10 {
+  --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Search bar styling */
+nav input,
+nav .text-slate-300::placeholder {
+  background-color: var(--surface-primary);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+nav input::placeholder {
+  color: var(--text-muted);
+}
+

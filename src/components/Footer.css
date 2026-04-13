@@ -1,0 +1,40 @@
+/* Footer Theme Styles */
+
+footer {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-secondary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+footer h4 {
+  color: var(--text-primary);
+}
+
+footer a {
+  color: var(--text-secondary);
+  transition: color 0.2s ease;
+}
+
+footer a:hover {
+  color: var(--text-primary);
+}
+
+footer .text-slate-300 {
+  color: var(--text-secondary);
+}
+
+footer .text-slate-400 {
+  color: var(--text-muted);
+}
+
+footer .text-white {
+  color: var(--text-primary);
+}
+
+footer .bg-slate-700 {
+  background-color: var(--border-primary);
+}
+
+footer .hover\:text-white:hover {
+  color: var(--text-primary);
+}

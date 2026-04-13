@@ -1,4 +1,5 @@
 import contentLogo from "../assets/content.png";
+import "./Footer.css";
 
 const FOOTER_SECTIONS = {
   company: {

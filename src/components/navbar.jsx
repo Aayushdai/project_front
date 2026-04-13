@@ -5,6 +5,7 @@ import { useAuthRequired } from "../hooks/useAuthRequired";
 import logo from "../assets/content.png";
 import UserSearchBar from "./UserSearchBar";
 import NotificationBell from "./NotificationBell";
+import "./navbar.css";
 import { apiFetch, getBaseUrl, getToken } from "../utils/api";
 
 const NAV_LINKS = [

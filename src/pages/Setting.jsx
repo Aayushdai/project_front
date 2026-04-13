@@ -16,6 +16,9 @@ const icons = {
   notifications: <Icon><path d="M8 2a5 5 0 00-5 5v2.5L2 11h12l-1-1.5V7a5 5 0 00-5-5z" /><path d="M6.5 13.5a1.5 1.5 0 003 0" /></Icon>,
   privacy: <Icon><path d="M8 1.5L2.5 4v4c0 3.5 2.5 5.5 5.5 6.5 3-1 5.5-3 5.5-6.5V4L8 1.5z" /></Icon>,
   security: <Icon><circle cx="8" cy="8" r="5.5" /><path d="M8 5.5v3l2 1.5" /></Icon>,
+  appearance: <Icon><path d="M2.5 4.5c0-1.1.9-2 2-2h7c1.1 0 2 .9 2 2v7c0 1.1-.9 2-2 2h-7c-1.1 0-2-.9-2-2v-7z" /><path d="M5.5 8L8 5.5l2.5 2.5M8 5.5v5" /></Icon>,
+  moon: <Icon><path d="M14 8.3a6.5 6.5 0 01-9.1-6.2 6.5 6.5 0 009.1 6.2z" /></Icon>,
+  sun: <Icon><path d="M8 2v4M8 10v4M3.5 8h4M9.5 8h4M4.6 4.6L7 2.2M11 9.9l2.4 2.4M11 6.1l2.4-2.4M7 11.9l-2.4 2.4" /></Icon>,
   logout: <Icon><path d="M10.5 8H4m0 0l2-2M4 8l2 2" /><path d="M7 3H3.5a1 1 0 00-1 1v8a1 1 0 001 1H7" /></Icon>,
   eye: <Icon><path d="M1.5 8s2.5-4.5 6.5-4.5S14.5 8 14.5 8s-2.5 4.5-6.5 4.5S1.5 8 1.5 8z" /><circle cx="8" cy="8" r="1.5" /></Icon>,
   eyeOff: <Icon><path d="M1.5 1.5l13 13M6.5 6.7a2 2 0 002.8 2.8M4.2 4.3C2.7 5.4 1.5 8 1.5 8s2.5 4.5 6.5 4.5c1.3 0 2.5-.4 3.5-1M8 3.5C11.8 3.5 14.5 8 14.5 8s-.7 1.3-1.8 2.4" /></Icon>,
@@ -107,6 +110,7 @@ export default function SettingPage() {
     searchableByEmail: true,
     showOnlineStatus: false,
     shareTripActivity: true,
+    darkMode: true,
   });
 
   // Account deletion
@@ -151,6 +155,7 @@ export default function SettingPage() {
           publicProfile: prefsData.publicProfile,
           searchableByEmail: prefsData.searchableByEmail,
           showOnlineStatus: prefsData.showOnlineStatus,
+          darkMode: prefsData.darkMode ?? true,
         });
       } catch {
         showToast("error", "Failed to load user data");
@@ -200,6 +205,7 @@ export default function SettingPage() {
   const handlePrefChange = async (key) => {
     const updated = { ...prefs, [key]: !prefs[key] };
     setPrefs(updated);
+    
     try {
       // Only send backend-supported preferences
       const backendPrefs = {
@@ -210,6 +216,7 @@ export default function SettingPage() {
         searchableByEmail: updated.searchableByEmail,
         showOnlineStatus: updated.showOnlineStatus,
         shareTripActivity: updated.shareTripActivity,
+        darkMode: updated.darkMode,
       };
       
       const res = await fetch(`${getBaseUrl()}api/users/me/preferences/`, {
@@ -292,15 +299,16 @@ export default function SettingPage() {
     { id: "profile",       label: "Profile",       icon: icons.profile,       group: "Account" },
     { id: "password",      label: "Password",      icon: icons.password,      group: "Account" },
     { id: "notifications", label: "Notifications", icon: icons.notifications, group: "Account" },
-    { id: "privacy",       label: "Privacy",       icon: icons.privacy,       group: "Privacy" },
-    { id: "security",      label: "Security",      icon: icons.security,      group: "Privacy" },
+    { id: "appearance",    label: "Appearance",    icon: icons.appearance,    group: "Preferences" },
+    { id: "privacy",       label: "Privacy",       icon: icons.privacy,       group: "Preferences" },
+    { id: "security",      label: "Security",      icon: icons.security,      group: "Preferences" },
   ];
-  const groups = ["Account", "Privacy"];
+  const groups = ["Account", "Preferences"];
 
   if (loading) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
-        <p style={{ color: "#6a6a7a" }}>Loading…</p>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", backgroundColor: "var(--bg-primary)" }}>
+        <p style={{ color: "var(--text-muted)" }}>Loading…</p>
       </div>
     );
   }
@@ -312,7 +320,7 @@ export default function SettingPage() {
         .sg-root {
           display: flex;
           min-height: 100vh;
-          background: #07080f;
+          background: #0a0c16;
           font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
         }
 
@@ -320,8 +328,8 @@ export default function SettingPage() {
         .sg-sidebar {
           width: 224px;
           flex-shrink: 0;
-          background: #090b14;
-          border-right: 1px solid #171a28;
+          background: #111318;
+          border-right: 1px solid rgba(255, 255, 255, 0.08);
           display: flex;
           flex-direction: column;
           position: sticky;
@@ -330,10 +338,10 @@ export default function SettingPage() {
         }
         .sg-sidebar-header {
           padding: 28px 20px 20px;
-          border-bottom: 1px solid #171a28;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .sg-sidebar-title { font-size: 18px; font-weight: 500; color: #f0ece0; }
-        .sg-sidebar-sub   { font-size: 12px; color: #44445a; margin-top: 3px; }
+        .sg-sidebar-title { font-size: 18px; font-weight: 500; color: #ffffff; }
+        .sg-sidebar-sub   { font-size: 12px; color: #999999; margin-top: 3px; }
         .sg-nav { padding: 16px 10px; flex: 1; overflow-y: auto; }
         .sg-nav-section {
           font-size: 10px; font-weight: 500; color: #c8b882;
@@ -345,19 +353,19 @@ export default function SettingPage() {
           display: flex; align-items: center; gap: 10px;
           padding: 9px 10px; border-radius: 9px; cursor: pointer;
           transition: background 0.12s; margin-bottom: 2px;
-          color: #5a5a70; border: none; background: none; width: 100%; text-align: left;
+          color: #999999; border: none; background: none; width: 100%; text-align: left;
         }
-        .sg-nav-item:hover { background: #111425; color: #a0a0b8; }
-        .sg-nav-item--active { background: #14172a !important; color: #f0ece0 !important; }
+        .sg-nav-item:hover { background: #1a1d26; color: #cccccc; }
+        .sg-nav-item--active { background: #1a1d26 !important; color: #ffffff !important; }
         .sg-nav-item--active svg { color: #c8b882 !important; }
         .sg-nav-label { font-size: 13px; font-weight: 400; }
         .sg-nav-item--active .sg-nav-label { font-weight: 500; }
         .sg-sidebar-footer {
           padding: 12px 10px;
-          border-top: 1px solid #171a28;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
         }
-        .sg-nav-item--danger { color: #904040 !important; }
-        .sg-nav-item--danger:hover { background: #1a0e0e !important; color: #c05050 !important; }
+        .sg-nav-item--danger { color: #f87171 !important; }
+        .sg-nav-item--danger:hover { background: rgba(192, 80, 80, 0.1) !important; color: #f87171 !important; }
 
         /* CONTENT */
         .sg-content {
@@ -365,9 +373,10 @@ export default function SettingPage() {
           padding: 40px 44px;
           overflow-y: auto;
           max-width: 680px;
+          background: #0a0c16;
         }
-        .sg-panel-title { font-size: 22px; font-weight: 500; color: #f0ece0; margin-bottom: 4px; }
-        .sg-panel-sub   { font-size: 13px; color: #5a5a70; margin-bottom: 28px; }
+        .sg-panel-title { font-size: 22px; font-weight: 500; color: #ffffff; margin-bottom: 4px; }
+        .sg-panel-sub   { font-size: 13px; color: #999999; margin-bottom: 28px; }
 
         /* TOAST */
         .sg-toast {
@@ -375,26 +384,26 @@ export default function SettingPage() {
           padding: 11px 14px; border-radius: 9px; font-size: 13px;
           margin-bottom: 20px;
         }
-        .sg-toast--success { background: #0a1a0f; border: 1px solid #1a4025; color: #60b870; }
-        .sg-toast--error   { background: #1a0a0a; border: 1px solid #4a1818; color: #e06060; }
+        .sg-toast--success { background: rgba(80, 160, 96, 0.1); border: 1px solid rgba(80, 160, 96, 0.3); color: #50a060; }
+        .sg-toast--error   { background: rgba(192, 80, 80, 0.1); border: 1px solid rgba(192, 80, 80, 0.3); color: #f87171; }
 
         /* AVATAR BLOCK */
         .sg-avatar-block {
           display: flex; align-items: center; gap: 20px;
-          padding: 20px; background: #0c0e1a;
-          border: 1px solid #1e2235; border-radius: 12px; margin-bottom: 22px;
+          padding: 20px; background: #111318;
+          border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; margin-bottom: 22px;
         }
         .sg-avatar {
           width: 64px; height: 64px; border-radius: 50%;
-          background: linear-gradient(135deg, #c8b882 0%, #7a6030 100%);
+          background: linear-gradient(135deg, #c8b882 0%, #a69863 100%);
           display: flex; align-items: center; justify-content: center;
-          font-size: 22px; font-weight: 500; color: #0d0f1c;
+          font-size: 22px; font-weight: 500; color: #0a0c16;
           flex-shrink: 0; border: 2px solid #c8b882;
           user-select: none;
         }
-        .sg-avatar-name  { font-size: 15px; font-weight: 500; color: #f0ece0; }
-        .sg-avatar-email { font-size: 13px; color: #5a5a70; margin-top: 2px; }
-        .sg-avatar-meta  { font-size: 12px; color: #3a3a50; margin-top: 3px; }
+        .sg-avatar-name  { font-size: 15px; font-weight: 500; color: #ffffff; }
+        .sg-avatar-email { font-size: 13px; color: #999999; margin-top: 2px; }
+        .sg-avatar-meta  { font-size: 12px; color: #666666; margin-top: 3px; }
 
         /* FORM */
         .sg-form-row {
@@ -403,19 +412,19 @@ export default function SettingPage() {
         .sg-form-group { margin-bottom: 16px; }
         .sg-label {
           display: block; font-size: 11px; font-weight: 500;
-          color: #8a8070; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 7px;
+          color: #666666; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 7px;
         }
         .sg-input {
           width: 100%; padding: 10px 14px;
-          background: #0c0e1a; border: 1px solid #1e2235;
-          border-radius: 9px; color: #e8e4d8; font-size: 14px;
+          background: #111318; border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 9px; color: #ffffff; font-size: 14px;
           outline: none; transition: border-color 0.15s;
           font-family: inherit;
         }
         .sg-input:focus  { border-color: #c8b882; }
-        .sg-input::placeholder { color: #2e2e42; }
-        .sg-input:disabled { color: #2e2e42; cursor: not-allowed; }
-        .sg-hint { font-size: 11px; color: #3a3a50; margin-top: 5px; }
+        .sg-input::placeholder { color: #999999; }
+        .sg-input:disabled { color: #999999; cursor: not-allowed; }
+        .sg-hint { font-size: 11px; color: #666666; margin-top: 5px; }
         textarea.sg-input { resize: none; }
 
         /* PASSWORD FIELD */
@@ -423,7 +432,7 @@ export default function SettingPage() {
         .sg-pw-wrap .sg-input { padding-right: 42px; }
         .sg-eye-btn {
           position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-          background: none; border: none; cursor: pointer; color: #3a3a50;
+          background: none; border: none; cursor: pointer; color: #666666;
           display: flex; align-items: center; padding: 0;
           transition: color 0.15s;
         }
@@ -431,7 +440,7 @@ export default function SettingPage() {
 
         /* PW STRENGTH */
         .sg-pw-bar-wrap {
-          height: 3px; background: #1e2235; border-radius: 2px;
+          height: 3px; background: rgba(255, 255, 255, 0.1); border-radius: 2px;
           margin-top: 6px; overflow: hidden;
         }
         .sg-pw-bar { height: 100%; border-radius: 2px; transition: width 0.2s, background 0.2s; }
@@ -442,42 +451,42 @@ export default function SettingPage() {
           border-radius: 9px; cursor: pointer; transition: all 0.15s;
           border: none; font-family: inherit;
         }
-        .sg-btn--gold    { background: #c8b882; color: #0d0f1c; }
-        .sg-btn--gold:hover { background: #d4c892; }
-        .sg-btn--outline { background: transparent; color: #c8b882; border: 1px solid #2e3150; }
-        .sg-btn--outline:hover { background: #14172a; }
-        .sg-btn--danger  { background: transparent; color: #c05050; border: 1px solid #3a1818; }
-        .sg-btn--danger:hover { background: #140808; }
+        .sg-btn--gold    { background: #c8b882; color: #0a0c16; }
+        .sg-btn--gold:hover { opacity: 0.9; }
+        .sg-btn--outline { background: transparent; color: #c8b882; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .sg-btn--outline:hover { background: #1a1d26; }
+        .sg-btn--danger  { background: transparent; color: #f87171; border: 1px solid rgba(192, 80, 80, 0.3); }
+        .sg-btn--danger:hover { background: rgba(192, 80, 80, 0.1); }
         .sg-btn--full    { width: 100%; padding: 11px; }
         .sg-btn-row      { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
 
         /* CARDS */
         .sg-card {
-          background: #0c0e1a; border: 1px solid #1e2235;
+          background: #111318; border: 1px solid rgba(255, 255, 255, 0.1);
           border-radius: 10px; overflow: hidden; margin-bottom: 12px;
         }
 
         /* TOGGLE ROW */
         .sg-toggle-row {
           display: flex; align-items: center; justify-content: space-between;
-          padding: 14px 16px; border-bottom: 1px solid #171a28;
+          padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .sg-card > .sg-toggle-row:last-child { border-bottom: none; }
-        .sg-toggle-label { font-size: 14px; color: #d0ccc0; }
-        .sg-toggle-desc  { font-size: 12px; color: #4a4a5a; margin-top: 2px; }
+        .sg-toggle-label { font-size: 14px; color: #cccccc; }
+        .sg-toggle-desc  { font-size: 12px; color: #999999; margin-top: 2px; }
         .sg-toggle {
           width: 40px; height: 22px; border-radius: 11px;
-          background: #1a1d2e; border: 1px solid #2a2d42;
+          background: #1a1d26; border: 1px solid rgba(255, 255, 255, 0.1);
           position: relative; cursor: pointer; flex-shrink: 0;
           transition: background 0.2s, border-color 0.2s;
         }
         .sg-toggle--on  { background: #c8b882; border-color: #c8b882; }
         .sg-toggle-knob {
           width: 16px; height: 16px; border-radius: 50%;
-          background: #3a3a55; position: absolute; top: 2px; left: 2px;
+          background: #1a1d26; position: absolute; top: 2px; left: 2px;
           transition: left 0.18s, background 0.18s; display: block;
         }
-        .sg-toggle--on .sg-toggle-knob { left: 20px; background: #0d0f1c; }
+        .sg-toggle--on .sg-toggle-knob { left: 20px; background: #0a0c16; }
 
         /* SECTION LABEL */
         .sg-section-label {
@@ -489,32 +498,52 @@ export default function SettingPage() {
         /* SECURITY ROWS */
         .sg-sec-row {
           display: flex; align-items: center; gap: 14px;
-          padding: 14px 16px; border-bottom: 1px solid #171a28;
+          padding: 14px 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
         .sg-card > .sg-sec-row:last-child { border-bottom: none; }
         .sg-sec-icon {
           width: 34px; height: 34px; border-radius: 8px;
           display: flex; align-items: center; justify-content: center; flex-shrink: 0;
         }
-        .sg-sec-label { font-size: 14px; color: #d0ccc0; flex: 1; }
-        .sg-sec-sub   { font-size: 12px; color: #4a4a5a; margin-top: 1px; }
+        .sg-sec-label { font-size: 14px; color: #cccccc; flex: 1; }
+        .sg-sec-sub   { font-size: 12px; color: #999999; margin-top: 1px; }
         .sg-badge {
           padding: 3px 10px; border-radius: 6px; font-size: 11px;
           font-weight: 500; white-space: nowrap;
         }
-        .sg-badge--red   { background: #1a0a0a; color: #c05050; border: 1px solid #3a1515; }
-        .sg-badge--gold  { background: #1a1505; color: #c8b882; border: 1px solid #3a2e10; }
-        .sg-badge--green { background: #0a150a; color: #50a050; border: 1px solid #153515; }
+        .sg-badge--red   { background: rgba(192, 80, 80, 0.1); color: #f87171; border: 1px solid rgba(192, 80, 80, 0.3); }
+        .sg-badge--gold  { background: rgba(200, 184, 130, 0.1); color: #c8b882; border: 1px solid rgba(200, 184, 130, 0.3); }
+        .sg-badge--green { background: rgba(80, 160, 96, 0.1); color: #50a060; border: 1px solid rgba(80, 160, 96, 0.3); }
 
         /* DANGER ZONE */
         .sg-danger-zone {
-          background: #0c0e1a; border: 1px solid #3a1818;
+          background: #111318; border: 1px solid rgba(192, 80, 80, 0.3);
           border-radius: 12px; padding: 20px; margin-top: 20px;
         }
-        .sg-danger-title { font-size: 14px; font-weight: 500; color: #e06060; margin-bottom: 4px; }
-        .sg-danger-desc  { font-size: 13px; color: #5a3a3a; margin-bottom: 16px; line-height: 1.6; }
+        .sg-danger-title { font-size: 14px; font-weight: 500; color: #f87171; margin-bottom: 4px; }
+        .sg-danger-desc  { font-size: 13px; color: #999999; margin-bottom: 16px; line-height: 1.6; }
 
-        .sg-divider { border: none; border-top: 1px solid #171a28; margin: 24px 0; }
+        .sg-divider { border: none; border-top: 1px solid rgba(255, 255, 255, 0.08); margin: 24px 0; }
+
+        /* THEME TOGGLE */
+        .sg-theme-group {
+          display: flex; gap: 12px; margin-bottom: 20px;
+        }
+        .sg-theme-btn {
+          flex: 1; padding: 16px; border-radius: 10px;
+          border: 2px solid rgba(255, 255, 255, 0.1); background: #111318;
+          cursor: pointer; transition: all 0.2s;
+          display: flex; align-items: center; justify-content: center; gap: 10px;
+          font-weight: 500; font-size: 14px;
+          color: #999999;
+        }
+        .sg-theme-btn:hover {
+          border-color: rgba(255, 255, 255, 0.1); color: #cccccc;
+        }
+        .sg-theme-btn--active {
+          background: linear-gradient(135deg, #c8b882 0%, #a69863 100%);
+          color: #0a0c16 !important; border-color: #c8b882 !important;
+        }
 
         @media (max-width: 640px) {
           .sg-sidebar { width: 60px; }
@@ -772,6 +801,43 @@ export default function SettingPage() {
             </section>
           )}
 
+          {/* ── APPEARANCE ── */}
+          {activePanel === "appearance" && (
+            <section>
+              <h1 className="sg-panel-title">Appearance</h1>
+              <p className="sg-panel-sub">Customize how the app looks and feels</p>
+
+              <div className="sg-section-label">Theme</div>
+              <div className="sg-theme-group">
+                <button
+                  type="button"
+                  className={`sg-theme-btn sg-theme-btn--light ${!prefs.darkMode ? "sg-theme-btn--active" : ""}`}
+                  onClick={() => handlePrefChange("darkMode")}
+                >
+                  {icons.sun}
+                  Light
+                </button>
+                <button
+                  type="button"
+                  className={`sg-theme-btn sg-theme-btn--dark ${prefs.darkMode ? "sg-theme-btn--active" : ""}`}
+                  onClick={() => handlePrefChange("darkMode")}
+                >
+                  {icons.moon}
+                  Dark
+                </button>
+              </div>
+
+              <div className="sg-card">
+                <ToggleRow 
+                  label="Dark mode" 
+                  desc="Use dark theme throughout the application"
+                  on={prefs.darkMode} 
+                  onChange={() => handlePrefChange("darkMode")} 
+                />
+              </div>
+            </section>
+          )}
+
           {/* ── PRIVACY ── */}
           {activePanel === "privacy" && (
             <section>
@@ -902,24 +968,24 @@ export default function SettingPage() {
             zIndex: 1000,
           }}>
             <div style={{
-              background: "#1a1a2e",
+              background: "var(--surface-primary)",
               borderRadius: "12px",
               padding: "24px",
               maxWidth: "400px",
               width: "90%",
               boxShadow: "0 20px 60px rgba(0, 0, 0, 0.8)",
             }}>
-              <h2 style={{ margin: "0 0 8px 0", color: "#fff", fontSize: "18px", fontWeight: 600 }}>
+              <h2 style={{ margin: "0 0 8px 0", color: "var(--text-primary)", fontSize: "18px", fontWeight: 600 }}>
                 Enter your password
               </h2>
-              <p style={{ margin: "0 0 16px 0", color: "#aaa", fontSize: "14px" }}>
+              <p style={{ margin: "0 0 16px 0", color: "var(--text-secondary)", fontSize: "14px" }}>
                 For security, please confirm your password to delete your account permanently.
               </p>
 
               {deleteModal.error && (
                 <div style={{
-                  background: "#c05050",
-                  color: "#fff",
+                  background: "rgba(192, 80, 80, 0.1)",
+                  color: "var(--status-error)",
                   padding: "12px",
                   borderRadius: "6px",
                   marginBottom: "16px",
@@ -940,10 +1006,10 @@ export default function SettingPage() {
                   width: "100%",
                   padding: "10px 12px",
                   marginBottom: "16px",
-                  background: "#262641",
-                  border: "1px solid #3a3a50",
+                  background: "var(--surface-secondary)",
+                  border: "1px solid var(--border-primary)",
                   borderRadius: "6px",
-                  color: "#fff",
+                  color: "var(--text-primary)",
                   fontSize: "14px",
                   boxSizing: "border-box",
                 }}
@@ -956,9 +1022,9 @@ export default function SettingPage() {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#3a3a50",
-                    color: "#fff",
-                    border: "none",
+                    background: "var(--surface-secondary)",
+                    color: "var(--text-primary)",
+                    border: "1px solid var(--border-primary)",
                     borderRadius: "6px",
                     cursor: deleteModal.loading ? "not-allowed" : "pointer",
                     fontSize: "14px",
@@ -974,7 +1040,7 @@ export default function SettingPage() {
                   style={{
                     flex: 1,
                     padding: "10px",
-                    background: "#c05050",
+                    background: "var(--status-error)",
                     color: "#fff",
                     border: "none",
                     borderRadius: "6px",
