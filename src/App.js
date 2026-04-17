@@ -26,6 +26,7 @@ import KYCForm from "./pages/KYCForm";
 import KYCAdminDashboard from "./pages/KYCAdminDashboard";
 import DebugAuth from "./pages/DebugAuth";
 import Setting from "./pages/Setting";
+import StatsPage from "./pages/StatsPage";
 
 function PrivateRoute({ children }) {
   const { user } = useAuth();
@@ -72,6 +73,7 @@ function Layout() {
 
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/kyc" element={<AdminRoute><KYCAdminDashboard /></AdminRoute>} />
+        <Route path="/admin/visual" element={<AdminRoute><StatsPage /></AdminRoute>} />
       </Routes>
       {!hideNav && <Footer />}
     </>

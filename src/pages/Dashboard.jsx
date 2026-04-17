@@ -1045,7 +1045,7 @@ export default function Dashboard() {
                               {inv.trip?.title || 'Trip'}
                             </h3>
                             <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>
-                              📍 {inv.trip?.destination || 'Destination unknown'}
+                              📍 {inv.trip?.destination?.name || 'Destination unknown'}
                             </p>
                             <p style={{ margin: '0.25rem 0', color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
                               Invited by <strong>{inv.invited_by?.user?.first_name || 'Someone'}</strong>

@@ -127,14 +127,44 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
   };
 
   /**
-   * Filter people by search query
+   * Filter and sort people by search query and priority
+   * Priority: 1) Friends 2) Similar interests 3) Name match
    */
-  const filteredPeople = suggestedPeople.filter(person =>
-    person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    person.interests.some(interest =>
-      interest.toLowerCase().includes(searchQuery.toLowerCase())
-    )
-  );
+  const filteredPeople = suggestedPeople
+    .filter(person => {
+      // If search is empty, show all
+      if (!searchQuery.trim()) return true;
+      // Otherwise filter by name or interests
+      return (
+        person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        person.interests.some(interest =>
+          interest.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    })
+    .sort((a, b) => {
+      const query = searchQuery.toLowerCase().trim();
+      
+      // 1. Friends first
+      const aIsFriend = a.is_friend ? 1 : 0;
+      const bIsFriend = b.is_friend ? 1 : 0;
+      if (aIsFriend !== bIsFriend) return bIsFriend - aIsFriend;
+      
+      // 2. For name search, prioritize exact/close name matches
+      if (query) {
+        const aNameMatch = a.name.toLowerCase().includes(query) ? 1 : 0;
+        const bNameMatch = b.name.toLowerCase().includes(query) ? 1 : 0;
+        if (aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
+      }
+      
+      // 3. Sort by similarity (high first)
+      const aSimilarity = a.similarity || 0;
+      const bSimilarity = b.similarity || 0;
+      if (aSimilarity !== bSimilarity) return bSimilarity - aSimilarity;
+      
+      // 4. Fallback: alphabetical by name
+      return a.name.localeCompare(b.name);
+    });
 
   /**
    * Invite a person to the trip
@@ -420,21 +450,28 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
                 </div>
               ) : (
                 <div className="invite-people-list">
-                  {filteredPeople.map((person) => (
+                  {filteredPeople.map((person) => {
+                    const baseUrl = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/").replace('/api/', '');
+                    const profilePicUrl = person.profile_picture && (
+                      person.profile_picture.startsWith('http') 
+                        ? person.profile_picture 
+                        : `${baseUrl}${person.profile_picture}`
+                    );
+                    return (
                     <div key={person.id} className="invite-person-card">
                       <div
                         className="invite-person-avatar"
                         style={
-                          person.profile_pic || person.profile_picture
+                          profilePicUrl
                             ? {
-                                backgroundImage: `url(${person.profile_pic || person.profile_picture})`,
+                                backgroundImage: `url(${profilePicUrl})`,
                                 backgroundSize: "cover",
                                 backgroundPosition: "center",
                               }
                             : {}
                         }
                       >
-                        {!person.profile_pic && !person.profile_picture && person.avatar}
+                        {!profilePicUrl && person.avatar}
                       </div>
                       <div className="invite-person-content">
                         <p className="invite-person-name">{person.name}</p>
@@ -467,7 +504,8 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
                         )}
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -589,6 +627,7 @@ const inviteModalStyles = `
     flex-direction: column;
     animation: slideUp 0.3s ease-out;
     overflow: hidden;
+    margin-top: 4rem;
   }
 
   @keyframes slideUp {

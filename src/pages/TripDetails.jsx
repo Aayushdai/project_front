@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import TripInviteModal from "../components/TripInviteModal";
+import TripPhotos from "../components/TripPhotos";
 
 // ─── Palette ────────────────────────────────────────────────────────────────
 const C = {
@@ -63,16 +64,21 @@ const TEXTS = {
 const fmt = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
-function Avatar({ name = "?", size = 36, style = {} }) {
+function Avatar({ name = "?", size = 36, style = {}, src = null }) {
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+  const baseUrl = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/").replace('/api/', '');
+  const imageUrl = src && (src.startsWith("http") ? src : `${baseUrl}${src}`);
+  
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%", flexShrink: 0,
       background: `linear-gradient(135deg, ${C.gold}, ${C.goldDim})`,
       display: "flex", alignItems: "center", justifyContent: "center",
       fontSize: size * 0.36, fontWeight: 600, color: "#0d0f1c",
-      letterSpacing: "-0.5px", ...style
-    }}>{initials}</div>
+      letterSpacing: "-0.5px", overflow: "hidden", ...style
+    }}>
+      {imageUrl ? <img src={imageUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
+    </div>
   );
 }
 
@@ -593,8 +599,8 @@ export default function TripDetail() {
             {trip.participants?.length > 0 ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
                 {trip.participants.map(p => (
-                  <div key={p.id} className="td-participant" style={{ display: "flex", gap: 12, padding: "12px 14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, transition: "border-color 0.15s, background 0.15s", cursor: "default" }}>
-                    <Avatar name={`${p.first_name} ${p.last_name}`} size={38} />
+                  <div key={p.id} className="td-participant" onClick={() => navigate(`/user/${p.id}`)} style={{ display: "flex", gap: 12, padding: "12px 14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, transition: "border-color 0.15s, background 0.15s", cursor: "pointer" }}>
+                    <Avatar name={`${p.first_name} ${p.last_name}`} size={38} src={p.profile_picture} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {p.first_name} {p.last_name}
@@ -610,6 +616,13 @@ export default function TripDetail() {
               <p style={{ fontSize: 13, color: C.textMuted, textAlign: "center", padding: "24px 0" }}>{TEXTS.noParticipants}</p>
             )}
           </div>
+
+          {/* ════ TRIP PHOTOS ════ */}
+          <TripPhotos
+            tripId={trip.id}
+            isCompleted={isTripCompleted}
+            currentUserId={userProfileId}
+          />
 
           {/* ── REVIEWS ── */}
           {isTripCompleted && (
