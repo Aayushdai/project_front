@@ -285,7 +285,7 @@ export default function UserProfile() {
     if (userData?.id) fetchUserPhotos();
   }, [userData?.id]);
 
-
+  const sendFriendRequest = async () => {
     if (!userData) return;
     try {
       setActionLoading(true);
