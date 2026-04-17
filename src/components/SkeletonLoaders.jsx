@@ -299,3 +299,44 @@ export const StatsCardSkeleton = () => (
     ))}
   </div>
 );
+
+// ============================================
+// PHOTO GALLERY SKELETON
+// ============================================
+export const PhotoGallerySkeleton = () => (
+  <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden mb-12">
+    {/* Gallery Header */}
+    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+      <div className="skeleton-base" style={{ height: '0.8rem', width: '120px' }} />
+    </div>
+
+    {/* Gallery Content */}
+    <div style={{ padding: '1.5rem' }}>
+      {/* Trip Group 1 */}
+      <div style={{ marginBottom: '2rem' }}>
+        {/* Trip Header */}
+        <div className="skeleton-base" style={{ height: '2rem', marginBottom: '1rem', width: '180px', borderRadius: '8px' }} />
+        
+        {/* Photos Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
+          {[1, 2, 3].map(i => (
+            <div key={i} className="skeleton-base" style={{ aspectRatio: '1', borderRadius: '8px' }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Trip Group 2 */}
+      <div>
+        {/* Trip Header */}
+        <div className="skeleton-base" style={{ height: '2rem', marginBottom: '1rem', width: '200px', borderRadius: '8px' }} />
+        
+        {/* Photos Grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="skeleton-base" style={{ aspectRatio: '1', borderRadius: '8px' }} />
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+);

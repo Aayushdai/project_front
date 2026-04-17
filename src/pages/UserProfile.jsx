@@ -21,7 +21,7 @@ import {
   Clock,
   Image,
 } from "lucide-react";
-import { ProfileHeaderSkeleton, ProfileFriendsListSkeleton } from "../components/SkeletonLoaders";
+import { ProfileHeaderSkeleton, ProfileFriendsListSkeleton, PhotoGallerySkeleton } from "../components/SkeletonLoaders";
 
 const API_URL = "http://127.0.0.1:8000";
 const FONTS = {
@@ -695,7 +695,9 @@ export default function UserProfile() {
               )}
 
               {/* Trip Photos Gallery */}
-              {userPhotos.length > 0 && (
+              {photosLoading ? (
+                <PhotoGallerySkeleton />
+              ) : userPhotos.length > 0 ? (
                 <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden mb-12">
                   <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-6 pt-4 pb-3 flex items-center gap-2">
                     <Image className="w-4 h-4" />
@@ -774,7 +776,7 @@ export default function UserProfile() {
                     })()}
                   </div>
                 </div>
-              )}
+              ) : null}
             </div>
             </div>
 
