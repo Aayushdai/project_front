@@ -447,7 +447,9 @@ function ProfilePage() {
         
         const photos = [];
         for (const trip of tripsList) {
-          if (new Date(trip.end_date) < new Date()) {
+          // Check if trip is completed (using boolean flag OR past end_date)
+          const isTripCompleted = trip.is_completed || new Date(trip.end_date) < new Date();
+          if (isTripCompleted) {
             try {
               const photoRes = await fetch(`${API}trips/${trip.id}/photos/`, {
                 headers: { Authorization: `Bearer ${token()}` }
@@ -455,8 +457,11 @@ function ProfilePage() {
               if (photoRes.ok) {
                 const photoData = await photoRes.json();
                 const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
+                // Only include photos uploaded by the current user
                 tripPhotos.forEach(photo => {
-                  photos.push({ ...photo, trip });
+                  if (photo.uploaded_by === profile.id) {
+                    photos.push({ ...photo, trip });
+                  }
                 });
               }
             } catch (e) {
@@ -593,41 +598,81 @@ function ProfilePage() {
               {/* Trip Photos Gallery */}
               {userPhotos.length > 0 && (
                 <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden">
-                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-5 pt-4 pb-3 flex items-center gap-2">
+                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-6 pt-4 pb-3 flex items-center gap-2">
                     <Image className="w-4 h-4" />
                     Trip Photos
                   </p>
-                  <div className="px-5 pb-5 space-y-4">
-                    {userPhotos.map((photo) => (
-                      <div key={photo.id} className="rounded-lg overflow-hidden border border-white/8 bg-white/2 hover:border-[#C9A84C]/30 transition cursor-pointer group">
-                        {/* Photo */}
-                        <div className="relative aspect-video overflow-hidden bg-black/20">
-                          <img
-                            src={photo.image}
-                            alt={photo.caption || "trip photo"}
-                            className="w-full h-full object-cover group-hover:scale-105 transition"
-                          />
-                        </div>
-                        {/* Trip Info */}
-                        <div className="p-3 space-y-2">
-                          {photo.caption && (
-                            <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/80">
-                              {photo.caption}
-                            </p>
-                          )}
-                          {photo.trip && (
+                  <div className="px-6 pb-6 space-y-8">
+                    {/* Group photos by trip */}
+                    {(() => {
+                      // Group photos by trip ID
+                      const grouped = {};
+                      userPhotos.forEach(photo => {
+                        const tripId = photo.trip?.id || 'no-trip';
+                        if (!grouped[tripId]) {
+                          grouped[tripId] = {
+                            trip: photo.trip,
+                            photos: []
+                          };
+                        }
+                        grouped[tripId].photos.push(photo);
+                      });
+                      
+                      return Object.values(grouped).map((group) => (
+                        <div key={group.trip?.id || 'no-trip'} className="space-y-3">
+                          {/* Trip Header */}
+                          {group.trip && (
                             <Link
-                              to={`/trip/${photo.trip.id}`}
+                              to={`/trip/${group.trip.id}`}
                               style={{ fontFamily: FONTS.body }}
-                              className="text-xs font-semibold text-[#C9A84C] hover:text-[#e8c96d] transition flex items-center gap-1"
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 transition"
                             >
-                              <MapPin className="w-3 h-3" />
-                              {photo.trip.destination?.name || "Trip"} • {new Date(photo.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                              <MapPin className="w-4 h-4 text-[#C9A84C]" />
+                              <span className="font-semibold text-[#C9A84C] text-sm">
+                                {group.trip.destination?.name || "Trip"} ({group.photos.length} photo{group.photos.length !== 1 ? 's' : ''})
+                              </span>
                             </Link>
                           )}
+                          
+                          {/* Photos Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {group.photos.map((photo, idx) => (
+                              <div 
+                                key={photo.id}
+                                className="rounded-lg overflow-hidden border border-white/8 bg-white/2 hover:border-[#C9A84C]/30 transition cursor-pointer group"
+                              >
+                                {/* Photo */}
+                                <div className="relative aspect-square overflow-hidden bg-black/20">
+                                  <img
+                                    src={photo.image}
+                                    alt={photo.caption || "trip photo"}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                                  />
+                                  {/* Badge showing this is from a group */}
+                                  {group.photos.length > 1 && idx === 0 && (
+                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-semibold">
+                                      +{group.photos.length - 1}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Caption on hover */}
+                                {photo.caption && (
+                                  <div className="p-2 hidden group-hover:block">
+                                    <p 
+                                      style={{ fontFamily: FONTS.body }} 
+                                      className="text-xs text-white/80"
+                                    >
+                                      {photo.caption}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ));
+                    })()}
                   </div>
                 </div>
               )}
