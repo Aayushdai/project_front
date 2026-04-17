@@ -255,24 +255,22 @@ export default function UserProfile() {
         
         const photos = [];
         for (const trip of tripsList) {
-          // Only show photos from completed trips
-          const isTripCompleted = trip.is_completed || new Date(trip.end_date) < new Date();
-          if (isTripCompleted) {
-            try {
-              const photoRes = await fetch(`http://127.0.0.1:8000/api/trips/${trip.id}/photos/`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-              });
-              if (photoRes.ok) {
-                const photoData = await photoRes.json();
-                const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
-                // Include all photos from this user's trips
-                tripPhotos.forEach(photo => {
+          try {
+            const photoRes = await fetch(`http://127.0.0.1:8000/api/trips/${trip.id}/photos/`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (photoRes.ok) {
+              const photoData = await photoRes.json();
+              const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
+              // Only include photos uploaded by this user
+              tripPhotos.forEach(photo => {
+                if (photo.uploaded_by === userData.id) {
                   photos.push({ ...photo, trip });
-                });
-              }
-            } catch (e) {
-              console.error(`Failed to fetch photos for trip ${trip.id}:`, e);
+                }
+              });
             }
+          } catch (e) {
+            console.error(`Failed to fetch photos for trip ${trip.id}:`, e);
           }
         }
         setUserPhotos(photos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
@@ -777,6 +775,8 @@ export default function UserProfile() {
                   </div>
                 </div>
               )}
+            </div>
+            </div>
 
           {/* Two Column Layout */}
           <div className="flex gap-8">
