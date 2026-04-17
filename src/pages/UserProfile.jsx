@@ -19,6 +19,7 @@ import {
   Globe,
   MessageCircle,
   Clock,
+  Image,
 } from "lucide-react";
 import { ProfileHeaderSkeleton, ProfileFriendsListSkeleton } from "../components/SkeletonLoaders";
 
@@ -117,6 +118,8 @@ export default function UserProfile() {
   const [userKycStatus, setUserKycStatus] = useState(null);
   const [showUnfriendConfirm, setShowUnfriendConfirm] = useState(false);
   const [cooldownMessage, setCooldownMessage] = useState(null);
+  const [userPhotos, setUserPhotos] = useState([]);
+  const [photosLoading, setPhotosLoading] = useState(false);
 
   const fetchUserKycStatus = useCallback(async () => {
     try {
@@ -238,7 +241,51 @@ export default function UserProfile() {
     fetchUserKycStatus();
   }, [username, fetchUserProfile, fetchUserKycStatus]);
 
-  const sendFriendRequest = async () => {
+  useEffect(() => {
+    const fetchUserPhotos = async () => {
+      if (!userData?.id) return;
+      setPhotosLoading(true);
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(`http://127.0.0.1:8000/api/trips/user/${userData.id}/`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const trips = await res.json();
+        const tripsList = Array.isArray(trips) ? trips : trips.results || [];
+        
+        const photos = [];
+        for (const trip of tripsList) {
+          // Only show photos from completed trips
+          const isTripCompleted = trip.is_completed || new Date(trip.end_date) < new Date();
+          if (isTripCompleted) {
+            try {
+              const photoRes = await fetch(`http://127.0.0.1:8000/api/trips/${trip.id}/photos/`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (photoRes.ok) {
+                const photoData = await photoRes.json();
+                const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
+                // Include all photos from this user's trips
+                tripPhotos.forEach(photo => {
+                  photos.push({ ...photo, trip });
+                });
+              }
+            } catch (e) {
+              console.error(`Failed to fetch photos for trip ${trip.id}:`, e);
+            }
+          }
+        }
+        setUserPhotos(photos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
+      } catch (err) {
+        console.error("Failed to fetch user photos:", err);
+      } finally {
+        setPhotosLoading(false);
+      }
+    };
+    if (userData?.id) fetchUserPhotos();
+  }, [userData?.id]);
+
+
     if (!userData) return;
     try {
       setActionLoading(true);
@@ -648,8 +695,88 @@ export default function UserProfile() {
                   <span style={{ fontFamily: FONTS.body }}>{cooldownMessage}</span>
                 </div>
               )}
-            </div>
-          </div>
+
+              {/* Trip Photos Gallery */}
+              {userPhotos.length > 0 && (
+                <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden mb-12">
+                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-6 pt-4 pb-3 flex items-center gap-2">
+                    <Image className="w-4 h-4" />
+                    Trip Photos
+                  </p>
+                  <div className="px-6 pb-6 space-y-8">
+                    {/* Group photos by trip */}
+                    {(() => {
+                      // Group photos by trip ID
+                      const grouped = {};
+                      userPhotos.forEach(photo => {
+                        const tripId = photo.trip?.id || 'no-trip';
+                        if (!grouped[tripId]) {
+                          grouped[tripId] = {
+                            trip: photo.trip,
+                            photos: []
+                          };
+                        }
+                        grouped[tripId].photos.push(photo);
+                      });
+                      
+                      return Object.values(grouped).map((group) => (
+                        <div key={group.trip?.id || 'no-trip'} className="space-y-3">
+                          {/* Trip Header */}
+                          {group.trip && (
+                            <Link
+                              to={`/trip/${group.trip.id}`}
+                              style={{ fontFamily: FONTS.body }}
+                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 transition"
+                            >
+                              <MapPin className="w-4 h-4 text-[#C9A84C]" />
+                              <span className="font-semibold text-[#C9A84C] text-sm">
+                                {group.trip.destination?.name || "Trip"} ({group.photos.length} photo{group.photos.length !== 1 ? 's' : ''})
+                              </span>
+                            </Link>
+                          )}
+                          
+                          {/* Photos Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            {group.photos.map((photo, idx) => (
+                              <div 
+                                key={photo.id}
+                                className="rounded-lg overflow-hidden border border-white/8 bg-white/2 hover:border-[#C9A84C]/30 transition cursor-pointer group"
+                              >
+                                {/* Photo */}
+                                <div className="relative aspect-square overflow-hidden bg-black/20">
+                                  <img
+                                    src={photo.image}
+                                    alt={photo.caption || "trip photo"}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition"
+                                  />
+                                  {/* Badge showing this is from a group */}
+                                  {group.photos.length > 1 && idx === 0 && (
+                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-semibold">
+                                      +{group.photos.length - 1}
+                                    </div>
+                                  )}
+                                </div>
+                                
+                                {/* Caption on hover */}
+                                {photo.caption && (
+                                  <div className="p-2 hidden group-hover:block">
+                                    <p 
+                                      style={{ fontFamily: FONTS.body }} 
+                                      className="text-xs text-white/80"
+                                    >
+                                      {photo.caption}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>
+              )}
 
           {/* Two Column Layout */}
           <div className="flex gap-8">
