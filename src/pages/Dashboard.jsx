@@ -422,6 +422,20 @@ export default function Dashboard() {
       const allTrips = tripsRes.data || [];
       console.log("All trips:", allTrips);
       
+      // DEBUG: Check trip_tags structure
+      if (allTrips.length > 0) {
+        console.log("First trip trip_tags:", allTrips[0].trip_tags, "Type:", typeof allTrips[0].trip_tags);
+        console.log("First 3 trips data:");
+        allTrips.slice(0, 3).forEach((trip, idx) => {
+          console.log(`  Trip ${idx} (${trip.title}):`, {
+            trip_tags: trip.trip_tags,
+            type: typeof trip.trip_tags,
+            isArray: Array.isArray(trip.trip_tags),
+            keys: Object.keys(trip)
+          });
+        });
+      }
+      
       // Fetch recommended trips
       let recommendedTrips = [];
       try {
@@ -668,10 +682,35 @@ export default function Dashboard() {
     
     // Filter by selected tags - only show trips that have AT LEAST ONE of the selected tags
     if (selectedFilterTags.length > 0) {
+      console.log("🔍 Filtering by tags:", selectedFilterTags);
       result = result.filter(t => {
-        const tripTags = (t.trip_tags || []);
-        return selectedFilterTags.some(tag => tripTags.includes(tag));
+        // Parse trip_tags - it might be a JSON string or already an array
+        let tripTags = t.trip_tags || [];
+        console.log(`  Raw trip_tags for "${t.title}":`, tripTags, "Type:", typeof tripTags);
+        
+        if (typeof tripTags === 'string') {
+          try {
+            tripTags = JSON.parse(tripTags);
+          } catch (e) {
+            console.error(`    Failed to parse trip_tags: ${e.message}`);
+            tripTags = [];
+          }
+        }
+        
+        // Make sure it's an array
+        if (!Array.isArray(tripTags)) {
+          tripTags = [];
+        }
+        
+        // Case-insensitive comparison by converting both to lowercase
+        const tripTagsLower = tripTags.map(tag => String(tag).toLowerCase());
+        const hasMatchingTag = selectedFilterTags.some(selectedTag => 
+          tripTagsLower.includes(selectedTag.toLowerCase())
+        );
+        console.log(`  Parsed trip_tags for "${t.title}":`, tripTags, "Lowercase:", tripTagsLower, "Match:", hasMatchingTag);
+        return hasMatchingTag;
       });
+      console.log(`  ✅ Found ${result.length} matching trips`);
     }
     
     return result;
@@ -1347,6 +1386,31 @@ function TripCard({ trip, isCreator, onJoin, onLeave, onDelete, onView, kycAppro
               {tag.name}
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Trip Tags - These are the tags used for filtering */}
+      {trip.trip_tags && trip.trip_tags.length > 0 && (
+        <div style={{ marginBottom: '0.8rem', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+          {Array.isArray(trip.trip_tags) ? (
+            trip.trip_tags.map((tag, idx) => (
+              <span
+                key={idx}
+                style={{
+                  fontSize: '0.7rem',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  backgroundColor: 'rgba(240, 194, 122, 0.2)',
+                  color: '#ffd580',
+                  border: '1px solid rgba(240, 194, 122, 0.5)',
+                }}
+              >
+                {tag}
+              </span>
+            ))
+          ) : typeof trip.trip_tags === 'string' ? (
+            <span style={{ fontSize: '0.7rem', color: '#ff6b6b' }}>Invalid trip_tags format: {trip.trip_tags}</span>
+          ) : null}
         </div>
       )}
 

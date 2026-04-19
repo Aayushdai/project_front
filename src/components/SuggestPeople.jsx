@@ -42,7 +42,7 @@ const CAROUSEL_CSS = `
   }
 `;
 
-function SuggestedUserCard({ user, onAddFriend, onDismiss }) {
+function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPending = false }) {
   const avatar = user.profile_picture?.startsWith("http")
     ? user.profile_picture
     : user.profile_picture ? `${getBaseUrl()}${user.profile_picture}` : null;
@@ -107,14 +107,27 @@ function SuggestedUserCard({ user, onAddFriend, onDismiss }) {
           </div>
         )}
 
-        {/* Add Friend Button */}
+        {/* Add Friend Button or Cancel Request */}
         <button
-          onClick={() => onAddFriend?.(user.id)}
-          className="w-full rounded-xl bg-[#C9A84C] hover:bg-[#d4b85f] text-black font-bold text-sm py-2.5 transition flex items-center justify-center gap-2"
+          onClick={() => isPending ? onCancelRequest?.(user.id) : onAddFriend?.(user.id)}
+          className={`w-full rounded-xl font-bold text-sm py-2.5 transition flex items-center justify-center gap-2 ${
+            isPending
+              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
+              : 'bg-[#C9A84C] hover:bg-[#d4b85f] text-black'
+          }`}
           style={{ fontFamily: FONTS.body }}
         >
-          <UserPlus className="w-4 h-4" />
-          Add friend
+          {isPending ? (
+            <>
+              <X className="w-4 h-4" />
+              Cancel Request
+            </>
+          ) : (
+            <>
+              <UserPlus className="w-4 h-4" />
+              Add friend
+            </>
+          )}
         </button>
 
         {/* View Profile Link */}
@@ -133,11 +146,21 @@ function SuggestedUserCard({ user, onAddFriend, onDismiss }) {
 export default function SuggestPeople({ currentUserId }) {
   const [allSuggestions, setAllSuggestions] = useState([]);
   const [dismissed, setDismissed] = useState([]);
+  const [pendingRequests, setPendingRequests] = useState(() => {
+    const saved = localStorage.getItem('pendingFriendRequests');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [kycRequired, setKycRequired] = useState(false);
   const [incompleteProfile, setIncompleteProfile] = useState([]);
+  const [showAll, setShowAll] = useState(false);
   const carouselRef = useRef(null);
+
+  // Persist pending requests to localStorage
+  useEffect(() => {
+    localStorage.setItem('pendingFriendRequests', JSON.stringify(pendingRequests));
+  }, [pendingRequests]);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -225,9 +248,20 @@ export default function SuggestPeople({ currentUserId }) {
   const handleAddFriend = async (userId) => {
     try {
       await apiFetch(`users/friend-request/send/${userId}/`, { method: "POST" });
+      setPendingRequests([...pendingRequests, userId]);
       alert("Friend request sent!");
     } catch (err) {
       alert(MESSAGES.sendFriendRequest + err.message);
+    }
+  };
+
+  const handleCancelRequest = async (userId) => {
+    try {
+      await apiFetch(`users/friend-request/cancel/${userId}/`, { method: "POST" });
+      setPendingRequests(pendingRequests.filter(id => id !== userId));
+      alert("Friend request cancelled!");
+    } catch (err) {
+      alert("Could not cancel friend request: " + err.message);
     }
   };
 
@@ -363,61 +397,87 @@ export default function SuggestPeople({ currentUserId }) {
                   className="text-lg font-bold text-white"
                   style={{ fontFamily: FONTS.display }}
                 >
-                  People you may know
+                  {showAll ? "All Suggestions" : "People you may know"}
                 </h3>
               </div>
               <p className="text-xs text-white/40" style={{ fontFamily: FONTS.body }}>
-                Based on your travel style and interests
+                {showAll ? `Showing all ${visibleSuggestions.length} suggestions` : "Based on your travel style and interests"}
               </p>
             </div>
-            {visibleSuggestions.length > 4 && (
-              <Link
-                to="/explore?tab=people"
+            {!showAll && visibleSuggestions.length > 4 && (
+              <button
+                onClick={() => setShowAll(true)}
                 className="flex items-center gap-1 text-sm text-[#C9A84C] hover:text-[#d4b85f] transition"
                 style={{ fontFamily: FONTS.body }}
               >
-                See all <ChevronRight className="w-4 h-4" />
-              </Link>
+                See more <ChevronRight className="w-4 h-4" />
+              </button>
+            )}
+            {showAll && (
+              <button
+                onClick={() => setShowAll(false)}
+                className="flex items-center gap-1 text-sm text-[#C9A84C] hover:text-[#d4b85f] transition"
+                style={{ fontFamily: FONTS.body }}
+              >
+                Show carousel <ChevronLeft className="w-4 h-4" />
+              </button>
             )}
           </div>
 
-          {/* Horizontal Carousel with Navigation */}
+          {/* Horizontal Carousel with Navigation OR Grid View */}
           <style>{CAROUSEL_CSS}</style>
           
-          <div className="relative group">
-            {/* Left Arrow */}
-            <button
-              onClick={() => scrollCarousel('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
-              aria-label="Previous"
-            >
-              <ChevronLeft className="w-5 h-5 text-[#C9A84C]" />
-            </button>
+          {!showAll ? (
+            <div className="relative group">
+              {/* Left Arrow */}
+              <button
+                onClick={() => scrollCarousel('left')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                aria-label="Previous"
+              >
+                <ChevronLeft className="w-5 h-5 text-[#C9A84C]" />
+              </button>
 
-            {/* Carousel */}
-            <div
-              ref={carouselRef}
-              className="suggest-people-carousel flex gap-4 overflow-x-auto pb-4 px-4"
-            >
+              {/* Carousel */}
+              <div
+                ref={carouselRef}
+                className="suggest-people-carousel flex gap-4 overflow-x-auto pb-4 px-4"
+              >
+                {visibleSuggestions.map((user) => (
+                  <SuggestedUserCard
+                    key={user.id}
+                    user={user}
+                    onAddFriend={handleAddFriend}
+                    onCancelRequest={handleCancelRequest}
+                    onDismiss={handleDismiss}
+                    isPending={pendingRequests.includes(user.id)}
+                  />
+                ))}
+              </div>
+
+              {/* Right Arrow */}
+              <button
+                onClick={() => scrollCarousel('right')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                aria-label="Next"
+              >
+                <ChevronRight className="w-5 h-5 text-[#C9A84C]" />
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {visibleSuggestions.map((user) => (
                 <SuggestedUserCard
                   key={user.id}
                   user={user}
                   onAddFriend={handleAddFriend}
+                  onCancelRequest={handleCancelRequest}
                   onDismiss={handleDismiss}
+                  isPending={pendingRequests.includes(user.id)}
                 />
               ))}
             </div>
-
-            {/* Right Arrow */}
-            <button
-              onClick={() => scrollCarousel('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
-              aria-label="Next"
-            >
-              <ChevronRight className="w-5 h-5 text-[#C9A84C]" />
-            </button>
-          </div>
+          )}
         </div>
       )}
     </div>

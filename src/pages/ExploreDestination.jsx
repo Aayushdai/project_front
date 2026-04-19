@@ -525,54 +525,7 @@ export default function NepalMap() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab,   setActiveTab]   = useState("route");
 
-  // KYC state
-  const [kycStatus, setKycStatus] = useState(null);
-  const [refetchTrigger, setRefetchTrigger] = useState(0);
 
-  // Fetch KYC status on mount and when refetchTrigger changes
-  useEffect(() => {
-    const fetchKycStatus = async () => {
-      try {
-        const token = localStorage.getItem("access_token");
-        if (!token) {
-          console.error(ERROR_MESSAGES.noAccessToken);
-          setKycStatus("no_token");
-          return;
-        }
-        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
-        const response = await fetch(`${backendUrl}users/me/`, {
-          headers: { "Authorization": `Bearer ${token}` },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setKycStatus(data.status || null);
-          console.log("KYC Status updated:", data.status);
-        } else {
-          console.error(ERROR_MESSAGES.kycFetchFailed, response.status);
-          setKycStatus("fetch_error");
-        }
-      } catch (error) {
-        console.error("Failed to fetch KYC status:", error);
-        setKycStatus("fetch_error");
-      }
-    };
-    fetchKycStatus();
-  }, [refetchTrigger]);
-
-  // Refetch KYC status when returning from KYC form
-  useEffect(() => {
-    const handleRefreshKYC = () => {
-      console.log("Refetching KYC status...");
-      setRefetchTrigger(prev => prev + 1);
-    };
-    
-    // Listen for custom event
-    window.addEventListener("kyc-form-submitted", handleRefreshKYC);
-    
-    return () => {
-      window.removeEventListener("kyc-form-submitted", handleRefreshKYC);
-    };
-  }, []);
 
   // Route state
   const [mode,          setMode]        = useState("car");
@@ -760,69 +713,8 @@ export default function NepalMap() {
             {/* ── ROUTE TAB ── */}
             {activeTab === "route" && (
               <>
-                {/* KYC Registration Box */}
-                {kycStatus && kycStatus !== "approved" && (
-                  <div style={{ background: COLORS.gold08, border: `.5px solid ${COLORS.gold25}`, borderRadius: 12, padding: "16px 14px", marginBottom: 16, animation: "tm-fade .3s ease", textAlign: "center" }}>
-                    <Lock size={32} color={COLORS.gold} style={{ margin: "0 auto 10px" }} />
-                    <div style={{ fontSize: 13, fontWeight: 600, color: COLORS.gold, marginBottom: 6, letterSpacing: "-.5px" }}>
-                      {kycStatus === "pending" ? MESSAGES.kycPending : kycStatus === "under_review" ? MESSAGES.kycUnderReview : MESSAGES.completeRegistration}
-                    </div>
-                    <div style={{ fontSize: 11, color: "rgba(245,240,232,.5)", lineHeight: 1.6, marginBottom: 12 }}>
-                      {kycStatus === "pending" 
-                        ? MESSAGES.kycPendingMsg
-                        : kycStatus === "under_review"
-                        ? MESSAGES.kycReviewMsg
-                        : MESSAGES.kycRequiredMsg}
-                    </div>
-                    <div style={{ display: "flex", gap: 8, alignItems: "center", justifyContent: "center" }}>
-                      <Link 
-                        to="/kyc"
-                        style={{
-                          display: "inline-block",
-                          padding: "8px 16px",
-                          borderRadius: 8,
-                          background: `linear-gradient(135deg,${COLORS.goldGradientStart},${COLORS.goldGradientEnd})`,
-                          color: "#0f0e0d",
-                          textDecoration: "none",
-                          fontWeight: 700,
-                          fontSize: 12,
-                          letterSpacing: ".5px",
-                          border: "none",
-                          cursor: "pointer",
-                          transition: "all .2s"
-                        }}
-                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(240,194,122,.3)"; }}
-                        onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
-                      >
-                        {kycStatus === "under_review" ? MESSAGES.viewStatus : kycStatus === "pending" ? MESSAGES.updateKyc : MESSAGES.completeKyc}
-                      </Link>
-                      {(kycStatus === "pending" || kycStatus === "under_review") && (
-                        <button
-                          onClick={() => setRefetchTrigger(prev => prev + 1)}
-                          style={{
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            border: `.5px solid ${COLORS.gold3}`,
-                            background: COLORS.gold05,
-                            color: COLORS.gold,
-                            fontWeight: 600,
-                            fontSize: 12,
-                            cursor: "pointer",
-                            transition: "all .2s"
-                          }}
-                          onMouseEnter={e => (e.currentTarget.style.background = COLORS.gold1)}
-                          onMouseLeave={e => (e.currentTarget.style.background = COLORS.gold05)}
-                          title="Refresh KYC status"
-                        >
-                          {MESSAGES.refresh}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Route Controls - Disabled if KYC not approved */}
-                <div style={{ opacity: kycStatus && kycStatus !== "approved" ? 0.5 : 1, pointerEvents: kycStatus && kycStatus !== "approved" ? "none" : "auto" }}>
+                {/* Route Controls */}
+                <div>
                   <SearchBox
                     value={originText} onChange={setOriginText}
                     onSelect={p => { setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}

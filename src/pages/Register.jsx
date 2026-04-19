@@ -116,12 +116,12 @@ const MESSAGES = {
   showPassword: "Show",
   hidePassword: "Hide",
   strength: "Strength:",
-  securitySection: "Security Setup",
-  securityInstructions: "Select 2-3 security questions and answer them. You'll use these to reset your password if you forget it.",
+  securitySection: "Security Setup (Optional)",
+  securityInstructions: "Select and answer security questions for password recovery. You can skip this now and add them later in Settings.",
   answerPlaceholder: "Your answer...",
   selectedQuestions: "You have selected:",
   questions: "question(s)",
-  minRequired: "minimum 2 required",
+  minRequired: "optional - add later in Settings",
   previous: "Back",
   next: "Continue",
   finish: "Complete Registration",
@@ -389,6 +389,12 @@ export default function RegisterFull() {
     e.preventDefault();
     if (!validateStep(step)) return;
     
+    // Validate terms agreement on Step 2 before moving to Step 3
+    if (step === 2 && !agreed) {
+      setGlobalError("Please agree to the Terms of Service and Privacy Policy to continue.");
+      return;
+    }
+    
     // Validate security questions on Step 4 before submission
     if (step === 4) {
       // Should not reach here as Step 4 submit calls handleSubmit directly
@@ -403,17 +409,16 @@ export default function RegisterFull() {
     if (!validateStep(2)) return;
     if (!agreed) { setGlobalError("Please agree to the Terms of Service."); return; }
     
-    // ✅ Validate security questions
+    // ✅ Validate security questions - NOW OPTIONAL (users can add later in Settings)
     const selectedQuestionIds = Object.keys(selectedSecurityAnswers).map(Number);
-    if (selectedQuestionIds.length < 2) {
-      setGlobalError("Please select and answer at least 2 security questions");
-      return;
-    }
     
-    const allAnswered = selectedQuestionIds.every(qId => selectedSecurityAnswers[qId]?.trim());
-    if (!allAnswered) {
-      setGlobalError("Please answer all selected security questions");
-      return;
+    // Only validate if user selected questions
+    if (selectedQuestionIds.length > 0) {
+      const allAnswered = selectedQuestionIds.every(qId => selectedSecurityAnswers[qId]?.trim());
+      if (!allAnswered) {
+        setGlobalError("Please answer all selected security questions");
+        return;
+      }
     }
 
     setLoading(true);
@@ -686,13 +691,20 @@ export default function RegisterFull() {
                   </div>
                 </div>
 
-                <label className="mt-5 flex cursor-pointer items-start gap-2.5">
-                  <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500" />
-                  <span className="text-[12px] text-gray-500 leading-relaxed">
-                    {MESSAGES.agreeTerms}
-                  </span>
-                </label>
+                <div className="mt-5">
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 flex-shrink-0 accent-orange-500" />
+                    <span className="text-[12px] text-gray-500 leading-relaxed">
+                      {MESSAGES.agreeTerms} <span className="text-red-500 font-bold">*</span>
+                    </span>
+                  </label>
+                  {!agreed && (
+                    <div className="mt-2 text-[11px] text-red-500 font-semibold flex items-center gap-1">
+                      <span>⚠</span> {VALIDATION_ERRORS.termsRequired}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
@@ -744,7 +756,7 @@ export default function RegisterFull() {
                 </div>
 
                 <p className="mt-4 text-[12px] text-gray-500">
-                  {MESSAGES.selectedQuestions} <strong>{Object.keys(selectedSecurityAnswers).length} {MESSAGES.questions}</strong> ({MESSAGES.minRequired})
+                  {MESSAGES.selectedQuestions} <strong>{Object.keys(selectedSecurityAnswers).length} {MESSAGES.questions}</strong> • {MESSAGES.minRequired}
                 </p>
               </>
             )}
@@ -760,6 +772,12 @@ export default function RegisterFull() {
                 <button type="button" onClick={() => setStep(step - 1)}
                   className="rounded-xl border border-[#e2ddd6] px-5 py-3 text-[13px] font-semibold text-gray-400 transition hover:border-gray-400 hover:text-gray-600">
                   {MESSAGES.previous}
+                </button>
+              )}
+              {step === 3 && (
+                <button type="button" onClick={() => setStep(step + 1)}
+                  className="rounded-xl border border-[#e2ddd6] px-5 py-3 text-[13px] font-semibold text-gray-400 transition hover:border-gray-400 hover:text-gray-600">
+                  Skip
                 </button>
               )}
               <button type="submit" disabled={loading}

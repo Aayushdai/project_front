@@ -116,10 +116,17 @@ export default function SettingPage() {
   // Account deletion
   const [deleteModal, setDeleteModal] = useState({ open: false, password: "", error: "", loading: false });
 
+  // Security Questions
+  const [allSecurityQuestions, setAllSecurityQuestions] = useState([]);
+  const [securityAnswers, setSecurityAnswers] = useState({});
+  const [savedSecurityQuestionIds, setSavedSecurityQuestionIds] = useState([]);
+  const [savingSecurityQuestions, setSavingSecurityQuestions] = useState(false);
+
   // ── Show toast then auto-clear ──────────────────────────────────────────────
   const showToast = (type, message) => {
     setToast({ type, message });
-    setTimeout(() => setToast({ type: "", message: "" }), 3000);
+    const duration = type === "success" ? 4000 : 3000; // Success messages stay longer
+    setTimeout(() => setToast({ type: "", message: "" }), duration);
   };
 
   // ── Fetch user on mount ─────────────────────────────────────────────────────
@@ -164,6 +171,33 @@ export default function SettingPage() {
       }
     };
     load();
+  }, []);
+
+  // ── Load security questions ──────────────────────────────────────────────────
+  useEffect(() => {
+    const loadSecurityQuestions = async () => {
+      try {
+        const questions = await apiFetch("users/security-questions/");
+        setAllSecurityQuestions(questions || []);
+        
+        // Load user's current security answers
+        const userData = await apiFetch("users/me/");
+        if (userData.security_questions && Array.isArray(userData.security_questions)) {
+          // security_questions is a list of IDs that are already saved
+          const savedIds = userData.security_questions.map(id => String(id));
+          setSavedSecurityQuestionIds(savedIds);
+          // Initialize securityAnswers with saved questions (answers will be hidden)
+          const savedAnswers = {};
+          savedIds.forEach(id => {
+            savedAnswers[id] = "saved"; // Placeholder indicating it's saved
+          });
+          setSecurityAnswers(savedAnswers);
+        }
+      } catch (err) {
+        console.error("Failed to load security questions:", err);
+      }
+    };
+    loadSecurityQuestions();
   }, []);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
@@ -238,6 +272,61 @@ export default function SettingPage() {
       showToast("error", "An error occurred while saving preference");
       // Revert the change
       setPrefs((prev) => ({ ...prev, [key]: !updated[key] }));
+    }
+  };
+
+  const handleSaveSecurityQuestions = async () => {
+    // Validate that at least one question is answered
+    const newAnswers = Object.entries(securityAnswers)
+      .filter(([id, answer]) => answer !== "saved")
+      .reduce((acc, [id, answer]) => ({ ...acc, [id]: answer }), {});
+    
+    if (Object.keys(newAnswers).length === 0) {
+      showToast("error", "Please select and answer at least one new security question");
+      return;
+    }
+
+    // Validate all new questions have answers
+    const allAnswered = Object.values(newAnswers).every(answer => 
+      typeof answer === 'string' && answer.trim().length > 0
+    );
+    if (!allAnswered) {
+      showToast("error", "Please answer all selected security questions");
+      return;
+    }
+
+    setSavingSecurityQuestions(true);
+    try {
+      const res = await fetch(`${getBaseUrl()}api/users/me/security-questions/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ security_questions: newAnswers }),
+      });
+
+      if (res.ok) {
+        showToast("success", "✓ Security questions saved successfully!");
+        // Mark newly saved questions as saved
+        const newSavedIds = [...savedSecurityQuestionIds, ...Object.keys(newAnswers)];
+        setSavedSecurityQuestionIds(newSavedIds);
+        
+        // Reset form after successful save
+        setTimeout(() => {
+          // Keep only the saved questions marked as "saved"
+          const savedAnswers = {};
+          newSavedIds.forEach(id => {
+            savedAnswers[id] = "saved";
+          });
+          setSecurityAnswers(savedAnswers);
+        }, 500);
+      } else {
+        const d = await res.json();
+        showToast("error", d.error || "Failed to update security questions");
+      }
+    } catch (err) {
+      console.error("Security questions save error:", err);
+      showToast("error", "An error occurred while saving security questions");
+    } finally {
+      setSavingSecurityQuestions(false);
     }
   };
 
@@ -543,6 +632,11 @@ export default function SettingPage() {
         .sg-theme-btn--active {
           background: linear-gradient(135deg, #c8b882 0%, #a69863 100%);
           color: #0a0c16 !important; border-color: #c8b882 !important;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
 
         @media (max-width: 640px) {
@@ -948,6 +1042,132 @@ export default function SettingPage() {
                     No active sessions
                   </div>
                 )}
+              </div>
+
+              <div className="sg-section-label">Recovery options</div>
+              <div className="sg-card">
+                <div style={{ padding: "16px" }}>
+                  <div className="sg-sec-label" style={{ marginBottom: "12px" }}>Set up security questions</div>
+                  <div className="sg-sec-sub" style={{ marginBottom: "16px" }}>Answer security questions to recover your account if you forget your password</div>
+                  
+                  <div className="space-y-4">
+                    {allSecurityQuestions.slice(0, 5).map((q) => {
+                      const isSaved = savedSecurityQuestionIds.includes(String(q.id));
+                      const isSelected = securityAnswers[q.id] !== undefined && securityAnswers[q.id] !== "saved";
+                      
+                      return (
+                        <div key={q.id} style={{ borderRadius: "8px", border: isSaved ? "1px solid #d1f0d1" : "1px solid #e5e0d8", padding: "12px", background: isSaved ? "#f0fdf4" : "#fafaf8" }}>
+                          {isSaved ? (
+                            // Show saved state
+                            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                              <div style={{ marginTop: "2px", width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", background: "#10b981", borderRadius: "50%", color: "white", fontWeight: "bold", fontSize: "12px" }}>
+                                ✓
+                              </div>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: "13px", fontWeight: 500, color: "#111827", marginBottom: "4px" }}>
+                                  {q.question}
+                                </div>
+                                <div style={{ fontSize: "12px", color: "#10b981", fontWeight: 500 }}>
+                                  ✓ Saved
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            // Show editable state
+                            <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSecurityAnswers((prev) => ({ ...prev, [q.id]: "" }));
+                                  } else {
+                                    const updated = { ...securityAnswers };
+                                    delete updated[q.id];
+                                    setSecurityAnswers(updated);
+                                  }
+                                }}
+                                style={{ marginTop: "2px", width: "16px", height: "16px", cursor: "pointer" }}
+                              />
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: "13px", fontWeight: 500, color: "#111827", marginBottom: "8px" }}>
+                                  {q.question}
+                                </div>
+                                {isSelected && (
+                                  <input
+                                    type="text"
+                                    value={securityAnswers[q.id] || ""}
+                                    onChange={(e) =>
+                                      setSecurityAnswers((prev) => ({
+                                        ...prev,
+                                        [q.id]: e.target.value,
+                                      }))
+                                    }
+                                    placeholder="Your answer..."
+                                    style={{
+                                      width: "100%",
+                                      padding: "8px 12px",
+                                      fontSize: "13px",
+                                      border: "1px solid #d1ccc3",
+                                      borderRadius: "6px",
+                                      outline: "none",
+                                      fontFamily: "inherit",
+                                      boxSizing: "border-box"
+                                    }}
+                                    onFocus={(e) => e.target.style.borderColor = "#f97316"}
+                                    onBlur={(e) => e.target.style.borderColor = "#d1ccc3"}
+                                  />
+                                )}
+                              </div>
+                            </label>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  
+                  <div style={{ marginTop: "16px", fontSize: "12px", color: "#666" }}>
+                    <div>✓ Saved: <strong>{savedSecurityQuestionIds.length} question(s)</strong></div>
+                    <div style={{ marginTop: "4px" }}>New: <strong>{Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim().length > 0).length} question(s)</strong></div>
+                  </div>
+                  
+                  <button
+                    onClick={handleSaveSecurityQuestions}
+                    disabled={savingSecurityQuestions || Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length === 0}
+                    style={{
+                      marginTop: "16px",
+                      padding: "10px 20px",
+                      background: savingSecurityQuestions 
+                        ? "linear-gradient(135deg, #9ca3af, #6b7280)" 
+                        : "linear-gradient(135deg, #f97316, #ea580c)",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "8px",
+                      fontWeight: 600,
+                      fontSize: "13px",
+                      cursor: (savingSecurityQuestions || Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length === 0) ? "not-allowed" : "pointer",
+                      opacity: savingSecurityQuestions ? 0.7 : 1,
+                      transition: "all 0.2s",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "8px"
+                    }}
+                    onMouseEnter={(e) => !savingSecurityQuestions && Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length > 0 && (e.target.style.transform = "translateY(-1px)")}
+                    onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
+                  >
+                    {savingSecurityQuestions ? (
+                      <>
+                        <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                        Saving...
+                      </>
+                    ) : savedSecurityQuestionIds.length > 0 ? (
+                      "✓ Add More Security Questions"
+                    ) : (
+                      "✓ Save Security Questions"
+                    )}
+                  </button>
+                </div>
               </div>
             </section>
           )}

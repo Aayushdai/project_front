@@ -391,6 +391,7 @@ function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [userPhotos, setUserPhotos] = useState([]);
   const [photosLoading, setPhotosLoading] = useState(false);
+  const [calculatedRating, setCalculatedRating] = useState(null);
 
   useEffect(() => {
     fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
@@ -478,6 +479,65 @@ function ProfilePage() {
     };
     if (profile) fetchUserPhotos();
   }, [profile]);
+
+  useEffect(() => {
+    const calculateRatingFromReviews = async () => {
+      if (!profile?.id) return;
+      
+      try {
+        const res = await fetch(`${API}trips/`, { headers: { Authorization: `Bearer ${token()}` } });
+        const trips = await res.json();
+        const tripsList = Array.isArray(trips) ? trips : trips.results || [];
+        
+        // Filter trips created by current user
+        const createdTrips = tripsList.filter(trip => trip.creator?.id === profile.id);
+        
+        if (createdTrips.length === 0) {
+          setCalculatedRating(null);
+          return;
+        }
+
+        const tripRatings = [];
+        
+        // For each trip created by user, fetch reviews
+        for (const trip of createdTrips) {
+          try {
+            const reviewRes = await fetch(`${API}trips/${trip.id}/reviews/`, {
+              headers: { Authorization: `Bearer ${token()}` }
+            });
+            
+            if (reviewRes.ok) {
+              const reviewData = await reviewRes.json();
+              const reviews = Array.isArray(reviewData) ? reviewData : reviewData.results || [];
+              
+              // Calculate average rating for this trip
+              if (reviews.length > 0) {
+                const tripAvgRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length;
+                tripRatings.push(tripAvgRating);
+              }
+            }
+          } catch (err) {
+            console.error(`Failed to fetch reviews for trip ${trip.id}:`, err);
+          }
+        }
+        
+        // Calculate overall average rating
+        if (tripRatings.length > 0) {
+          const overallRating = tripRatings.reduce((a, b) => a + b, 0) / tripRatings.length;
+          setCalculatedRating(overallRating);
+        } else {
+          setCalculatedRating(null);
+        }
+      } catch (err) {
+        console.error("Failed to calculate rating:", err);
+        setCalculatedRating(null);
+      }
+    };
+    
+    if (profile?.id) {
+      calculateRatingFromReviews();
+    }
+  }, [profile?.id]);
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-[#080808]">
@@ -568,7 +628,7 @@ function ProfilePage() {
             {[
               { value: joinedTrips.length,                                  label: STAT_LABELS.trips   },
               { value: friends.length,                                      label: STAT_LABELS.buddies },
-              { value: profile.rating ? profile.rating.toFixed(1) : "—",   label: STAT_LABELS.rating  },
+              { value: calculatedRating ? calculatedRating.toFixed(1) : "—",   label: STAT_LABELS.rating  },
             ].map(({ value, label }, i) => (
               <div key={label} className={`flex-1 flex flex-col items-center py-4 gap-0.5 ${i < 2 ? "border-r border-white/8" : ""}`}>
                 <span className="text-[22px] font-bold text-white" style={{ fontFamily: FONTS.display }}>{value}</span>
@@ -788,8 +848,8 @@ function ProfilePage() {
             </div>
 
             {/* Friends sidebar (right: 1 col) */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-5">
+            <div className="lg:col-span-1 ml-6">
+              <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-3 max-w-xs">
                 <div className="flex items-center justify-between mb-4">
                   <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold uppercase tracking-[0.15em] text-white/30">
                     {FORM_LABELS.friends} {friends.length > 0 && <span className="text-[#C9A84C]">({friends.length})</span>}

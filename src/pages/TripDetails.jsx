@@ -110,6 +110,8 @@ export default function TripDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [joiningTrip, setJoiningTrip] = useState(false);
+  const [leavingTrip, setLeavingTrip] = useState(false);
   const [userProfileId, setUserProfileId] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [itineraryOpen, setItineraryOpen] = useState(true);
@@ -240,6 +242,49 @@ export default function TripDetail() {
     } catch (err) {
       setError(err.response?.data?.message || TEXTS.deleteError);
       setDeleting(false);
+    }
+  };
+
+  const handleJoinTrip = async () => {
+    if (!userProfileId) {
+      alert("Please log in to join the trip");
+      return;
+    }
+    setJoiningTrip(true);
+    try {
+      // Use PATCH with action: "join" - same as Dashboard
+      const response = await API.patch(`trips/${id}/`, { action: "join" });
+      if (response.status === 200 || response.status === 201) {
+        // Refresh trip data to show updated participants
+        const tripResponse = await API.get(`trips/${id}/`);
+        setTrip(tripResponse.data);
+        alert("Successfully joined the trip!");
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.response?.data?.message || "Failed to join trip";
+      alert(errorMsg);
+    } finally {
+      setJoiningTrip(false);
+    }
+  };
+
+  const handleLeaveTrip = async () => {
+    if (!window.confirm("Are you sure you want to leave this trip?")) return;
+    setLeavingTrip(true);
+    try {
+      // Use PATCH with action: "leave" - same as Dashboard
+      const response = await API.patch(`trips/${id}/`, { action: "leave" });
+      if (response.status === 200 || response.status === 201) {
+        // Refresh trip data to show updated participants
+        const tripResponse = await API.get(`trips/${id}/`);
+        setTrip(tripResponse.data);
+        alert("Successfully left the trip!");
+      }
+    } catch (err) {
+      const errorMsg = err.response?.data?.detail || err.response?.data?.message || "Failed to leave trip";
+      alert(errorMsg);
+    } finally {
+      setLeavingTrip(false);
     }
   };
 
@@ -442,6 +487,24 @@ export default function TripDetail() {
               <Share2 size={13} /> Invite
             </button>
           )}
+          {!isCreator && isParticipant && (
+            <button
+              onClick={handleLeaveTrip}
+              disabled={leavingTrip}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: C.redBg, border: `1px solid ${C.red}40`, borderRadius: 9, color: C.red, fontSize: 12, fontWeight: 500, cursor: "pointer", opacity: leavingTrip ? 0.5 : 1, fontFamily: "inherit" }}
+            >
+              <Users size={13} /> {leavingTrip ? "Leaving..." : "Leave Trip"}
+            </button>
+          )}
+          {!isParticipant && !isCreator && (
+            <button
+              onClick={handleJoinTrip}
+              disabled={joiningTrip}
+              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", background: C.goldBg, border: `1px solid ${C.goldRing}`, borderRadius: 9, color: C.gold, fontSize: 12, fontWeight: 500, cursor: "pointer", opacity: joiningTrip ? 0.5 : 1, fontFamily: "inherit" }}
+            >
+              <Users size={13} /> {joiningTrip ? "Joining..." : "Join Trip"}
+            </button>
+          )}
           {canDelete && (
             <button
               onClick={handleDelete}
@@ -599,7 +662,7 @@ export default function TripDetail() {
             {trip.participants?.length > 0 ? (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 10 }}>
                 {trip.participants.map(p => (
-                  <div key={p.id} className="td-participant" onClick={() => navigate(`/user/${p.id}`)} style={{ display: "flex", gap: 12, padding: "12px 14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, transition: "border-color 0.15s, background 0.15s", cursor: "pointer" }}>
+                  <div key={p.id} className="td-participant" onClick={() => navigate(`/user/${p.username}`)} style={{ display: "flex", gap: 12, padding: "12px 14px", background: C.surface, borderRadius: 12, border: `1px solid ${C.border}`, transition: "border-color 0.15s, background 0.15s", cursor: "pointer" }}>
                     <Avatar name={`${p.first_name} ${p.last_name}`} size={38} src={p.profile_picture} />
                     <div style={{ minWidth: 0 }}>
                       <p style={{ fontSize: 13, fontWeight: 600, color: C.text, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>

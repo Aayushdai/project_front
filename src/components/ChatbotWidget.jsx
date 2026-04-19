@@ -3,11 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useAuthRequired } from "../hooks/useAuthRequired";
 import api from "../API/api";
-import KYCBanner from "./KYCBanner";
 import { Send as SendIcon } from "@mui/icons-material";
 import ChatIcon from "@mui/icons-material/Chat";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { apiFetch, getToken } from "../utils/api";
+import { findNavigationRoute, parseNavigationFromMessage } from "../utils/navigationHelper";
 
 // User FAQs
 const USER_FAQS = [
@@ -111,17 +111,97 @@ USER_FAQS.forEach(faq => {
   });
 });
 
-// Text parsing helper
-const parseMessageText = (text) => {
+// Text parsing helper - enhanced to handle markdown links
+const parseMessageText = (text, onNavigate) => {
   if (!text) return [];
-  return text.split(/(\*\*[^*]+\*\*)/).map(part => ({
-    text: part.replace(/\*\*/g, ''),
-    isBold: part.startsWith('**') && part.endsWith('**')
-  }));
+  
+  // Parse both bold text and markdown links [text](path)
+  const parts = [];
+  const boldAndLinkRegex = /(\*\*[^*]+\*\*|\[([^\]]+)\]\(([^)]+)\))/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = boldAndLinkRegex.exec(text)) !== null) {
+    // Add text before the match
+    if (match.index > lastIndex) {
+      parts.push({
+        text: text.slice(lastIndex, match.index),
+        type: 'text'
+      });
+    }
+
+    // Check if it's a link or bold
+    if (match[0].startsWith('[')) {
+      // It's a link
+      parts.push({
+        text: match[2],
+        type: 'link',
+        path: match[3],
+        onNavigate
+      });
+    } else {
+      // It's bold text
+      parts.push({
+        text: match[1].replace(/\*\*/g, ''),
+        type: 'bold'
+      });
+    }
+
+    lastIndex = boldAndLinkRegex.lastIndex;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({
+      text: text.slice(lastIndex),
+      type: 'text'
+    });
+  }
+
+  return parts.length > 0 ? parts : [{ text, type: 'text' }];
 };
 
-// KYC approval checker
-const isKYCApproved = (profile) => profile && profile.status === 'approved';
+
+
+// Enhance FAQ answers with navigation suggestions
+const enhanceFAQWithNavigation = (answer) => {
+  // Map FAQ topics to suggested routes
+  const topicNavigationMap = {
+    signup: '/register',
+    'create account': '/register',
+    kyc: '/kyc',
+    'verify': '/kyc',
+    'create trip': '/create-trip',
+    'new trip': '/create-trip',
+    'trip planner': '/trip-planner',
+    itinerary: '/trip-planner',
+    explore: '/explore',
+    'destinations': '/explore',
+    'chat': '/chat',
+    'message': '/chat',
+    'profile': '/profile',
+    'forgot password': '/forgot-password',
+  };
+
+  // Check if answer mentions a feature that has a corresponding route
+  let enhancedAnswer = answer;
+  for (const [topic, route] of Object.entries(topicNavigationMap)) {
+    const regex = new RegExp(`\\*\\*${topic.split(' ').join('.*?')}\\*\\*`, 'gi');
+    if (regex.test(answer)) {
+      // Find the feature name mentioned
+      const featureMatch = answer.match(new RegExp(`\\*\\*(${topic}[^*]*)\\*\\*`, 'i'));
+      if (featureMatch) {
+        const featureName = featureMatch[1];
+        // Add navigation link if not already present
+        if (!answer.includes(route)) {
+          enhancedAnswer += `\n\n[Go to ${featureName} →](${route})`;
+        }
+      }
+    }
+  }
+
+  return enhancedAnswer;
+};
 
 export default function ChatbotWidget() {
   const navigate = useNavigate();
@@ -209,7 +289,7 @@ export default function ChatbotWidget() {
   };
 
   const handleSendMessage = async () => {
-    if (!input.trim() || !isKYCApproved(userProfile)) return;
+    if (!input.trim()) return;
     
     const userMsg = { id: Date.now(), text: input, sender: "user", links: [] };
     setMessages((prev) => [...prev, userMsg]);
@@ -220,21 +300,62 @@ export default function ChatbotWidget() {
       const matchingFAQ = findMatchingFAQ(input);
       
       if (matchingFAQ) {
+        // Enhance FAQ answer with navigation link if relevant
+        let answer = matchingFAQ.answer;
+        
+        // Check if user is asking for navigation help
+        const navRoute = findNavigationRoute(input);
+        if (navRoute && !answer.includes('→')) {
+          // Add navigation link to end of answer
+          const routeName = navRoute.route.name;
+          answer += `\n\n[Go to ${routeName} →](${navRoute.route.path})`;
+        }
+        
         setMessages((prev) => [...prev, {
           id: Date.now() + 1,
-          text: matchingFAQ.answer,
+          text: answer,
           sender: "bot",
           links: []
         }]);
       } else {
-        const res = await api.post("chat/chat/", { message: input });
-        const response = res.data.response || "I didn't understand that. Can you rephrase? Or ask about signup, trips, partners, chat, profile, KYC, or safety!";
+        // Check if this is a navigation query
+        const navRoute = findNavigationRoute(input);
+        let response = null;
+
+        if (navRoute) {
+          // User is asking about navigation
+          const routeName = navRoute.route.name;
+          response = `I can help you get there! **${routeName}** is exactly what you're looking for.\n\n[Go to ${routeName} →](${navRoute.route.path})`;
+        } else {
+          // Fall back to API
+          const res = await api.post("chat/chat/", { message: input });
+          response = res.data.response || "I didn't understand that. Can you rephrase? Or ask about signup, trips, partners, chat, profile, KYC, or safety!";
+          
+          // Enhance API response with navigation links if it mentions key features
+          const topicNavigationMap = {
+            'explore': '/explore',
+            'map': '/explore',
+            'destinations': '/explore',
+            'chat': '/chat',
+            'profile': '/profile',
+            'create trip': '/create-trip',
+            'trips': '/my-trips',
+          };
+          
+          for (const [topic, route] of Object.entries(topicNavigationMap)) {
+            if (response.toLowerCase().includes(topic) && !response.includes(`(${route})`)) {
+              const topicDisplay = topic.charAt(0).toUpperCase() + topic.slice(1);
+              response += `\n\n[Go to ${topicDisplay} →](${route})`;
+              break;
+            }
+          }
+        }
         
         setMessages((prev) => [...prev, {
           id: Date.now() + 1,
           text: response,
           sender: "bot",
-          links: res.data.response_metadata?.links || []
+          links: []
         }]);
       }
     } catch (err) {
@@ -452,16 +573,11 @@ export default function ChatbotWidget() {
               Always here to help
             </div>
           </div>
-          {/* KYC Banner */}
-          {userProfile && userProfile.status !== 'approved' && (
-            <div style={{ padding: "8px 12px", flexShrink: 0 }}>
-              <KYCBanner status={userProfile.status} rejectionReason={userProfile.rejection_reason} />
-            </div>
-          )}
+
           {/* Messages */}
           <div style={{ flex: 1, overflowY: "auto", padding: "14px 12px", display: "flex", flexDirection: "column", gap: 10 }}>
             {messages.map((msg) => {
-              const parts = msg.sender === "bot" ? parseMessageText(msg.text) : [];
+              const parts = msg.sender === "bot" ? parseMessageText(msg.text, navigate) : [];
               return (
                 <div key={msg.id} className="cw-msg" style={{ display: "flex", justifyContent: msg.sender === "user" ? "flex-end" : "flex-start" }}>
                   <div style={{
@@ -480,13 +596,39 @@ export default function ChatbotWidget() {
                   }}>
                     {msg.sender === "bot" ? (
                       <div>
-                        {parts.map((part, idx) => 
-                          part.isBold && part.text.trim() ? (
-                            <strong key={idx}>{part.text}</strong>
-                          ) : (
-                            <span key={idx}>{part.text}</span>
-                          )
-                        )}
+                        {parts.map((part, idx) => {
+                          if (part.type === 'bold') {
+                            return <strong key={idx}>{part.text}</strong>;
+                          } else if (part.type === 'link') {
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  navigate(part.path);
+                                  setIsOpen(false); // Close chat after navigation
+                                }}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  color: 'rgba(245,240,232,.95)',
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                  padding: 0,
+                                  font: 'inherit',
+                                  fontWeight: 500,
+                                  transition: 'opacity 0.2s'
+                                }}
+                                onMouseEnter={e => e.target.style.opacity = '0.7'}
+                                onMouseLeave={e => e.target.style.opacity = '1'}
+                                title={`Navigate to ${part.text}`}
+                              >
+                                {part.text}
+                              </button>
+                            );
+                          } else {
+                            return <span key={idx}>{part.text}</span>;
+                          }
+                        })}
                       </div>
                     ) : (
                       msg.text
@@ -523,42 +665,34 @@ export default function ChatbotWidget() {
             background: "rgba(255,255,255,.02)",
             display: "flex", flexDirection: "column", gap: 8, flexShrink: 0,
           }}>
-            {!isKYCApproved(userProfile) && (
-              <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-                Complete KYC to use chat
-              </div>
-            )}
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && isKYCApproved(userProfile) && handleSendMessage()}
-                placeholder={isKYCApproved(userProfile) ? "Ask me something…" : "Complete KYC first..."}
-                disabled={!isKYCApproved(userProfile)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Ask me something…"
                 style={{
                   flex: 1, padding: "9px 13px", fontSize: 13,
                   background: "rgba(255,255,255,.05)",
                   border: ".5px solid rgba(240,194,122,.15)",
                   borderRadius: 10, color: "#f5f0e8", outline: "none",
                   fontFamily: "'DM Sans', sans-serif",
-                  transition: "border-color .2s",
-                  opacity: isKYCApproved(userProfile) ? 1 : 0.5,
-                  cursor: isKYCApproved(userProfile) ? 'text' : 'not-allowed'
+                  transition: "border-color .2s"
                 }}
-                onFocus={e => isKYCApproved(userProfile) && (e.target.style.borderColor = "rgba(240,194,122,.5)")}
+                onFocus={e => (e.target.style.borderColor = "rgba(240,194,122,.5)")}
                 onBlur={e => (e.target.style.borderColor = "rgba(240,194,122,.15)")}
               />
               <button
                 onClick={handleSendMessage}
-                disabled={loading || !input.trim() || !isKYCApproved(userProfile)}
+                disabled={loading || !input.trim()}
                 style={{
                   width: 36, height: 36, borderRadius: 9, border: "none",
-                  background: (loading || !input.trim() || !isKYCApproved(userProfile))
+                  background: (loading || !input.trim())
                     ? "rgba(255,255,255,.07)"
                     : "linear-gradient(135deg,#c9973a,#f0c27a)",
                   color: (loading || !input.trim()) ? "rgba(255,255,255,.2)" : "#0f0e0d",
-                  cursor: (loading || !input.trim() || !isKYCApproved(userProfile)) ? "not-allowed" : "pointer",
+                  cursor: (loading || !input.trim()) ? "not-allowed" : "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center",
                   transition: "all .2s", flexShrink: 0,
                 }}
