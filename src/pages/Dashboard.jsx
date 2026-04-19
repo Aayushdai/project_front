@@ -399,7 +399,6 @@ export default function Dashboard() {
     setLoading(true); setError("");
     try {
       const token = localStorage.getItem("access_token");
-      console.log("Token present:", !!token);
       
       // Get user's UserProfile ID - use direct fetch since api.baseURL is /api/
       const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
@@ -420,28 +419,12 @@ export default function Dashboard() {
       
       const tripsRes = await api.get("trips/");
       const allTrips = tripsRes.data || [];
-      console.log("All trips:", allTrips);
-      
-      // DEBUG: Check trip_tags structure
-      if (allTrips.length > 0) {
-        console.log("First trip trip_tags:", allTrips[0].trip_tags, "Type:", typeof allTrips[0].trip_tags);
-        console.log("First 3 trips data:");
-        allTrips.slice(0, 3).forEach((trip, idx) => {
-          console.log(`  Trip ${idx} (${trip.title}):`, {
-            trip_tags: trip.trip_tags,
-            type: typeof trip.trip_tags,
-            isArray: Array.isArray(trip.trip_tags),
-            keys: Object.keys(trip)
-          });
-        });
-      }
       
       // Fetch recommended trips
       let recommendedTrips = [];
       try {
         const recommendedRes = await api.get("trips/recommended/?limit=20");
         recommendedTrips = recommendedRes.data?.results || recommendedRes.data || [];
-        console.log("Recommended trips:", recommendedTrips);
       } catch (recErr) {
         console.error("Failed to fetch recommended trips:", recErr);
         // Fallback to basic filtering
@@ -451,7 +434,6 @@ export default function Dashboard() {
       try {
         const historyRes = await api.get("trips/history/");
         const history = historyRes.data || [];
-        console.log("Trip history:", history);
         setTripHistory(history);
       } catch (historyErr) {
         console.error("Failed to fetch trip history:", historyErr);
@@ -460,25 +442,19 @@ export default function Dashboard() {
       
       const userTripsCreated = allTrips.filter(t => {
         const isCreator = t.creator?.id === userId;
-        console.log(`Trip ${t.id} (${t.title}): creator=${t.creator?.id}, userProfileId=${userId}, isCreator=${isCreator}`);
         return isCreator;
       });
       
       const userTripsJoined = allTrips.filter(t => {
-        // Log the raw participants to see the actual structure
-        console.log(`Trip ${t.id} raw participants:`, t.participants);
-        
         let isParticipant = false;
         if (Array.isArray(t.participants)) {
           isParticipant = t.participants.some(p => {
             const pId = typeof p === 'object' ? p.id : p;
-            console.log(`  Checking participant ${pId} against userId ${userId}`, pId === userId);
             return pId === userId;
           });
         }
         
         const isNotCreator = t.creator?.id !== userId;
-        console.log(`Trip ${t.id} (${t.title}): isParticipant=${isParticipant}, isNotCreator=${isNotCreator}, isMember=${isParticipant && isNotCreator}`);
         return isParticipant && isNotCreator;
       });
       
@@ -491,10 +467,7 @@ export default function Dashboard() {
             t.is_public && !combined.some(mt => mt.id === t.id)
           );
       
-      console.log("User trips created:", userTripsCreated);
-      console.log("User trips joined:", userTripsJoined);
-      console.log("Combined:", combined);
-      console.log("Recommended/Public trips:", publicTrips);
+
       
       setMyTrips(combined);
       setAvailableTrips(publicTrips);
@@ -513,11 +486,7 @@ export default function Dashboard() {
 
   const handleJoinTrip = async (tripId) => {
     try {
-      console.log("Joining trip:", tripId);
       const res = await api.patch(`trips/${tripId}/`, { action: "join" });
-      console.log("Join response:", res.data);
-      console.log("Trip data from response:", res.data.trip);
-      console.log("Participants from response:", res.data.trip?.participants);
       
       // Send system message to trip chat
       try {
@@ -543,7 +512,6 @@ export default function Dashboard() {
       
       // Wait a moment for backend to process, then refresh and switch to My Trips
       setTimeout(() => {
-        console.log("Refreshing dashboard data...");
         fetchDashboardData(); 
         setActiveTab("myTrips"); // Switch to My Trips tab to see the joined trip
         setError("");
@@ -557,7 +525,6 @@ export default function Dashboard() {
   const handleLeaveTrip = async (tripId) => {
     if (!window.confirm("Are you sure you want to leave this trip?")) return;
     try {
-      console.log("Leaving trip:", tripId);
       const res = await api.patch(`trips/${tripId}/`, { action: "leave" });
       console.log("Leave response:", res.data);
       
@@ -682,17 +649,14 @@ export default function Dashboard() {
     
     // Filter by selected tags - only show trips that have AT LEAST ONE of the selected tags
     if (selectedFilterTags.length > 0) {
-      console.log("🔍 Filtering by tags:", selectedFilterTags);
       result = result.filter(t => {
         // Parse trip_tags - it might be a JSON string or already an array
         let tripTags = t.trip_tags || [];
-        console.log(`  Raw trip_tags for "${t.title}":`, tripTags, "Type:", typeof tripTags);
         
         if (typeof tripTags === 'string') {
           try {
             tripTags = JSON.parse(tripTags);
           } catch (e) {
-            console.error(`    Failed to parse trip_tags: ${e.message}`);
             tripTags = [];
           }
         }
@@ -707,10 +671,8 @@ export default function Dashboard() {
         const hasMatchingTag = selectedFilterTags.some(selectedTag => 
           tripTagsLower.includes(selectedTag.toLowerCase())
         );
-        console.log(`  Parsed trip_tags for "${t.title}":`, tripTags, "Lowercase:", tripTagsLower, "Match:", hasMatchingTag);
         return hasMatchingTag;
       });
-      console.log(`  ✅ Found ${result.length} matching trips`);
     }
     
     return result;
