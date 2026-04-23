@@ -1,32 +1,42 @@
 /* Navbar Styles */
 
-nav {
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #ffffff;
+:root {
+  --navbar-bg: rgba(10, 12, 22, 0.85);
+  --navbar-text: #ffffff;
+  --navbar-text-secondary: #b3b3b3;
+  --navbar-hover: #ffffff;
 }
 
-nav.sticky {
-  backdrop-filter: blur(10px);
-  background-color: rgba(10, 12, 22, 0.85) !important;
+/* Light mode overrides */
+[data-theme="light"] {
+  --navbar-bg: #141A29;
+  --navbar-text: #ffffff;
+  --navbar-text-secondary: #cccccc;
+  --navbar-hover: #ffffff;
+}
+
+nav {
+  background-color: var(--navbar-bg) !important;
+  background-image: none !important;
+  color: var(--navbar-text);
 }
 
 nav a {
-  color: #b3b3b3;
+  color: var(--navbar-text-secondary);
   transition: color 0.2s ease;
 }
 
 nav a:hover {
-  color: #ffffff;
+  color: var(--navbar-hover);
 }
 
 nav button {
-  color: #b3b3b3;
+  color: var(--navbar-text-secondary);
   transition: color 0.2s ease;
 }
 
 nav button:hover {
-  color: #ffffff;
+  color: var(--navbar-hover);
 }
 
 /* Override specific Tailwind classes */

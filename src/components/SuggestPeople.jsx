@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Users, Loader2, AlertCircle, UserPlus, X, ChevronRight, ChevronLeft, Gem } from "lucide-react";
 import { apiFetch, getBaseUrl } from "../utils/api";
 
@@ -144,6 +144,8 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
 }
 
 export default function SuggestPeople({ currentUserId }) {
+  const navigate = useNavigate();
+  
   const [allSuggestions, setAllSuggestions] = useState([]);
   const [dismissed, setDismissed] = useState([]);
   const [pendingRequests, setPendingRequests] = useState(() => {
@@ -307,13 +309,13 @@ export default function SuggestPeople({ currentUserId }) {
           >
             {MESSAGES.kycMessage}
           </p>
-          <Link
-            to="/kyc"
+          <button
+            onClick={() => navigate("/kyc")}
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-semibold text-sm transition"
             style={{ fontFamily: FONTS.body }}
           >
             Complete KYC Verification <ChevronRight className="w-4 h-4" />
-          </Link>
+          </button>
         </div>
       </div>
     );
@@ -323,37 +325,30 @@ export default function SuggestPeople({ currentUserId }) {
   if (incompleteProfile.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
-        <div className="rounded-2xl bg-blue-500/10 border border-blue-500/30 p-8 max-w-md text-center">
-          <Users className="w-12 h-12 text-blue-400 mx-auto mb-4" />
+        <div className="rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/30 p-8 max-w-md text-center">
+          <Users className="w-12 h-12 text-[#C9A84C] mx-auto mb-4" />
           <h3 
-            className="text-base font-bold text-blue-300 mb-2"
+            className="text-base font-bold text-white mb-2"
             style={{ fontFamily: FONTS.body }}
           >
             {MESSAGES.profileIncomplete}
           </h3>
           <p 
-            className="text-sm text-blue-200/70 mb-4"
+            className="text-sm text-white/70 mb-4"
             style={{ fontFamily: FONTS.body }}
           >
             {MESSAGES.profileMessage}
           </p>
-          <div className="bg-blue-500/5 border border-blue-400/20 rounded-lg p-3 mb-4">
-            <ul className="text-left text-sm text-blue-200/80 space-y-1">
+          <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-lg p-3 mb-4">
+            <ul className="text-left text-sm text-white/80 space-y-1">
               {incompleteProfile.map((item) => (
                 <li key={item} className="flex items-start gap-2">
-                  <span className="text-blue-400 mt-0.5">•</span>
+                  <span className="text-[#C9A84C] mt-0.5">•</span>
                   <span>{item}</span>
                 </li>
               ))}
             </ul>
           </div>
-          <Link
-            to="/profile"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-blue-400/20 hover:bg-blue-400/30 border border-blue-400/40 text-blue-300 font-semibold text-sm transition"
-            style={{ fontFamily: FONTS.body }}
-          >
-            Edit Profile <ChevronRight className="w-4 h-4" />
-          </Link>
         </div>
       </div>
     );
@@ -480,6 +475,8 @@ export default function SuggestPeople({ currentUserId }) {
           )}
         </div>
       )}
+
+
     </div>
   );
 }

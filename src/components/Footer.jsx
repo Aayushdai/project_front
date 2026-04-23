@@ -26,7 +26,9 @@ const Footer = () => {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-black text-slate-300">
+    <footer className="text-slate-300" style={{
+      backgroundColor: 'var(--footer-bg, #000000)',
+    }}>
       <div className="mx-auto max-w-7xl px-6 py-16">
         {/* TOP GRID */}
         <div className="grid gap-12 md:grid-cols-4">

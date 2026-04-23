@@ -112,7 +112,10 @@ export default function NavbarComponent() {
   );
 
   return (
-    <nav className="sticky top-0 z-[9995] bg-[rgba(10,12,22,0.85)] backdrop-blur-md font-[Poppins,sans-serif]">
+    <nav className="sticky top-0 z-[9995] font-[Poppins,sans-serif]" style={{
+      backgroundColor: 'var(--navbar-bg, rgba(10,12,22,0.85))',
+      backdropFilter: 'blur(10px)'
+    }}>
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
 
         {/* Logo */}

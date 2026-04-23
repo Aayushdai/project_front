@@ -1,40 +1,57 @@
 /* Footer Theme Styles */
 
+:root {
+  --footer-bg: #000000;
+  --footer-text: #64748b;
+  --footer-text-primary: #ffffff;
+  --footer-text-muted: #71717a;
+  --footer-border: #3f3f46;
+}
+
+/* Light mode overrides */
+[data-theme="light"] {
+  --footer-bg: #222936;
+  --footer-text: #8795B6;
+  --footer-text-primary: #1F2738;
+  --footer-text-muted: #8795B6;
+  --footer-border: #E2DDD6;
+}
+
 footer {
-  background-color: var(--bg-secondary) !important;
-  color: var(--text-secondary);
+  background-color: var(--footer-bg) !important;
+  color: var(--footer-text);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 footer h4 {
-  color: var(--text-primary);
+  color: var(--footer-text-primary);
 }
 
 footer a {
-  color: var(--text-secondary);
+  color: var(--footer-text);
   transition: color 0.2s ease;
 }
 
 footer a:hover {
-  color: var(--text-primary);
+  color: var(--footer-text-primary);
 }
 
 footer .text-slate-300 {
-  color: var(--text-secondary);
+  color: var(--footer-text);
 }
 
 footer .text-slate-400 {
-  color: var(--text-muted);
+  color: var(--footer-text-muted);
 }
 
 footer .text-white {
-  color: var(--text-primary);
+  color: var(--footer-text-primary);
 }
 
 footer .bg-slate-700 {
-  background-color: var(--border-primary);
+  background-color: var(--footer-border);
 }
 
 footer .hover\:text-white:hover {
-  color: var(--text-primary);
+  color: var(--footer-text-primary);
 }

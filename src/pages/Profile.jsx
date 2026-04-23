@@ -21,6 +21,7 @@ import {
   Image,
 } from "lucide-react";
 import SuggestPeople from "../components/SuggestPeople";
+import EditModal from "../components/EditModal";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 const API = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
@@ -153,187 +154,6 @@ const ERROR_BOUNDARY = {
   refresh: "Refresh Page",
 };
 
-// ─── chip selector ──────────────────────────────────────────────────────────
-function ChipSelect({ label, options, value, onChange }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/40">{label}</label>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <button key={o} type="button" onClick={() => onChange(o.toLowerCase())}
-            style={{ fontFamily: FONTS.body }}
-            className={`rounded-full px-4 py-1.5 text-[12px] font-semibold border transition-all duration-200 ${
-              value === o.toLowerCase()
-                ? "bg-[#C9A84C] border-[#C9A84C] text-black"
-                : "bg-transparent border-white/15 text-white/50 hover:border-white/30 hover:text-white/80"
-            }`}>
-            {o}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── slider field ───────────────────────────────────────────────────────────
-function SliderField({ label, name, value, onChange, min = 0, max = 10, leftLabel, rightLabel }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="flex justify-between items-center">
-        <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/40">{label}</label>
-        <span style={{ fontFamily: FONTS.mono }} className="text-xs text-[#C9A84C]">{value}/{max}</span>
-      </div>
-      <input type="range" min={min} max={max} name={name} value={value} onChange={onChange}
-        className="accent-[#C9A84C] w-full h-[3px] rounded-full" />
-      <div className="flex justify-between text-[10px] text-white/25" style={{ fontFamily: FONTS.body }}>
-        <span>{leftLabel}</span><span>{rightLabel}</span>
-      </div>
-    </div>
-  );
-}
-
-// ─── edit modal ─────────────────────────────────────────────────────────────
-function EditModal({ profile, onClose, onSaved }) {
-  const [form, setForm] = useState({
-    first_name: profile.first_name || "",
-    last_name: profile.last_name || "",
-    bio: profile.bio || "",
-    location: profile.location || "",
-    travel_style: profile.travel_style || "",
-    pace: profile.pace || "",
-    accommodation_preference: profile.accommodation_preference || "",
-    budget_level: profile.budget_level ?? 5,
-    adventure_level: profile.adventure_level ?? 5,
-    social_level: profile.social_level ?? 5,
-  });
-
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(avatar(profile.profile_picture));
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState("");
-  const fileRef = useRef();
-
-  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
-  const setChip = (k) => (v) => setForm(f => ({ ...f, [k]: v }));
-  const setSlider = (e) => setForm(f => ({ ...f, [e.target.name]: Number(e.target.value) }));
-
-
-
-  const handlePhoto = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setPhotoFile(file);
-    const r = new FileReader();
-    r.onload = (ev) => setPhotoPreview(ev.target.result);
-    r.readAsDataURL(file);
-  };
-
-  const handleSave = async () => {
-    setSaving(true); setErr("");
-    try {
-      const fd = new FormData();
-      Object.entries(form).forEach(([k, v]) => fd.append(k, v));
-      if (photoFile) fd.append("profile_photo", photoFile);
-      const res = await fetch(`${API}users/profile/update/`, {
-        method: "PATCH", headers: { Authorization: `Bearer ${token()}` }, body: fd,
-      });
-      const data = await res.json();
-      if (!res.ok) { setErr(data.message || MODAL_MESSAGES.failedToSave); return; }
-      onSaved(data);
-      window.dispatchEvent(new Event("profile-updated"));
-      onClose();
-    } catch { setErr(MODAL_MESSAGES.connectionError); }
-    finally { setSaving(false); }
-  };
-
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = ""; };
-  }, []);
-
-  const inp = "w-full rounded-xl bg-[#1a1a1a] border border-white/20 px-4 py-3 text-sm text-white placeholder-white/30 outline-none focus:border-[#C9A84C]/70 focus:ring-1 focus:ring-[#C9A84C]/30 transition";
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4"
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="relative w-full sm:max-w-lg max-h-[95vh] sm:max-h-[88vh] overflow-y-auto sm:rounded-2xl rounded-t-3xl bg-[#0e0e0e] border border-white/8 shadow-2xl">
-        <div className="sm:hidden flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 rounded-full bg-white/20" />
-        </div>
-        {/* header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between bg-[#0e0e0e]/95 backdrop-blur px-6 py-4 border-b border-white/8">
-          <button onClick={onClose} style={{ fontFamily: FONTS.body }} className="text-sm text-white/50 hover:text-white transition">{MODAL_BUTTONS.cancel}</button>
-          <h2 style={{ fontFamily: FONTS.body }} className="text-sm font-bold text-white">{MODAL_TITLE}</h2>
-          <button onClick={handleSave} disabled={saving} style={{ fontFamily: FONTS.body }}
-            className="text-sm font-bold text-[#C9A84C] hover:text-[#e8c96d] disabled:opacity-40 transition">
-            {saving ? MODAL_BUTTONS.saving : MODAL_BUTTONS.save}
-          </button>
-        </div>
-
-        <div className="flex flex-col gap-7 px-6 py-6">
-          {/* avatar */}
-          <div className="flex flex-col items-center gap-2">
-            <div onClick={() => fileRef.current.click()} className="relative h-24 w-24 cursor-pointer group">
-              <div className="absolute -inset-[2px] rounded-full bg-gradient-to-br from-[#C9A84C] to-[#8b6914] opacity-60" />
-              <div className="relative h-full w-full overflow-hidden rounded-full bg-[#1a1a1a] border-[2px] border-[#0e0e0e]">
-                {photoPreview
-                  ? <img src={photoPreview} alt="" className="h-full w-full object-cover" />
-                  : <span className="flex h-full items-center justify-center text-3xl font-bold text-[#C9A84C]"
-                      style={{ fontFamily: FONTS.display }}>
-                      {(form.first_name || "T")[0].toUpperCase()}
-                    </span>
-                }
-              </div>
-              <div className="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                <Edit3 className="w-5 h-5 text-white" />
-              </div>
-            </div>
-            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handlePhoto} />
-            <button onClick={() => fileRef.current.click()} style={{ fontFamily: FONTS.body }}
-              className="text-sm font-semibold text-[#C9A84C] hover:text-[#e8c96d] transition">
-              {MODAL_LABELS.changePhoto}
-            </button>
-          </div>
-
-          {/* name */}
-          <div className="grid grid-cols-2 gap-3">
-            {[[MODAL_LABELS.firstName, "first_name", MODAL_PLACEHOLDERS.firstName], [MODAL_LABELS.lastName, "last_name", MODAL_PLACEHOLDERS.lastName]].map(([lbl, key, ph]) => (
-              <div key={key} className="flex flex-col gap-1.5">
-                <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{lbl}</label>
-                <input className={inp} style={{ fontFamily: FONTS.body }} value={form[key]} onChange={set(key)} placeholder={ph} />
-              </div>
-            ))}
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{MODAL_LABELS.bio}</label>
-            <textarea className={`${inp} resize-none`} style={{ fontFamily: FONTS.body }} rows={3} value={form.bio} onChange={set("bio")} placeholder={MODAL_PLACEHOLDERS.bio} />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/35">{MODAL_LABELS.location}</label>
-            <input className={inp} style={{ fontFamily: FONTS.body }} value={form.location} onChange={set("location")} placeholder={MODAL_PLACEHOLDERS.location} />
-          </div>
-
-          <div className="h-px bg-white/6" />
-          <ChipSelect label={MODAL_LABELS.travelStyle}  options={TRAVEL_STYLES} value={form.travel_style}             onChange={setChip("travel_style")} />
-          <ChipSelect label={MODAL_LABELS.pace}          options={PACE_OPTIONS}  value={form.pace}                     onChange={setChip("pace")} />
-          <ChipSelect label={MODAL_LABELS.accommodation} options={ACCOMM}        value={form.accommodation_preference} onChange={setChip("accommodation_preference")} />
-
-          <div className="h-px bg-white/6" />
-          <SliderField label={FORM_LABELS.budgetLabel}    name="budget_level"    value={form.budget_level}    onChange={setSlider} leftLabel={FORM_LABELS.budgetLeft}  rightLabel={FORM_LABELS.budgetRight}  />
-          <SliderField label={FORM_LABELS.chillLabel} name="adventure_level" value={form.adventure_level} onChange={setSlider} leftLabel={FORM_LABELS.chillLeft}   rightLabel={FORM_LABELS.chillRight} />
-          <SliderField label={FORM_LABELS.soloLabel}    name="social_level"    value={form.social_level}    onChange={setSlider} leftLabel={FORM_LABELS.soloLeft}    rightLabel={FORM_LABELS.soloRight}   />
-
-
-
-          {err && <p style={{ fontFamily: FONTS.body }} className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{err}</p>}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ─── icon helpers ────────────────────────────────────────────────────────────
 const StyleIcon = ({ style }) => {
   const map = { budget: [Wallet, "#C9A84C"], luxury: [Gem, "#ffffff"], adventure: [Mountain, "#C9A84C"] };
@@ -391,7 +211,6 @@ function ProfilePage() {
   const [activeTab, setActiveTab] = useState("overview");
   const [userPhotos, setUserPhotos] = useState([]);
   const [photosLoading, setPhotosLoading] = useState(false);
-  const [calculatedRating, setCalculatedRating] = useState(null);
 
   useEffect(() => {
     fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
@@ -448,9 +267,7 @@ function ProfilePage() {
         
         const photos = [];
         for (const trip of tripsList) {
-          // Check if trip is completed (using boolean flag OR past end_date)
-          const isTripCompleted = trip.is_completed || new Date(trip.end_date) < new Date();
-          if (isTripCompleted) {
+          if (new Date(trip.end_date) < new Date()) {
             try {
               const photoRes = await fetch(`${API}trips/${trip.id}/photos/`, {
                 headers: { Authorization: `Bearer ${token()}` }
@@ -458,11 +275,8 @@ function ProfilePage() {
               if (photoRes.ok) {
                 const photoData = await photoRes.json();
                 const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
-                // Only include photos uploaded by the current user
                 tripPhotos.forEach(photo => {
-                  if (photo.uploaded_by === profile.id) {
-                    photos.push({ ...photo, trip });
-                  }
+                  photos.push({ ...photo, trip });
                 });
               }
             } catch (e) {
@@ -479,65 +293,6 @@ function ProfilePage() {
     };
     if (profile) fetchUserPhotos();
   }, [profile]);
-
-  useEffect(() => {
-    const calculateRatingFromReviews = async () => {
-      if (!profile?.id) return;
-      
-      try {
-        const res = await fetch(`${API}trips/`, { headers: { Authorization: `Bearer ${token()}` } });
-        const trips = await res.json();
-        const tripsList = Array.isArray(trips) ? trips : trips.results || [];
-        
-        // Filter trips created by current user
-        const createdTrips = tripsList.filter(trip => trip.creator?.id === profile.id);
-        
-        if (createdTrips.length === 0) {
-          setCalculatedRating(null);
-          return;
-        }
-
-        const tripRatings = [];
-        
-        // For each trip created by user, fetch reviews
-        for (const trip of createdTrips) {
-          try {
-            const reviewRes = await fetch(`${API}trips/${trip.id}/reviews/`, {
-              headers: { Authorization: `Bearer ${token()}` }
-            });
-            
-            if (reviewRes.ok) {
-              const reviewData = await reviewRes.json();
-              const reviews = Array.isArray(reviewData) ? reviewData : reviewData.results || [];
-              
-              // Calculate average rating for this trip
-              if (reviews.length > 0) {
-                const tripAvgRating = reviews.reduce((sum, review) => sum + (review.rating || 0), 0) / reviews.length;
-                tripRatings.push(tripAvgRating);
-              }
-            }
-          } catch (err) {
-            console.error(`Failed to fetch reviews for trip ${trip.id}:`, err);
-          }
-        }
-        
-        // Calculate overall average rating
-        if (tripRatings.length > 0) {
-          const overallRating = tripRatings.reduce((a, b) => a + b, 0) / tripRatings.length;
-          setCalculatedRating(overallRating);
-        } else {
-          setCalculatedRating(null);
-        }
-      } catch (err) {
-        console.error("Failed to calculate rating:", err);
-        setCalculatedRating(null);
-      }
-    };
-    
-    if (profile?.id) {
-      calculateRatingFromReviews();
-    }
-  }, [profile?.id]);
 
   if (loading) return (
     <div className="flex min-h-screen items-center justify-center bg-[#080808]">
@@ -603,7 +358,11 @@ function ProfilePage() {
             </div>
 
             {/* Edit button */}
-            <button onClick={() => setEditing(true)} style={{ fontFamily: FONTS.body }}
+            <button 
+              onClick={() => {
+                setEditing(true);
+              }}
+              style={{ fontFamily: FONTS.body }}
               className="mb-1 rounded-xl border border-white/12 bg-white/5 px-5 py-2 text-[13px] font-semibold text-white hover:bg-white/10 hover:border-white/20 transition flex items-center gap-2">
               <Edit3 className="w-3.5 h-3.5" /> {BUTTONS.editProfile}
             </button>
@@ -628,7 +387,7 @@ function ProfilePage() {
             {[
               { value: joinedTrips.length,                                  label: STAT_LABELS.trips   },
               { value: friends.length,                                      label: STAT_LABELS.buddies },
-              { value: calculatedRating ? calculatedRating.toFixed(1) : "—",   label: STAT_LABELS.rating  },
+              { value: profile.rating ? profile.rating.toFixed(1) : "—",   label: STAT_LABELS.rating  },
             ].map(({ value, label }, i) => (
               <div key={label} className={`flex-1 flex flex-col items-center py-4 gap-0.5 ${i < 2 ? "border-r border-white/8" : ""}`}>
                 <span className="text-[22px] font-bold text-white" style={{ fontFamily: FONTS.display }}>{value}</span>
@@ -658,81 +417,41 @@ function ProfilePage() {
               {/* Trip Photos Gallery */}
               {userPhotos.length > 0 && (
                 <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden">
-                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-6 pt-4 pb-3 flex items-center gap-2">
+                  <p style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-white/30 px-5 pt-4 pb-3 flex items-center gap-2">
                     <Image className="w-4 h-4" />
                     Trip Photos
                   </p>
-                  <div className="px-6 pb-6 space-y-8">
-                    {/* Group photos by trip */}
-                    {(() => {
-                      // Group photos by trip ID
-                      const grouped = {};
-                      userPhotos.forEach(photo => {
-                        const tripId = photo.trip?.id || 'no-trip';
-                        if (!grouped[tripId]) {
-                          grouped[tripId] = {
-                            trip: photo.trip,
-                            photos: []
-                          };
-                        }
-                        grouped[tripId].photos.push(photo);
-                      });
-                      
-                      return Object.values(grouped).map((group) => (
-                        <div key={group.trip?.id || 'no-trip'} className="space-y-3">
-                          {/* Trip Header */}
-                          {group.trip && (
+                  <div className="px-5 pb-5 space-y-4">
+                    {userPhotos.map((photo) => (
+                      <div key={photo.id} className="rounded-lg overflow-hidden border border-white/8 bg-white/2 hover:border-[#C9A84C]/30 transition cursor-pointer group">
+                        {/* Photo */}
+                        <div className="relative aspect-video overflow-hidden bg-black/20">
+                          <img
+                            src={photo.image}
+                            alt={photo.caption || "trip photo"}
+                            className="w-full h-full object-cover group-hover:scale-105 transition"
+                          />
+                        </div>
+                        {/* Trip Info */}
+                        <div className="p-3 space-y-2">
+                          {photo.caption && (
+                            <p style={{ fontFamily: FONTS.body }} className="text-sm text-white/80">
+                              {photo.caption}
+                            </p>
+                          )}
+                          {photo.trip && (
                             <Link
-                              to={`/trip/${group.trip.id}`}
+                              to={`/trip/${photo.trip.id}`}
                               style={{ fontFamily: FONTS.body }}
-                              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-[#C9A84C]/10 border border-[#C9A84C]/30 hover:bg-[#C9A84C]/20 transition"
+                              className="text-xs font-semibold text-[#C9A84C] hover:text-[#e8c96d] transition flex items-center gap-1"
                             >
-                              <MapPin className="w-4 h-4 text-[#C9A84C]" />
-                              <span className="font-semibold text-[#C9A84C] text-sm">
-                                {group.trip.destination?.name || "Trip"} ({group.photos.length} photo{group.photos.length !== 1 ? 's' : ''})
-                              </span>
+                              <MapPin className="w-3 h-3" />
+                              {photo.trip.destination?.name || "Trip"} • {new Date(photo.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                             </Link>
                           )}
-                          
-                          {/* Photos Grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                            {group.photos.map((photo, idx) => (
-                              <div 
-                                key={photo.id}
-                                className="rounded-lg overflow-hidden border border-white/8 bg-white/2 hover:border-[#C9A84C]/30 transition cursor-pointer group"
-                              >
-                                {/* Photo */}
-                                <div className="relative aspect-square overflow-hidden bg-black/20">
-                                  <img
-                                    src={photo.image}
-                                    alt={photo.caption || "trip photo"}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition"
-                                  />
-                                  {/* Badge showing this is from a group */}
-                                  {group.photos.length > 1 && idx === 0 && (
-                                    <div className="absolute top-2 right-2 bg-black/60 backdrop-blur-sm px-2 py-1 rounded text-xs text-white font-semibold">
-                                      +{group.photos.length - 1}
-                                    </div>
-                                  )}
-                                </div>
-                                
-                                {/* Caption on hover */}
-                                {photo.caption && (
-                                  <div className="p-2 hidden group-hover:block">
-                                    <p 
-                                      style={{ fontFamily: FONTS.body }} 
-                                      className="text-xs text-white/80"
-                                    >
-                                      {photo.caption}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
                         </div>
-                      ));
-                    })()}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -848,8 +567,8 @@ function ProfilePage() {
             </div>
 
             {/* Friends sidebar (right: 1 col) */}
-            <div className="lg:col-span-1 ml-6">
-              <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-3 max-w-xs">
+            <div className="lg:col-span-1">
+              <div className="sticky top-20 rounded-2xl bg-white/3 border border-white/8 p-5">
                 <div className="flex items-center justify-between mb-4">
                   <p style={{ fontFamily: FONTS.body }} className="text-[13px] font-semibold uppercase tracking-[0.15em] text-white/30">
                     {FORM_LABELS.friends} {friends.length > 0 && <span className="text-[#C9A84C]">({friends.length})</span>}
@@ -894,8 +613,15 @@ function ProfilePage() {
         </div>
 
         {editing && (
-          <EditModal profile={profile} onClose={() => setEditing(false)}
-            onSaved={updated => setProfile(p => ({ ...p, ...updated }))} />
+          <EditModal 
+            profile={profile} 
+            onClose={() => {
+              setEditing(false);
+            }}
+            onSaved={updated => {
+              setProfile(p => ({ ...p, ...updated }));
+            }} 
+          />
         )}
       </div>
     </>

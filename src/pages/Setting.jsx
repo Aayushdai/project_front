@@ -153,6 +153,7 @@ export default function SettingPage() {
 
         // Load preferences
         const prefsData = await apiFetch("users/me/preferences/");
+        const darkModeEnabled = prefsData.darkMode ?? true;
         setPrefs({
           emailNotifications: prefsData.emailNotifications,
           tripUpdates: prefsData.tripUpdates,
@@ -162,8 +163,10 @@ export default function SettingPage() {
           publicProfile: prefsData.publicProfile,
           searchableByEmail: prefsData.searchableByEmail,
           showOnlineStatus: prefsData.showOnlineStatus,
-          darkMode: prefsData.darkMode ?? true,
+          darkMode: darkModeEnabled,
         });
+        // Apply initial theme
+        document.documentElement.setAttribute("data-theme", darkModeEnabled ? "dark" : "light");
       } catch {
         showToast("error", "Failed to load user data");
       } finally {
@@ -240,6 +243,11 @@ export default function SettingPage() {
     const updated = { ...prefs, [key]: !prefs[key] };
     setPrefs(updated);
     
+    // Apply theme to document if darkMode changed
+    if (key === "darkMode") {
+      document.documentElement.setAttribute("data-theme", updated.darkMode ? "dark" : "light");
+    }
+    
     try {
       // Only send backend-supported preferences
       const backendPrefs = {
@@ -266,12 +274,20 @@ export default function SettingPage() {
         showToast("error", errorData.error || errorData.detail || "Failed to save preference");
         // Revert the change
         setPrefs((prev) => ({ ...prev, [key]: !updated[key] }));
+        // Revert theme if darkMode change was reverted
+        if (key === "darkMode") {
+          document.documentElement.setAttribute("data-theme", updated.darkMode ? "light" : "dark");
+        }
       }
     } catch (err) {
       console.error("Failed to save preference:", err);
       showToast("error", "An error occurred while saving preference");
       // Revert the change
       setPrefs((prev) => ({ ...prev, [key]: !updated[key] }));
+      // Revert theme if darkMode change was reverted
+      if (key === "darkMode") {
+        document.documentElement.setAttribute("data-theme", updated.darkMode ? "light" : "dark");
+      }
     }
   };
 
