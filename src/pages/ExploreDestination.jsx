@@ -454,11 +454,24 @@ function SearchBox({ value, onChange, onSelect, placeholder, dotColor, disabled,
     return () => clearTimeout(timer.current);
   }, [value, disabled]);
 
+  const isDarkMode = typeof document !== 'undefined' 
+    ? document.documentElement.getAttribute('data-theme') !== 'light'
+    : true;
+
   return (
     <div style={{ position:"relative" }}>
+      <style>{`
+        .tm-search-input::placeholder {
+          color: ${isDarkMode ? 'rgba(245,240,232,.4)' : 'rgba(0,0,0,.4)'};
+        }
+        .tm-search-input {
+          color: ${isDarkMode ? '#f5f0e8' : '#0d0d0d'};
+        }
+      `}</style>
       <div style={{ position:"relative" }}>
         <span style={{ position:"absolute", left:13, top:"50%", transform:"translateY(-50%)", width:9, height:9, borderRadius:"50%", background:dotColor, boxShadow:`0 0 6px ${dotColor}`, zIndex:2 }}/>
         <input
+          className="tm-search-input"
           disabled={disabled}
           value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder} autoComplete="off" style={{...S.input, opacity: disabled ? 0.5 : 1, cursor: disabled ? 'not-allowed' : 'text'}}
