@@ -24,7 +24,7 @@ import {
   Popup, Circle, Polyline, useMap,
 } from "react-leaflet";
 import {
-  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin, Lock, Radio, Archive
+  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin, Lock, Radio, Archive, Menu, X, Clock, Phone, ExternalLink, BookOpen, Mountain
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -81,40 +81,40 @@ const getThemeColors = () => {
   } else {
     // Light mode colors
     return {
-      gold: "#d97706",
-      goldGradientStart: "#b45309",
-      goldGradientEnd: "#d97706",
-      emerald: "#10b981",
-      teal: "#14b8a6",
-      blue: "#3b82f6",
-      grey: "#6b7280",
+      gold: "#ea580c",
+      goldGradientStart: "#fb923c",
+      goldGradientEnd: "#ea580c",
+      emerald: "#059669",
+      teal: "#0f766e",
+      blue: "#2563eb",
+      grey: "#64748b",
       liveLocation: "#2563eb",
-      altRoute: "#9ca3af",
-      clusterGold: "#d97706",
-      gold15: "rgba(217, 119, 6, 0.15)",
-      gold45: "rgba(217, 119, 6, 0.45)",
-      gold08: "rgba(217, 119, 6, 0.08)",
-      gold25: "rgba(217, 119, 6, 0.25)",
-      gold3: "rgba(217, 119, 6, 0.3)",
-      gold05: "rgba(217, 119, 6, 0.05)",
-      gold06: "rgba(217, 119, 6, 0.06)",
-      gold1: "rgba(217, 119, 6, 0.1)",
+      altRoute: "#94a3b8",
+      clusterGold: "#ea580c",
+      gold15: "rgba(249, 115, 22, 0.14)",
+      gold45: "rgba(249, 115, 22, 0.45)",
+      gold08: "rgba(249, 115, 22, 0.08)",
+      gold25: "rgba(249, 115, 22, 0.25)",
+      gold3: "rgba(249, 115, 22, 0.3)",
+      gold05: "rgba(249, 115, 22, 0.05)",
+      gold06: "rgba(249, 115, 22, 0.06)",
+      gold1: "rgba(249, 115, 22, 0.12)",
       errorRed: "#dc2626",
-      errorBg: "rgba(220, 38, 38, 0.1)",
-      errorBorder: "rgba(220, 38, 38, 0.25)",
+      errorBg: "rgba(220, 38, 38, 0.08)",
+      errorBorder: "rgba(220, 38, 38, 0.22)",
       // Light mode specific
-      background: "#f8f5f0",
-      sidebarBg: "rgba(255, 255, 255, 0.98)",
-      sidebarBorder: "rgba(217, 119, 6, 0.15)",
-      cardBg: "rgba(217, 119, 6, 0.05)",
-      cardBorder: "rgba(217, 119, 6, 0.15)",
-      text: "#0d0d0d",
-      textSecondary: "rgba(0, 0, 0, 0.6)",
-      textTertiary: "rgba(0, 0, 0, 0.4)",
-      inputBg: "rgba(255, 255, 255, 0.9)",
+      background: "#eef2f7",
+      sidebarBg: "rgba(255, 255, 255, 0.96)",
+      sidebarBorder: "rgba(148, 163, 184, 0.35)",
+      cardBg: "#ffffff",
+      cardBorder: "rgba(226, 232, 240, 0.95)",
+      text: "#0f172a",
+      textSecondary: "#475569",
+      textTertiary: "#64748b",
+      inputBg: "#ffffff",
       dropdownBg: "#ffffff",
       popupBg: "#ffffff",
-      popupText: "#0d0d0d",
+      popupText: "#0f172a",
     };
   }
 };
@@ -165,8 +165,8 @@ const ERROR_MESSAGES = {
 };
 
 const MESSAGES = {
-  travelNepal: "Travel Nepal",
-  nepal: "Nepal",
+  travelNepal: "TCS:travel companion",
+  nepal: "system",
   route: "Route",
   nearby: "Nearby",
   saved: "Saved",
@@ -183,7 +183,7 @@ const MESSAGES = {
   completeKyc: "Complete KYC",
   updateKyc: "Update KYC",
   viewStatus: "View Status",
-  refresh: "🔄 Refresh",
+  refresh: "Refresh",
   startPlaceholder: "Start — search anywhere in Nepal…",
   destPlaceholder: "Destination — search Nepal…",
   drive: "Drive",
@@ -352,7 +352,7 @@ const makePlaceIcon = (place) => {
               : place.rating >= 3.0 ? "#7b9fd4" : "#888780";
   return L.divIcon({
     className: "",
-    html: `<div style="background:${color};width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,0.9);box-shadow:0 3px 10px rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;"><span style="transform:rotate(45deg);font-size:13px;line-height:1;">${place.icon}</span></div>`,
+    html: `<div style="background:${color};width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:2px solid rgba(255,255,255,0.95);box-shadow:0 8px 18px rgba(15,23,42,0.35);display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:white;display:block;transform:rotate(45deg);box-shadow:0 0 0 3px rgba(255,255,255,.25);"></span></div>`,
     iconSize:[34,34], iconAnchor:[17,34],
   });
 };
@@ -530,13 +530,13 @@ function PlaceClusterLayer({ places, onSetDest, colors }) {
     places.forEach(p => {
       const tags = p.tags || {};
       const extras = [
-        tags["opening_hours"] ? `⏰ ${tags["opening_hours"]}` : null,
-        tags.phone || tags["contact:phone"] ? `📱 ${tags.phone || tags["contact:phone"]}` : null,
+        tags["opening_hours"] ? `Hours: ${tags["opening_hours"]}` : null,
+        tags.phone || tags["contact:phone"] ? `Phone: ${tags.phone || tags["contact:phone"]}` : null,
         tags.website || tags["contact:website"]
-          ? `🔗 <a href="${tags.website || tags["contact:website"]}" target="_blank" style="color:#60a5fa;">Website</a>` : null,
+          ? `<a href="${tags.website || tags["contact:website"]}" target="_blank" style="color:#60a5fa;">Website</a>` : null,
         tags.wikipedia
-          ? `📚 <a href="https://en.wikipedia.org/wiki/${encodeURIComponent(tags.wikipedia.replace(/^en:/,""))}" target="_blank" style="color:#60a5fa;">Wikipedia</a>` : null,
-        tags.ele ? `⬆️ Elevation: ${tags.ele}m` : null,
+          ? `<a href="https://en.wikipedia.org/wiki/${encodeURIComponent(tags.wikipedia.replace(/^en:/,""))}" target="_blank" style="color:#60a5fa;">Wikipedia</a>` : null,
+        tags.ele ? `Elevation: ${tags.ele}m` : null,
       ].filter(Boolean).slice(0, 3).join("<br/>");
 
       const starsHtml = [1,2,3,4,5].map(i =>
@@ -548,7 +548,7 @@ function PlaceClusterLayer({ places, onSetDest, colors }) {
           <div style="font-family:'DM Sans',sans-serif;background:${colors.popupBg};color:${colors.popupText};border-radius:10px;padding:13px 15px;min-width:220px;">
             <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:${p.color};margin-bottom:2px;">${p.name}</div>
             ${p.nameNe ? `<div style="font-size:12px;color:${colors.textSecondary};margin-bottom:4px;">${p.nameNe}</div>` : ""}
-            <div style="font-size:11px;color:${colors.textTertiary};margin-bottom:8px;">${p.icon} ${p.category}</div>
+            <div style="font-size:11px;color:${colors.textTertiary};margin-bottom:8px;">${p.category}</div>
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:${extras?"8px":"10px"};">
               ${starsHtml}
               <span style="font-size:13px;font-weight:600;color:${colors.popupText};">${p.rating}</span>
@@ -787,19 +787,53 @@ export default function NepalMap() {
         .tm-popup .leaflet-popup-content-wrapper { background:transparent!important;box-shadow:0 8px 32px rgba(0,0,0,.6)!important;border-radius:12px!important;padding:0!important;border:.5px solid rgba(240,194,122,.15)!important; }
         .tm-popup .leaflet-popup-content { margin:0!important; }
         .tm-popup .leaflet-popup-tip-container { display:none!important; }
+
+        .tm-sidebar { backdrop-filter: blur(18px); }
+        .tm-sidebar-content::-webkit-scrollbar { width: 6px; }
+        .tm-sidebar-content::-webkit-scrollbar-track { background: transparent; }
+        .tm-sidebar-content::-webkit-scrollbar-thumb { background: rgba(240,194,122,.28); border-radius: 999px; }
+        [data-theme="light"] .tm-sidebar-content::-webkit-scrollbar-thumb { background: rgba(249,115,22,.35); }
+        [data-theme="light"] .leaflet-control-attribution {
+          background: rgba(255,255,255,.92) !important;
+          color: #475569 !important;
+        }
+        [data-theme="light"] .leaflet-container {
+          background: #e5e7eb !important;
+        }
+        [data-theme="light"] .tm-popup .leaflet-popup-content-wrapper {
+          box-shadow: 0 18px 50px rgba(15,23,42,.18)!important;
+          border: 1px solid rgba(226,232,240,.95)!important;
+        }
+
       `}</style>
 
       {/* ════════════════════════════════════════ MAP INTERFACE ════════════════════════════════════════ */}
           <div style={{ display:"flex", height:"100vh", width:"100vw", overflow:"hidden", background: colors.background }}>
 
             {/* ──────────── SIDEBAR ──────────── */}
-            <aside style={{ width:sidebarOpen?345:0, minWidth:sidebarOpen?345:0, background: colors.sidebarBg, borderRight:`.5px solid ${colors.sidebarBorder}`, boxShadow:"4px 0 40px rgba(0,0,0,.5)", display:"flex", flexDirection:"column", transition:"all .35s cubic-bezier(.4,0,.2,1)", overflow:"hidden", zIndex:1001 }}>
+            <aside
+              className="tm-sidebar"
+              style={{
+                width: sidebarOpen ? 380 : 0,
+                minWidth: sidebarOpen ? 380 : 0,
+                background: colors.sidebarBg,
+                borderRight: `1px solid ${colors.sidebarBorder}`,
+                boxShadow: document.documentElement.getAttribute('data-theme') === 'light'
+                  ? "10px 0 35px rgba(15,23,42,.10)"
+                  : "10px 0 45px rgba(0,0,0,.55)",
+                display: "flex",
+                flexDirection: "column",
+                transition: "all .35s cubic-bezier(.4,0,.2,1)",
+                overflow: "hidden",
+                zIndex: 1001
+              }}
+            >
 
-          <div style={{ padding:"22px 20px 14px", marginTop:"8px", borderBottom:`.5px solid rgba(201,168,76,.08)`, flexShrink:0 }}>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color: colors.text, marginBottom:6, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
+          <div className="tm-sidebar-header" style={{ padding:"24px 22px 16px", marginTop:"0", borderBottom:`1px solid ${colors.sidebarBorder}`, flexShrink:0 }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color: colors.text, marginBottom:14, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
               <Globe size={20} color={colors.clusterGold} /> {MESSAGES.travelNepal} <span style={{ color: colors.clusterGold }}>{MESSAGES.nepal}</span>
             </div>
-            <div style={{ display:"flex", gap:5, background:"rgba(255,255,255,.03)", padding:4, borderRadius:10, flexWrap:"wrap" }}>
+            <div className="tm-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:6, background: colors.cardBg, padding:5, borderRadius:14, border:`1px solid ${colors.cardBorder}` }}>
               {[{id:"route",l:MESSAGES.route},{id:"nearby",l:MESSAGES.nearby},{id:"saved",l:MESSAGES.saved},{id:"chat",l:MESSAGES.chat}].map(t => (
                 <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?colors.gold:"transparent", color:activeTab===t.id?"#0f0e0d": colors.textTertiary, flex:"1 1 auto", minWidth:"60px" }}>{t.l}</button>
               ))}
@@ -808,7 +842,7 @@ export default function NepalMap() {
 
           {/* Only show tab content in sidebar if not Chat tab */}
           {activeTab !== "chat" && (
-          <div style={{ flex:1, overflowY:"auto", padding:"16px 18px", display:"flex", flexDirection:"column", gap:13 }}>
+          <div className="tm-sidebar-content" style={{ flex:1, overflowY:"auto", padding:"18px 20px 22px", display:"flex", flexDirection:"column", gap:14 }}>
 
             {/* ── ROUTE TAB ── */}
             {activeTab === "route" && (
@@ -911,7 +945,7 @@ export default function NepalMap() {
                   </div>
                 : nearby.map(p => (
                     <div key={p.id} onClick={() => handleSetDest(p.id)} style={S.nearbyCard}>
-                      <span style={{ fontSize:22, flexShrink:0 }}>{p.icon}</span>
+                      <MapPin size={20} color={colors.gold} style={{ flexShrink:0 }} />
                       <div style={{ minWidth:0, flex:1 }}>
                         <div style={{ fontSize:13, fontWeight:500, color: colors.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.name}</div>
                         <div style={{ fontSize:11, color: colors.textTertiary, marginTop:3, display:"flex", alignItems:"center", gap:5 }}>
@@ -949,8 +983,8 @@ export default function NepalMap() {
           </aside>
 
           {/* Toggle */}
-          <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 361 : 16 }}>
-            {sidebarOpen ? "✕" : "☰"}
+          <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 396 : 16 }} aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}>
+            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
           {/* ──────────── MAIN CONTENT AREA ──────────── */}
@@ -1030,7 +1064,7 @@ export default function NepalMap() {
             {/* Accuracy badge */}
             {tracking && liveAcc && (
               <div style={{ position:"absolute", top:14, left:"50%", transform:"translateX(-50%)", zIndex:1000, background:`${colors.sidebarBg}dd`, border:`.5px solid ${colors.sidebarBorder}`, borderRadius:20, padding:"6px 14px", fontSize:11, color: colors.textTertiary, animation:"tm-fade .2s ease", whiteSpace:"nowrap" }}>
-                ↦ Accuracy: ±{liveAcc}m
+                Accuracy: ±{liveAcc}m
               </div>
             )}
           </div>
@@ -1042,26 +1076,254 @@ export default function NepalMap() {
 /* ═══════════════════════════════════════════════════════════════
    THEME-AWARE STYLES
 ═══════════════════════════════════════════════════════════════ */
-const getThemeStyles = (colors) => ({
-  input:        { width:"100%", paddingLeft:34, paddingRight:36, paddingTop:11, paddingBottom:11, border:`.5px solid ${colors.gold1}`, borderRadius:10, fontSize:13, fontFamily:"'DM Sans',sans-serif", background: colors.inputBg, color: colors.text, outline:"none", transition:"border-color .2s" },
-  spinner:      { position:"absolute", right:11, top:"50%", transform:"translateY(-50%)", width:14, height:14, border:`2px solid ${colors.gold}`, borderTopColor:"transparent", borderRadius:"50%", animation:"tm-spin .7s linear infinite" },
-  dropdown:     { position:"absolute", width:"100%", top:"calc(100% + 6px)", background: colors.dropdownBg, borderRadius:10, border:`.5px solid ${colors.gold15}`, boxShadow:"0 10px 32px rgba(0,0,0,.55)", maxHeight:200, overflowY:"auto", zIndex:9999, animation:"tm-fade .15s ease" },
-  dropItem:     { padding:"10px 14px", fontSize:12, color: colors.textSecondary, cursor:"pointer", borderBottom:".5px solid rgba(255,255,255,.04)", transition:"background .15s" },
-  tabBtn:       { flex:1, padding:8, borderRadius:7, border:"none", cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontWeight:500, fontSize:12, transition:"all .2s" },
-  modeBtn:      { flex:1, padding:"9px 0", borderRadius:9, border:`.5px solid ${colors.gold1}`, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", fontWeight:500, fontSize:12, background:"transparent", color: colors.textTertiary, transition:"all .2s" },
-  modeBtnActive:{ background:`linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`, color:"#0f0e0d", borderColor:"transparent", boxShadow:`.4px 4px 16px ${colors.gold25}` },
-  btnSec:       { flex:1, padding:9, borderRadius:9, border:`.5px solid ${colors.gold1}`, background:"transparent", color: colors.textTertiary, fontFamily:"'DM Sans',sans-serif", fontWeight:500, fontSize:12, cursor:"pointer" },
-  btnGold:      { padding:"9px 16px", borderRadius:9, border:"none", background:`linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`, color:"#0f0e0d", fontFamily:"'DM Sans',sans-serif", fontWeight:700, fontSize:12, cursor:"pointer" },
-  btnRoute:     { width:"100%", padding:13, borderRadius:10, border:"none", background:`linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`, color:"#0f0e0d", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", letterSpacing:".5px", boxShadow:`.4px 4px 20px ${colors.gold3}` },
-  card:         { background: colors.cardBg, border:`.5px solid ${colors.cardBorder}`, borderRadius:12, padding:14, animation:"tm-fade .2s ease" },
-  cardTitle:    { fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:10, letterSpacing:2, textTransform:"uppercase", color: colors.gold, marginBottom:10 },
-  routeAlt:     { padding:"10px 12px", borderRadius:8, cursor:"pointer", border:".5px solid", background:"transparent", textAlign:"left", width:"100%", marginBottom:6, transition:"all .2s" },
-  nearbyCard:   { background: colors.cardBg, borderRadius:10, padding:"11px 13px", border:`.5px solid ${colors.gold1}`, display:"flex", alignItems:"center", gap:10, cursor:"pointer", transition:"border-color .2s", animation:"tm-fade .15s ease" },
-  favItem:      { background: colors.cardBg, borderRadius:10, padding:12, border:`.5px solid ${colors.cardBorder}`, animation:"tm-fade .15s ease" },
-  btnUse:       { padding:"5px 12px", borderRadius:6, border:"none", background:`linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`, color:"#0f0e0d", fontSize:11, fontWeight:600, cursor:"pointer" },
-  btnRemove:    { padding:"5px 10px", borderRadius:6, border:".5px solid rgba(255,100,100,.2)", background:"rgba(255,80,80,.07)", color:"#f87171", fontSize:11, fontWeight:600, cursor:"pointer" },
-  toggleBtn:    { position:"absolute", zIndex:1002, top:76, background:`linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`, border:"none", borderRadius:10, padding:"10px 15px", color:"#0f0e0d", fontFamily:"'Syne',sans-serif", fontWeight:700, fontSize:13, cursor:"pointer", boxShadow:`.4px 4px 16px ${colors.gold3}`, transition:"left .35s cubic-bezier(.4,0,.2,1)" },
-  ctrlBtn:      { width:42, height:42, borderRadius:10, border:`.5px solid ${colors.sidebarBorder}`, background:`${colors.background}dd`, color: colors.text, fontSize:18, cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center", boxShadow:"0 2px 14px rgba(0,0,0,.4)", transition:"background .2s", fontFamily:"'DM Sans',sans-serif" },
-  ctrlActive:   { background:`rgba(52,211,153,.15)`, borderColor:"rgba(52,211,153,.4)", color:"#34d399" },
-  empty:        { textAlign:"center", padding:"50px 0", color: colors.textTertiary, fontSize:13, lineHeight:1.7 },
-});
+const getThemeStyles = (colors) => {
+  const isLight = typeof document !== "undefined"
+    ? document.documentElement.getAttribute("data-theme") === "light"
+    : false;
+
+  const shadow = isLight
+    ? "0 12px 30px rgba(15,23,42,.08)"
+    : "0 14px 35px rgba(0,0,0,.35)";
+
+  return {
+    input: {
+      width: "100%",
+      paddingLeft: 38,
+      paddingRight: 38,
+      paddingTop: 12,
+      paddingBottom: 12,
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: 14,
+      fontSize: 13,
+      fontFamily: "'DM Sans',sans-serif",
+      background: colors.inputBg,
+      color: colors.text,
+      outline: "none",
+      transition: "border-color .2s, box-shadow .2s, background .2s",
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
+      marginBottom: 10,
+    },
+    spinner: {
+      position: "absolute",
+      right: 12,
+      top: "50%",
+      transform: "translateY(-50%)",
+      width: 14,
+      height: 14,
+      border: `2px solid ${colors.gold}`,
+      borderTopColor: "transparent",
+      borderRadius: "50%",
+      animation: "tm-spin .7s linear infinite",
+    },
+    dropdown: {
+      position: "absolute",
+      width: "100%",
+      top: "calc(100% + 6px)",
+      background: colors.dropdownBg,
+      borderRadius: 14,
+      border: `1px solid ${colors.cardBorder}`,
+      boxShadow: isLight ? "0 18px 45px rgba(15,23,42,.16)" : "0 18px 45px rgba(0,0,0,.55)",
+      maxHeight: 220,
+      overflowY: "auto",
+      zIndex: 9999,
+      animation: "tm-fade .15s ease",
+    },
+    dropItem: {
+      padding: "11px 14px",
+      fontSize: 12,
+      color: colors.textSecondary,
+      cursor: "pointer",
+      borderBottom: `1px solid ${isLight ? "rgba(226,232,240,.9)" : "rgba(255,255,255,.05)"}`,
+      transition: "background .15s",
+      lineHeight: 1.45,
+    },
+    tabBtn: {
+      padding: "9px 8px",
+      borderRadius: 10,
+      border: "none",
+      cursor: "pointer",
+      fontFamily: "'DM Sans',sans-serif",
+      fontWeight: 700,
+      fontSize: 12,
+      transition: "all .2s",
+      whiteSpace: "nowrap",
+    },
+    modeBtn: {
+      flex: 1,
+      padding: "10px 0",
+      borderRadius: 12,
+      border: `1px solid ${colors.cardBorder}`,
+      cursor: "pointer",
+      fontFamily: "'DM Sans',sans-serif",
+      fontWeight: 700,
+      fontSize: 12,
+      background: colors.cardBg,
+      color: colors.textTertiary,
+      transition: "all .2s",
+      justifyContent: "center",
+    },
+    modeBtnActive: {
+      background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
+      color: "#ffffff",
+      borderColor: "transparent",
+      boxShadow: `0 10px 24px ${colors.gold25}`,
+    },
+    btnSec: {
+      flex: 1,
+      padding: 10,
+      borderRadius: 12,
+      border: `1px solid ${colors.cardBorder}`,
+      background: colors.cardBg,
+      color: colors.textSecondary,
+      fontFamily: "'DM Sans',sans-serif",
+      fontWeight: 700,
+      fontSize: 12,
+      cursor: "pointer",
+      justifyContent: "center",
+    },
+    btnGold: {
+      padding: "10px 16px",
+      borderRadius: 12,
+      border: "none",
+      background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
+      color: "#ffffff",
+      fontFamily: "'DM Sans',sans-serif",
+      fontWeight: 800,
+      fontSize: 12,
+      cursor: "pointer",
+      boxShadow: `0 10px 24px ${colors.gold25}`,
+      justifyContent: "center",
+    },
+    btnRoute: {
+      width: "100%",
+      padding: 14,
+      borderRadius: 14,
+      border: "none",
+      background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
+      color: "#ffffff",
+      fontFamily: "'Syne',sans-serif",
+      fontWeight: 800,
+      fontSize: 13,
+      cursor: "pointer",
+      letterSpacing: ".4px",
+      boxShadow: `0 12px 28px ${colors.gold3}`,
+    },
+    card: {
+      background: colors.cardBg,
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: 16,
+      padding: 15,
+      animation: "tm-fade .2s ease",
+      boxShadow: isLight ? "0 10px 28px rgba(15,23,42,.05)" : "none",
+    },
+    cardTitle: {
+      fontFamily: "'Syne',sans-serif",
+      fontWeight: 800,
+      fontSize: 10,
+      letterSpacing: 1.6,
+      textTransform: "uppercase",
+      color: colors.gold,
+      marginBottom: 10,
+    },
+    routeAlt: {
+      padding: "11px 12px",
+      borderRadius: 12,
+      cursor: "pointer",
+      border: "1px solid",
+      background: "transparent",
+      textAlign: "left",
+      width: "100%",
+      marginBottom: 7,
+      transition: "all .2s",
+    },
+    nearbyCard: {
+      background: colors.cardBg,
+      borderRadius: 14,
+      padding: "12px 13px",
+      border: `1px solid ${colors.cardBorder}`,
+      display: "flex",
+      alignItems: "center",
+      gap: 11,
+      cursor: "pointer",
+      transition: "border-color .2s, box-shadow .2s, transform .2s",
+      animation: "tm-fade .15s ease",
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
+    },
+    favItem: {
+      background: colors.cardBg,
+      borderRadius: 14,
+      padding: 13,
+      border: `1px solid ${colors.cardBorder}`,
+      animation: "tm-fade .15s ease",
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
+    },
+    btnUse: {
+      padding: "6px 12px",
+      borderRadius: 8,
+      border: "none",
+      background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
+      color: "#ffffff",
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer",
+    },
+    btnRemove: {
+      padding: "6px 10px",
+      borderRadius: 8,
+      border: `1px solid ${isLight ? "rgba(220,38,38,.2)" : "rgba(255,100,100,.2)"}`,
+      background: isLight ? "rgba(220,38,38,.07)" : "rgba(255,80,80,.07)",
+      color: colors.errorRed,
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: "pointer",
+    },
+    toggleBtn: {
+      position: "absolute",
+      zIndex: 1002,
+      top: 82,
+      width: 42,
+      height: 42,
+      background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
+      border: "none",
+      borderRadius: 14,
+      color: "#ffffff",
+      cursor: "pointer",
+      boxShadow: `0 10px 26px ${colors.gold3}`,
+      transition: "left .35s cubic-bezier(.4,0,.2,1)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    ctrlBtn: {
+      width: 44,
+      height: 44,
+      borderRadius: 14,
+      border: `1px solid ${colors.sidebarBorder}`,
+      background: isLight ? "rgba(255,255,255,.94)" : `${colors.background}dd`,
+      color: colors.text,
+      fontSize: 18,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      boxShadow: shadow,
+      transition: "background .2s, transform .2s",
+      fontFamily: "'DM Sans',sans-serif",
+    },
+    ctrlActive: {
+      background: isLight ? "rgba(5,150,105,.12)" : "rgba(52,211,153,.15)",
+      borderColor: "rgba(52,211,153,.4)",
+      color: colors.emerald,
+    },
+    empty: {
+      textAlign: "center",
+      padding: "52px 18px",
+      color: colors.textTertiary,
+      fontSize: 13,
+      lineHeight: 1.7,
+      background: colors.cardBg,
+      border: `1px dashed ${colors.cardBorder}`,
+      borderRadius: 16,
+    },
+  };
+}
