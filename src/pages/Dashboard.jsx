@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import useScrollbarExpand from "../hooks/useScrollbarExpand";
 import api from "../API/api";
 import KYCBanner from "../components/KYCBanner";
 import { TripsGridSkeleton, StatsCardSkeleton } from "../components/SkeletonLoaders";
@@ -352,11 +353,739 @@ const styles = `
   }
   .form-cancel:hover { background: rgba(255,255,255,0.08); }
 
+  /* ──── LIGHT MODE THEME ──── */
+  [data-theme="light"] .db-root {
+    background: #f5f3f0;
+    color: #0d0d0d;
+  }
+
+  [data-theme="light"] .db-greeting span,
+  [data-theme="light"] .db-stat-val { color: #d97706; }
+
+  [data-theme="light"] .db-subtext,
+  [data-theme="light"] .trip-dest,
+  [data-theme="light"] .db-stat-label,
+  [data-theme="light"] .trip-meta-label { color: #333333; }
+
+  [data-theme="light"] .db-tab {
+    color: #333333 !important;
+  }
+  [data-theme="light"] .db-tab:not(.active):hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: #1a1a2e !important;
+  }
+  [data-theme="light"] .db-tab.active {
+    color: #fff !important;
+  }
+
+  [data-theme="light"] .db-stat {
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+  [data-theme="light"] .db-stat:hover { border-color: rgba(217, 119, 6, 0.25); }
+
+  [data-theme="light"] .db-error {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #dc2626;
+  }
+
+  [data-theme="light"] .db-tabs {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+  }
+
+  [data-theme="light"] .trip-card {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  [data-theme="light"] .trip-card:hover {
+    border-color: rgba(217, 119, 6, 0.2);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.08);
+  }
+
+  [data-theme="light"] .trip-title { color: #0d0d0d; }
+  [data-theme="light"] .trip-desc { color: #333333; }
+  [data-theme="light"] .trip-by { color: #444444; }
+
+  [data-theme="light"] .trip-meta-item {
+    background: rgba(0, 0, 0, 0.04);
+  }
+  [data-theme="light"] .trip-meta-val { color: #1a1a2e; }
+
+  [data-theme="light"] .badge-creator {
+    background: rgba(217, 119, 6, 0.1);
+    color: #8b4513;
+    border: 1px solid rgba(217, 119, 6, 0.25);
+  }
+  [data-theme="light"] .badge-public {
+    background: rgba(34, 197, 94, 0.08);
+    color: #15803d;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+  }
+
+  [data-theme="light"] .empty-state {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px dashed rgba(0, 0, 0, 0.15);
+  }
+  [data-theme="light"] .empty-icon {
+    background: rgba(217, 119, 6, 0.08);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    color: #d97706;
+  }
+  [data-theme="light"] .empty-title { color: #0d0d0d; }
+  [data-theme="light"] .empty-sub { color: #333333; }
+
+  [data-theme="light"] .discover-tip { color: #444444; }
+
+  /* Trip tags styling in light mode */
+  [data-theme="light"] div > span[style*="rgba(240, 194, 122"] {
+    color: #8b4513 !important;
+    background: rgba(217, 119, 6, 0.12) !important;
+    border-color: rgba(217, 119, 6, 0.3) !important;
+  }
+
+  /* Constraint tags styling in light mode */
+  [data-theme="light"] div > span[style*="rgba(25, 118, 210"] {
+    color: #1e40af !important;
+    background: rgba(59, 130, 246, 0.12) !important;
+    border-color: rgba(59, 130, 246, 0.3) !important;
+  }
+
+  /* Form styling in light mode */
+  [data-theme="light"] .form-label {
+    color: #1a1a2e !important;
+  }
+
+  [data-theme="light"] .form-input,
+  [data-theme="light"] .form-textarea,
+  [data-theme="light"] .form-select {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    color: #0d0d0d !important;
+  }
+
+  [data-theme="light"] .form-input::placeholder,
+  [data-theme="light"] .form-textarea::placeholder {
+    color: #888888 !important;
+  }
+
+  [data-theme="light"] .form-input:focus,
+  [data-theme="light"] .form-textarea:focus,
+  [data-theme="light"] .form-select:focus {
+    border-color: rgba(217, 119, 6, 0.5) !important;
+  }
+
+  [data-theme="light"] .form-cancel {
+    background: rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    color: #1a1a2e !important;
+  }
+
+  [data-theme="light"] .form-cancel:hover {
+    background: rgba(0, 0, 0, 0.1) !important;
+  }
+
+  [data-theme="light"] .toggle-row {
+    background: rgba(0, 0, 0, 0.04) !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  }
+
+  [data-theme="light"] .toggle-label {
+    color: #333333 !important;
+  }
+
+  [data-theme="light"] .toggle-label strong {
+    color: #0d0d0d !important;
+  }
+
+  [data-theme="light"] .toggle-hint {
+    color: #666666 !important;
+  }
+
+  [data-theme="light"] .btn-outline {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #1a1a2e !important;
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Filter by Requirements button light mode */
+  [data-theme="light"] button[style*="rgba(201,168,76"] {
+    color: #000000 !important;
+    background: rgba(217, 119, 6, 0.15) !important;
+    border: 1px solid rgba(217, 119, 6, 0.3) !important;
+  }
+
+  [data-theme="light"] button[style*="rgba(201,168,76"]:hover {
+    background: rgba(217, 119, 6, 0.25) !important;
+  }
+
+  [data-theme="light"] .btn-gold {
+    background: rgba(217, 119, 6, 0.12) !important;
+    color: #b45309 !important;
+    border: 1px solid rgba(217, 119, 6, 0.3) !important;
+  }
+
+  [data-theme="light"] .btn-dim {
+    background: rgba(0, 0, 0, 0.06) !important;
+    color: #666666 !important;
+  }
+
+  [data-theme="light"] .create-wrap {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+  [data-theme="light"] .create-title { color: #0d0d0d; }
+
+  [data-theme="light"] .db-loading {
+    color: #333333;
+  }
+  [data-theme="light"] .db-spinner {
+    color: #d97706;
+  }
+
+  /* Filter button styling in light mode */
+  [data-theme="light"] button[style*="rgba(201,168,76,0.3)"] {
+    border-color: rgba(217, 119, 6, 0.25) !important;
+    background: rgba(217, 119, 6, 0.08) !important;
+    color: #1a1a2e !important;
+  }
+
+  [data-theme="light"] button[style*="rgba(201,168,76,0.3)"]:hover {
+    color: #0d0d0d !important;
+  }
+
+  /* Filter dropdown panel styling in light mode */
+  [data-theme="light"] div[style*="minWidth: 400px"] {
+    background: #e8e8e8 !important;
+    border: 1px solid rgba(0, 0, 0, 0.15) !important;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Filter category labels in light mode */
+  [data-theme="light"] div[style*="minWidth: 400px"] p {
+    color: #d97706 !important;
+  }
+
+  /* Filter tags in light mode */
+  [data-theme="light"] div[style*="minWidth: 400px"] button {
+    border-color: rgba(217, 119, 6, 0.2) !important;
+    background: rgba(217, 119, 6, 0.06) !important;
+    color: #1a1a2e !important;
+  }
+
+  [data-theme="light"] div[style*="minWidth: 400px"] button[style*="rgba(201,168,76,0.6)"] {
+    border-color: rgba(217, 119, 6, 0.4) !important;
+    background: rgba(217, 119, 6, 0.15) !important;
+    color: #b45309 !important;
+  }
+
   @media (max-width: 600px) {
     .form-grid { grid-template-columns: 1fr; }
     .db-tabs { flex-direction: column; }
     .form-actions { flex-direction: column; }
   }
+
+  /* ──── FINAL LIGHT MODE UI FIX: dark mode unchanged ──── */
+  :root[data-theme="light"] .db-root,
+  html[data-theme="light"] .db-root,
+  body[data-theme="light"] .db-root,
+  [data-theme="light"] .db-root,
+  .db-root[data-theme="light"] {
+    background:
+      radial-gradient(circle at top left, rgba(249, 115, 22, 0.08), transparent 28rem),
+      linear-gradient(180deg, #fffaf3 0%, #f8fafc 45%, #f1f5f9 100%) !important;
+    color: #0f172a !important;
+  }
+
+  [data-theme="light"] .db-root,
+  .db-root[data-theme="light"] {
+    --lm-text: #0f172a;
+    --lm-muted: #64748b;
+    --lm-soft: #94a3b8;
+    --lm-border: #e2e8f0;
+    --lm-panel: rgba(255, 255, 255, 0.92);
+    --lm-panel-solid: #ffffff;
+    --lm-orange: #ea580c;
+    --lm-orange-soft: #fff7ed;
+  }
+
+  [data-theme="light"] .db-inner,
+  .db-root[data-theme="light"] .db-inner { max-width: 1120px; }
+
+  [data-theme="light"] .db-greeting,
+  [data-theme="light"] .trip-title,
+  [data-theme="light"] .empty-title,
+  [data-theme="light"] .create-title,
+  .db-root[data-theme="light"] .db-greeting,
+  .db-root[data-theme="light"] .trip-title,
+  .db-root[data-theme="light"] .empty-title,
+  .db-root[data-theme="light"] .create-title {
+    color: var(--lm-text) !important;
+  }
+
+  [data-theme="light"] .db-greeting span,
+  [data-theme="light"] .db-stat-val,
+  .db-root[data-theme="light"] .db-greeting span,
+  .db-root[data-theme="light"] .db-stat-val {
+    color: var(--lm-orange) !important;
+  }
+
+  [data-theme="light"] .db-subtext,
+  [data-theme="light"] .trip-dest,
+  [data-theme="light"] .trip-desc,
+  [data-theme="light"] .trip-by,
+  [data-theme="light"] .discover-tip,
+  [data-theme="light"] .empty-sub,
+  [data-theme="light"] .db-stat-label,
+  [data-theme="light"] .trip-meta-label,
+  .db-root[data-theme="light"] .db-subtext,
+  .db-root[data-theme="light"] .trip-dest,
+  .db-root[data-theme="light"] .trip-desc,
+  .db-root[data-theme="light"] .trip-by,
+  .db-root[data-theme="light"] .discover-tip,
+  .db-root[data-theme="light"] .empty-sub,
+  .db-root[data-theme="light"] .db-stat-label,
+  .db-root[data-theme="light"] .trip-meta-label {
+    color: var(--lm-muted) !important;
+  }
+
+  [data-theme="light"] .db-stat,
+  [data-theme="light"] .trip-card,
+  [data-theme="light"] .create-wrap,
+  .db-root[data-theme="light"] .db-stat,
+  .db-root[data-theme="light"] .trip-card,
+  .db-root[data-theme="light"] .create-wrap {
+    background: var(--lm-panel) !important;
+    border: 1px solid var(--lm-border) !important;
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  [data-theme="light"] .trip-card:hover,
+  [data-theme="light"] .db-stat:hover,
+  .db-root[data-theme="light"] .trip-card:hover,
+  .db-root[data-theme="light"] .db-stat:hover {
+    border-color: rgba(249, 115, 22, 0.32) !important;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.10) !important;
+  }
+
+  [data-theme="light"] .db-tabs,
+  .db-root[data-theme="light"] .db-tabs {
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid var(--lm-border) !important;
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.06) !important;
+  }
+
+  [data-theme="light"] .db-tab,
+  .db-root[data-theme="light"] .db-tab {
+    color: #475569 !important;
+  }
+
+  [data-theme="light"] .db-tab svg,
+  .db-root[data-theme="light"] .db-tab svg {
+    color: var(--lm-muted) !important;
+    stroke: var(--lm-muted) !important;
+  }
+
+  [data-theme="light"] .db-tab:not(.active):hover,
+  .db-root[data-theme="light"] .db-tab:not(.active):hover {
+    background: #f1f5f9 !important;
+    color: var(--lm-text) !important;
+  }
+
+  [data-theme="light"] .db-tab.active,
+  [data-theme="light"] .db-tab.active *,
+  .db-root[data-theme="light"] .db-tab.active,
+  .db-root[data-theme="light"] .db-tab.active * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  [data-theme="light"] .db-tab.active,
+  .db-root[data-theme="light"] .db-tab.active {
+    background: linear-gradient(135deg, #fb923c, #ea580c) !important;
+    box-shadow: 0 10px 28px rgba(234, 88, 12, 0.28) !important;
+  }
+
+  [data-theme="light"] .trip-meta-item,
+  .db-root[data-theme="light"] .trip-meta-item {
+    background: #f8fafc !important;
+    border: 1px solid var(--lm-border) !important;
+  }
+
+  [data-theme="light"] .trip-meta-val,
+  .db-root[data-theme="light"] .trip-meta-val {
+    color: var(--lm-text) !important;
+  }
+
+  [data-theme="light"] .badge-creator,
+  .db-root[data-theme="light"] .badge-creator {
+    background: var(--lm-orange-soft) !important;
+    color: #c2410c !important;
+    border-color: #fed7aa !important;
+  }
+
+  [data-theme="light"] .badge-public,
+  .db-root[data-theme="light"] .badge-public {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #bbf7d0 !important;
+  }
+
+  [data-theme="light"] .empty-state,
+  .db-root[data-theme="light"] .empty-state {
+    background: var(--lm-panel) !important;
+    border: 1px dashed #cbd5e1 !important;
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  [data-theme="light"] .empty-icon,
+  .db-root[data-theme="light"] .empty-icon {
+    background: var(--lm-orange-soft) !important;
+    border-color: #fed7aa !important;
+    color: var(--lm-orange) !important;
+  }
+
+  [data-theme="light"] .empty-icon svg,
+  .db-root[data-theme="light"] .empty-icon svg {
+    color: var(--lm-orange) !important;
+    stroke: var(--lm-orange) !important;
+  }
+
+  /* Fix all inline dark-mode text/background styles inside this dashboard */
+  [data-theme="light"] .db-root input,
+  [data-theme="light"] .db-root textarea,
+  [data-theme="light"] .db-root select,
+  .db-root[data-theme="light"] input,
+  .db-root[data-theme="light"] textarea,
+  .db-root[data-theme="light"] select {
+    color: var(--lm-text) !important;
+    caret-color: var(--lm-orange) !important;
+  }
+
+  [data-theme="light"] .db-root input::placeholder,
+  [data-theme="light"] .db-root textarea::placeholder,
+  .db-root[data-theme="light"] input::placeholder,
+  .db-root[data-theme="light"] textarea::placeholder {
+    color: var(--lm-soft) !important;
+    opacity: 1 !important;
+  }
+
+  [data-theme="light"] .db-root [style*="background: rgba(255"],
+  .db-root[data-theme="light"] [style*="background: rgba(255"] {
+    background: var(--lm-panel-solid) !important;
+  }
+
+  [data-theme="light"] .db-root [style*="border: 1px solid rgba(255"],
+  .db-root[data-theme="light"] [style*="border: 1px solid rgba(255"] {
+    border-color: var(--lm-border) !important;
+  }
+
+  [data-theme="light"] .db-root [style*="color: rgba(255"],
+  .db-root[data-theme="light"] [style*="color: rgba(255"] {
+    color: var(--lm-muted) !important;
+  }
+
+  [data-theme="light"] .db-root [style*="stroke: rgba(255"],
+  .db-root[data-theme="light"] [style*="stroke: rgba(255"] {
+    stroke: var(--lm-soft) !important;
+  }
+
+  /* Search bar wrapper */
+  [data-theme="light"] .db-root div[style*="padding: 10px 14px"],
+  .db-root[data-theme="light"] div[style*="padding: 10px 14px"] {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid var(--lm-border) !important;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="padding: 10px 14px"]:focus-within,
+  .db-root[data-theme="light"] div[style*="padding: 10px 14px"]:focus-within {
+    border-color: #fb923c !important;
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.12) !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="padding: 10px 14px"] svg,
+  .db-root[data-theme="light"] div[style*="padding: 10px 14px"] svg {
+    stroke: var(--lm-soft) !important;
+  }
+
+  /* Filter button and dropdown */
+  [data-theme="light"] .db-root button[style*="rgba(201,168,76"],
+  .db-root[data-theme="light"] button[style*="rgba(201,168,76"] {
+    background: #ffffff !important;
+    border: 1px solid #fed7aa !important;
+    color: #c2410c !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  [data-theme="light"] .db-root button[style*="rgba(201,168,76"]:hover,
+  .db-root[data-theme="light"] button[style*="rgba(201,168,76"]:hover {
+    background: var(--lm-orange-soft) !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="rgba(10,12,22,0.95)"],
+  .db-root[data-theme="light"] div[style*="rgba(10,12,22,0.95)"] {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1px solid var(--lm-border) !important;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.16) !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="rgba(10,12,22,0.95)"] p,
+  .db-root[data-theme="light"] div[style*="rgba(10,12,22,0.95)"] p {
+    color: var(--lm-orange) !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="rgba(10,12,22,0.95)"] button,
+  .db-root[data-theme="light"] div[style*="rgba(10,12,22,0.95)"] button {
+    background: #f8fafc !important;
+    border-color: var(--lm-border) !important;
+    color: #334155 !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="rgba(10,12,22,0.95)"] button:hover,
+  .db-root[data-theme="light"] div[style*="rgba(10,12,22,0.95)"] button:hover {
+    background: var(--lm-orange-soft) !important;
+    border-color: #fed7aa !important;
+    color: #c2410c !important;
+  }
+
+  /* Invitation cards */
+  [data-theme="light"] .db-root div[style*="rgba(15,17,32,0.7)"],
+  .db-root[data-theme="light"] div[style*="rgba(15,17,32,0.7)"] {
+    background: var(--lm-panel) !important;
+    border-color: var(--lm-border) !important;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08) !important;
+  }
+
+  [data-theme="light"] .db-root h3[style*="color: #ffd580"],
+  .db-root[data-theme="light"] h3[style*="color: #ffd580"] {
+    color: var(--lm-orange) !important;
+  }
+
+  /* Forms */
+  [data-theme="light"] .form-input,
+  [data-theme="light"] .form-textarea,
+  [data-theme="light"] .form-select,
+  .db-root[data-theme="light"] .form-input,
+  .db-root[data-theme="light"] .form-textarea,
+  .db-root[data-theme="light"] .form-select {
+    background: #ffffff !important;
+    border-color: var(--lm-border) !important;
+    color: var(--lm-text) !important;
+  }
+
+  [data-theme="light"] .form-input:focus,
+  [data-theme="light"] .form-textarea:focus,
+  [data-theme="light"] .form-select:focus,
+  .db-root[data-theme="light"] .form-input:focus,
+  .db-root[data-theme="light"] .form-textarea:focus,
+  .db-root[data-theme="light"] .form-select:focus {
+    border-color: #fb923c !important;
+    box-shadow: 0 0 0 4px rgba(249, 115, 22, 0.12) !important;
+  }
+
+  [data-theme="light"] .form-label,
+  [data-theme="light"] .toggle-label strong,
+  .db-root[data-theme="light"] .form-label,
+  .db-root[data-theme="light"] .toggle-label strong {
+    color: var(--lm-text) !important;
+  }
+
+  [data-theme="light"] .toggle-row,
+  [data-theme="light"] .db-root .form-group[style*="background"],
+  .db-root[data-theme="light"] .toggle-row,
+  .db-root[data-theme="light"] .form-group[style*="background"] {
+    background: var(--lm-panel) !important;
+    border-color: var(--lm-border) !important;
+  }
+
+  [data-theme="light"] .form-cancel,
+  [data-theme="light"] .btn-outline,
+  [data-theme="light"] .btn-dim,
+  .db-root[data-theme="light"] .form-cancel,
+  .db-root[data-theme="light"] .btn-outline,
+  .db-root[data-theme="light"] .btn-dim {
+    background: #ffffff !important;
+    border-color: var(--lm-border) !important;
+    color: #475569 !important;
+  }
+
+  [data-theme="light"] .btn-primary,
+  [data-theme="light"] .btn-primary *,
+  [data-theme="light"] .form-submit,
+  [data-theme="light"] .form-submit *,
+  [data-theme="light"] button[style*="linear-gradient"],
+  [data-theme="light"] button[style*="linear-gradient"] *,
+  .db-root[data-theme="light"] .btn-primary,
+  .db-root[data-theme="light"] .btn-primary *,
+  .db-root[data-theme="light"] .form-submit,
+  .db-root[data-theme="light"] .form-submit *,
+  .db-root[data-theme="light"] button[style*="linear-gradient"],
+  .db-root[data-theme="light"] button[style*="linear-gradient"] * {
+    color: #ffffff !important;
+    stroke: #ffffff !important;
+  }
+
+  [data-theme="light"] .btn-gold,
+  .db-root[data-theme="light"] .btn-gold {
+    background: var(--lm-orange-soft) !important;
+    border-color: #fed7aa !important;
+    color: #c2410c !important;
+  }
+
+  /* Trip and constraint tags */
+  [data-theme="light"] .db-root span[style*="rgba(240, 194, 122"],
+  .db-root[data-theme="light"] span[style*="rgba(240, 194, 122"] {
+    background: var(--lm-orange-soft) !important;
+    color: #c2410c !important;
+    border-color: #fed7aa !important;
+  }
+
+  [data-theme="light"] .db-root span[style*="rgba(25, 118, 210"],
+  .db-root[data-theme="light"] span[style*="rgba(25, 118, 210"] {
+    background: #eff6ff !important;
+    color: #1d4ed8 !important;
+    border-color: #bfdbfe !important;
+  }
+
+  [data-theme="light"] .db-root [style*="#ffd580"],
+  .db-root[data-theme="light"] [style*="#ffd580"] {
+    color: var(--lm-orange) !important;
+  }
+
+  [data-theme="light"] .db-root [style*="#86efac"],
+  .db-root[data-theme="light"] [style*="#86efac"] {
+    color: #059669 !important;
+    stroke: #059669 !important;
+  }
+
+  [data-theme="light"] .db-root [style*="#ff6b6b"],
+  .db-root[data-theme="light"] [style*="#ff6b6b"] {
+    color: #dc2626 !important;
+  }
+
+  /* Pagination */
+  [data-theme="light"] .db-root div[style*="justify-content: center"][style*="margin-top: 2rem"] button,
+  .db-root[data-theme="light"] div[style*="justify-content: center"][style*="margin-top: 2rem"] button {
+    background: #ffffff !important;
+    border: 1px solid var(--lm-border) !important;
+    color: #475569 !important;
+  }
+
+  [data-theme="light"] .db-root div[style*="justify-content: center"][style*="margin-top: 2rem"] button[style*="linear-gradient"],
+  .db-root[data-theme="light"] div[style*="justify-content: center"][style*="margin-top: 2rem"] button[style*="linear-gradient"] {
+    background: linear-gradient(135deg, #fb923c, #ea580c) !important;
+    border-color: transparent !important;
+    color: #ffffff !important;
+  }
+
+  /* Upload area and expense section */
+  [data-theme="light"] .db-root label div[style*="border: 2px dashed"],
+  .db-root[data-theme="light"] label div[style*="border: 2px dashed"] {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  [data-theme="light"] .db-loading,
+  .db-root[data-theme="light"] .db-loading {
+    color: var(--lm-muted) !important;
+  }
+
+  [data-theme="light"] .db-spinner,
+  .db-root[data-theme="light"] .db-spinner {
+    color: var(--lm-orange) !important;
+  }
+
+
+  /* ──── FILTER DROPDOWN LIGHT MODE FIX ──── */
+  [data-theme="light"] .filter-dropdown-panel,
+  .db-root[data-theme="light"] .filter-dropdown-panel,
+  html[data-theme="light"] .filter-dropdown-panel,
+  body[data-theme="light"] .filter-dropdown-panel {
+    background: #f3f4f6 !important;
+    border: 1px solid #d1d5db !important;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16) !important;
+    color: #111827 !important;
+    backdrop-filter: blur(14px) !important;
+  }
+
+  [data-theme="light"] .filter-category-label,
+  .db-root[data-theme="light"] .filter-category-label,
+  html[data-theme="light"] .filter-category-label,
+  body[data-theme="light"] .filter-category-label {
+    color: #b45309 !important;
+  }
+
+  [data-theme="light"] .filter-tag-btn,
+  .db-root[data-theme="light"] .filter-tag-btn,
+  html[data-theme="light"] .filter-tag-btn,
+  body[data-theme="light"] .filter-tag-btn {
+    background: #ffffff !important;
+    border: 1px solid #d1d5db !important;
+    color: #374151 !important;
+  }
+
+  [data-theme="light"] .filter-tag-btn:hover,
+  .db-root[data-theme="light"] .filter-tag-btn:hover,
+  html[data-theme="light"] .filter-tag-btn:hover,
+  body[data-theme="light"] .filter-tag-btn:hover {
+    background: #ffedd5 !important;
+    border-color: #fdba74 !important;
+    color: #c2410c !important;
+  }
+
+  [data-theme="light"] .filter-tag-btn.selected,
+  .db-root[data-theme="light"] .filter-tag-btn.selected,
+  html[data-theme="light"] .filter-tag-btn.selected,
+  body[data-theme="light"] .filter-tag-btn.selected {
+    background: #fed7aa !important;
+    border-color: #fb923c !important;
+    color: #9a3412 !important;
+  }
+
+  [data-theme="light"] .filter-clear-btn,
+  .db-root[data-theme="light"] .filter-clear-btn,
+  html[data-theme="light"] .filter-clear-btn,
+  body[data-theme="light"] .filter-clear-btn {
+    background: #fee2e2 !important;
+    border: 1px solid #fecaca !important;
+    color: #b91c1c !important;
+  }
+
+  [data-theme="light"] .filter-clear-btn:hover,
+  .db-root[data-theme="light"] .filter-clear-btn:hover,
+  html[data-theme="light"] .filter-clear-btn:hover,
+  body[data-theme="light"] .filter-clear-btn:hover {
+    background: #fecaca !important;
+    border-color: #fca5a5 !important;
+    color: #991b1b !important;
+  }
+
+  [data-theme="light"] .filter-toggle-btn,
+  .db-root[data-theme="light"] .filter-toggle-btn,
+  html[data-theme="light"] .filter-toggle-btn,
+  body[data-theme="light"] .filter-toggle-btn {
+    background: #ffffff !important;
+    border: 1px solid #fed7aa !important;
+    color: #c2410c !important;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04) !important;
+  }
+
+  [data-theme="light"] .filter-toggle-btn.active,
+  [data-theme="light"] .filter-toggle-btn:hover,
+  .db-root[data-theme="light"] .filter-toggle-btn.active,
+  .db-root[data-theme="light"] .filter-toggle-btn:hover,
+  html[data-theme="light"] .filter-toggle-btn.active,
+  html[data-theme="light"] .filter-toggle-btn:hover,
+  body[data-theme="light"] .filter-toggle-btn.active,
+  body[data-theme="light"] .filter-toggle-btn:hover {
+    background: #ffedd5 !important;
+    border-color: #fdba74 !important;
+    color: #9a3412 !important;
+  }
+
+
 `;
 
 export default function Dashboard() {
@@ -394,6 +1123,9 @@ export default function Dashboard() {
       fetchInvitations();
     }
   }, [activeTab]);
+
+  /* ── Enable scrollbar expansion on hover ── */
+  useScrollbarExpand(".trips-grid, .scrollbar-expandable");
 
   const fetchDashboardData = async () => {
     setLoading(true); setError("");
@@ -647,7 +1379,7 @@ export default function Dashboard() {
       );
     }
     
-    // Filter by selected tags - only show trips that have AT LEAST ONE of the selected tags
+    // Filter by selected tags - show only trips that have ALL of the selected tags
     if (selectedFilterTags.length > 0) {
       result = result.filter(t => {
         // Parse trip_tags - it might be a JSON string or already an array
@@ -668,7 +1400,7 @@ export default function Dashboard() {
         
         // Case-insensitive comparison by converting both to lowercase
         const tripTagsLower = tripTags.map(tag => String(tag).toLowerCase());
-        const hasMatchingTag = selectedFilterTags.some(selectedTag => 
+        const hasMatchingTag = selectedFilterTags.every(selectedTag => 
           tripTagsLower.includes(selectedTag.toLowerCase())
         );
         return hasMatchingTag;
@@ -903,6 +1635,7 @@ export default function Dashboard() {
                   style={{ marginBottom: "1.5rem", position: 'relative' }}
                 >
                   <button
+                    className={`filter-toggle-btn ${showTagFilter ? "active" : ""}`}
                     onClick={() => setShowTagFilter(!showTagFilter)}
                     style={{
                       padding: '0.6rem 1rem',
@@ -921,7 +1654,9 @@ export default function Dashboard() {
                   </button>
 
                   {showTagFilter && (
-                    <div style={{
+                    <div
+                    className="filter-dropdown-panel"
+                    style={{
                       position: 'absolute',
                       top: '100%',
                       left: 0,
@@ -940,13 +1675,14 @@ export default function Dashboard() {
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                         {Object.entries(TRIP_TAGS_CATEGORIES).map(([category, tags]) => (
                           <div key={category}>
-                            <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 600, color: '#ffd580', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                            <p className="filter-category-label" style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', fontWeight: 600, color: '#ffd580', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                               {category}
                             </p>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                               {tags.map(tag => (
                                 <button
                                   key={tag}
+                                  className={`filter-tag-btn ${selectedFilterTags.includes(tag) ? "selected" : ""}`}
                                   onClick={() => {
                                     setSelectedFilterTags(prev => {
                                       if (prev.includes(tag)) {
@@ -982,6 +1718,7 @@ export default function Dashboard() {
                       </div>
                       {selectedFilterTags.length > 0 && (
                         <button
+                          className="filter-clear-btn"
                           onClick={() => {
                             setSelectedFilterTags([]);
                             setCurrentPageMyTrips(1);

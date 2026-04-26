@@ -26,6 +26,7 @@ export default function NavbarComponent() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profilePic, setProfilePic] = useState(null);
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(true);
   const dropdownRef = useRef(null);
 
   // Fetch profile data and pending requests
@@ -62,6 +63,27 @@ export default function NavbarComponent() {
     }
   }, [user, isAuthReady]);
 
+  // Initialize theme state from localStorage AND apply to DOM
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    const isDark = savedTheme !== "light";
+    setIsDarkMode(isDark);
+    
+    // CRITICAL: Apply the theme to the DOM immediately
+    document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+  }, []);
+
+  // Listen for theme changes from Settings or other components and sync
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      const isDark = e.detail?.isDarkMode ?? (localStorage.getItem("theme") === "dark");
+      setIsDarkMode(isDark);
+    };
+
+    window.addEventListener("theme-changed", handleThemeChange);
+    return () => window.removeEventListener("theme-changed", handleThemeChange);
+  }, []);
+
   // Re-fetch when profile-updated event fires
   useEffect(() => {
     window.addEventListener("profile-updated", fetchUserData);
@@ -93,6 +115,43 @@ export default function NavbarComponent() {
 
   const handleLogout = () => logout();
   const initial = user?.first_name?.[0] || user?.username?.[0] || "U";
+
+  // Toggle theme function
+  const toggleTheme = () => {
+    const newDarkMode = !isDarkMode;
+    setIsDarkMode(newDarkMode);
+    
+    // Step 1: Update localStorage
+    localStorage.setItem("theme", newDarkMode ? "dark" : "light");
+    
+    // Step 2: Apply to DOM immediately (don't wait for re-render)
+    document.documentElement.setAttribute("data-theme", newDarkMode ? "dark" : "light");
+    
+    // Step 3: Dispatch custom event to sync with other components (like Settings)
+    window.dispatchEvent(new CustomEvent("theme-changed", { 
+      detail: { isDarkMode: newDarkMode } 
+    }));
+    
+    // Step 4: Save to backend if user is authenticated
+    try {
+      const token = localStorage.getItem("access_token");
+      if (token) {
+        const API_BASE = process.env.REACT_APP_API_BASE || "http://127.0.0.1:8000";
+        fetch(`${API_BASE.replace('/api/', '')}/api/users/me/preferences/`, {
+          method: "PATCH",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ darkMode: newDarkMode })
+        }).catch(() => {
+          // Silently fail - theme is already applied locally
+        });
+      }
+    } catch (e) {
+      // Silently fail - theme is already applied locally
+    }
+  };
 
   // Reusable avatar component with notification badge
   const Avatar = ({ size = "h-9 w-9", textSize = "text-sm", showBadge = false }) => (
@@ -147,9 +206,33 @@ export default function NavbarComponent() {
           </div>
         </div>
 
-        {/* Right — notifications + avatar + hamburger */}
+        {/* Right — notifications + theme toggle + avatar + hamburger */}
         <div className="flex items-center gap-3">
           {user && <NotificationBell />}
+          
+          {/* Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg transition hover:bg-white/10"
+            style={{
+              color: 'var(--navbar-text-secondary)'
+            }}
+            title={isDarkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
+          >
+            {isDarkMode ? (
+              // Sun icon for light mode
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="transition">
+                <circle cx="10" cy="10" r="4" />
+                <path d="M10 1v4M10 15v4M1 10h4M15 10h4" />
+                <path d="M3.64 3.64l2.83 2.83M13.53 13.53l2.83 2.83M16.36 3.64l-2.83 2.83M6.47 13.53l-2.83 2.83" />
+              </svg>
+            ) : (
+              // Moon icon for dark mode
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="transition">
+                <path d="M18 10.5A8.5 8.5 0 017.5 1c0 6.5-2.5 9-5 11s3.5 4.5 10.5 4.5" />
+              </svg>
+            )}
+          </button>
           
           <div ref={dropdownRef} className="relative">
             <button onClick={() => setDropdownOpen((p) => !p)} className="transition hover:brightness-110">

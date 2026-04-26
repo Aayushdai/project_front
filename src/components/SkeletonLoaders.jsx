@@ -6,12 +6,15 @@ const SHIMMER_STYLE = `
     0% { background-position: -1000px 0; }
     100% { background-position: 1000px 0; }
   }
+
+  /* ── DARK MODE (Default) ── */
   .skeleton-base {
     background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.05) 100%);
     background-size: 1000px 100%;
     animation: shimmer 2s infinite;
     border-radius: 8px;
   }
+
   .skeleton-pulse {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
@@ -30,6 +33,31 @@ if (typeof document !== 'undefined') {
     document.head.appendChild(style);
   }
 }
+
+// ── Helper: Get skeleton styles based on current theme ──
+const getSkeletonStyle = () => {
+  if (typeof document === 'undefined') return {};
+  
+  const isDarkMode = document.documentElement.getAttribute('data-theme') !== 'light';
+  
+  if (isDarkMode) {
+    return {
+      background: 'linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.15) 50%, rgba(255, 255, 255, 0.05) 100%)',
+      backgroundSize: '1000px 100%',
+      animation: 'shimmer 2s infinite',
+      borderRadius: '8px',
+    };
+  } else {
+    // Light mode - lighter orange/brown color
+    return {
+      background: 'linear-gradient(90deg, rgba(180, 83, 9, 0.20) 0%, rgba(180, 83, 9, 0.30) 50%, rgba(180, 83, 9, 0.20) 100%)',
+      backgroundSize: '1000px 100%',
+      animation: 'shimmer 2s infinite',
+      borderRadius: '8px',
+      border: '1px solid rgba(180, 83, 9, 0.15)',
+    };
+  }
+};
 
 // Common style constants to eliminate magic numbers
 const SKELETON_SPACING = {
@@ -59,39 +87,42 @@ const BASE_BORDER_RADIUS = '8px';
 // ============================================
 // TRIP CARD SKELETON
 // ============================================
-export const TripCardSkeleton = () => (
-  <div className="skeleton-base" style={{ borderRadius: '20px', padding: '1.6rem' }}>
-    {/* Top section (title + badge) */}
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SKELETON_SPACING.md, gap: SKELETON_SPACING.lg }}>
-      <div style={{ flex: 1 }}>
-        <div className="skeleton-base" style={{ height: '1.2rem', width: '80%', marginBottom: SKELETON_SPACING.sm }} />
-        <div className="skeleton-base" style={{ height: '0.8rem', width: '60%' }} />
-      </div>
-      <div className="skeleton-base" style={{ height: SKELETON_SIZES.badge.height, width: SKELETON_SIZES.badge.width, flexShrink: 0 }} />
-    </div>
-
-    {/* Description (2 lines) */}
-    <div className="skeleton-base" style={{ height: '0.8rem', marginBottom: SKELETON_SPACING.sm }} />
-    <div className="skeleton-base" style={{ height: '0.8rem', width: '95%', marginBottom: SKELETON_SPACING.lg }} />
-
-    {/* Meta fields (3 items in a row) */}
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: SKELETON_SPACING.md, marginBottom: SKELETON_SPACING.lg }}>
-      {[1, 2, 3].map(i => (
-        <div key={i}>
-          <div className="skeleton-base" style={{ height: '0.6rem', marginBottom: SKELETON_SPACING.xs }} />
-          <div className="skeleton-base" style={{ height: '0.9rem' }} />
+export const TripCardSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ ...skeletonStyle, borderRadius: '20px', padding: '1.6rem' }}>
+      {/* Top section (title + badge) */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: SKELETON_SPACING.md, gap: SKELETON_SPACING.lg }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ ...skeletonStyle, height: '1.2rem', width: '80%', marginBottom: SKELETON_SPACING.sm }} />
+          <div style={{ ...skeletonStyle, height: '0.8rem', width: '60%' }} />
         </div>
-      ))}
-    </div>
+        <div style={{ ...skeletonStyle, height: SKELETON_SIZES.badge.height, width: SKELETON_SIZES.badge.width, flexShrink: 0 }} />
+      </div>
 
-    {/* Button area (2 buttons) */}
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SKELETON_SPACING.md }}>
-      {[1, 2].map(i => (
-        <div key={i} className="skeleton-base" style={{ height: SKELETON_SIZES.button.height }} />
-      ))}
+      {/* Description (2 lines) */}
+      <div style={{ ...skeletonStyle, height: '0.8rem', marginBottom: SKELETON_SPACING.sm }} />
+      <div style={{ ...skeletonStyle, height: '0.8rem', width: '95%', marginBottom: SKELETON_SPACING.lg }} />
+
+      {/* Meta fields (3 items in a row) */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: SKELETON_SPACING.md, marginBottom: SKELETON_SPACING.lg }}>
+        {[1, 2, 3].map(i => (
+          <div key={i}>
+            <div style={{ ...skeletonStyle, height: '0.6rem', marginBottom: SKELETON_SPACING.xs }} />
+            <div style={{ ...skeletonStyle, height: '0.9rem' }} />
+          </div>
+        ))}
+      </div>
+
+      {/* Button area (2 buttons) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SKELETON_SPACING.md }}>
+        {[1, 2].map(i => (
+          <div key={i} style={{ ...skeletonStyle, height: SKELETON_SIZES.button.height }} />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 // ============================================
@@ -111,41 +142,46 @@ export const TripsGridSkeleton = ({ count = 6 }) => (
 // ============================================
 // CHAT CONVERSATION ITEM SKELETON
 // ============================================
-export const ChatConversationSkeleton = () => (
-  <div style={{
-    padding: '14px 16px',
-    display: 'flex',
-    gap: '12px',
-    alignItems: 'center',
-    borderBottom: '1px solid rgba(255,255,255,0.05)',
-    animation: 'fadeIn 0.3s ease-in-out'
-  }}>
-    {/* Avatar */}
-    <div className="skeleton-base" style={{
-      ...SKELETON_SIZES.avatarMd,
-      borderRadius: '50%',
-      flexShrink: 0
-    }} />
+export const ChatConversationSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{
+      padding: '14px 16px',
+      display: 'flex',
+      gap: '12px',
+      alignItems: 'center',
+      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      animation: 'fadeIn 0.3s ease-in-out'
+    }}>
+      {/* Avatar */}
+      <div style={{
+        ...skeletonStyle,
+        ...SKELETON_SIZES.avatarMd,
+        borderRadius: '50%',
+        flexShrink: 0
+      }} />
 
-    {/* Content */}
-    <div style={{ flex: 1, minWidth: 0 }}>
-      {/* Name + Timestamp row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
-        <div className="skeleton-base" style={{ height: '0.9rem', width: '40%' }} />
-        <div className="skeleton-base" style={{ height: '0.8rem', width: '15%', flexShrink: 0 }} />
+      {/* Content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Name + Timestamp row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', gap: '8px' }}>
+          <div style={{ ...skeletonStyle, height: '0.9rem', width: '40%' }} />
+          <div style={{ ...skeletonStyle, height: '0.8rem', width: '15%', flexShrink: 0 }} />
+        </div>
+        {/* Last message preview */}
+        <div style={{ ...skeletonStyle, height: '0.8rem', width: '85%' }} />
       </div>
-      {/* Last message preview */}
-      <div className="skeleton-base" style={{ height: '0.8rem', width: '85%' }} />
-    </div>
 
-    {/* Unread dot */}
-    <div className="skeleton-base" style={{
-      ...SKELETON_SIZES.dot,
-      borderRadius: '50%',
-      flexShrink: 0
-    }} />
-  </div>
-);
+      {/* Unread dot */}
+      <div style={{
+        ...skeletonStyle,
+        ...SKELETON_SIZES.dot,
+        borderRadius: '50%',
+        flexShrink: 0
+      }} />
+    </div>
+  );
+};
 
 
 // ============================================
@@ -165,53 +201,59 @@ export const ChatListSkeleton = ({ count = 10 }) => (
 // ============================================
 // PROFILE HEADER SKELETON
 // ============================================
-export const ProfileHeaderSkeleton = () => (
-  <div style={{ marginBottom: SKELETON_SPACING.xxxl }}>
-    <div style={{ display: 'flex', gap: SKELETON_SPACING.xxl, alignItems: 'flex-start', marginBottom: SKELETON_SPACING.xxl }}>
-      {/* Avatar */}
-      <div className="skeleton-base" style={{
-        ...SKELETON_SIZES.avatarLg,
-        borderRadius: '50%',
-        flexShrink: 0
-      }} />
+export const ProfileHeaderSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ marginBottom: SKELETON_SPACING.xxxl }}>
+      <div style={{ display: 'flex', gap: SKELETON_SPACING.xxl, alignItems: 'flex-start', marginBottom: SKELETON_SPACING.xxl }}>
+        {/* Avatar */}
+        <div style={{
+          ...skeletonStyle,
+          ...SKELETON_SIZES.avatarLg,
+          borderRadius: '50%',
+          flexShrink: 0
+        }} />
 
-      {/* Info section */}
-      <div style={{ flex: 1 }}>
-        {/* Name + Match score */}
-        <div style={{ display: 'flex', gap: SKELETON_SPACING.lg, alignItems: 'center', marginBottom: SKELETON_SPACING.md }}>
-          <div className="skeleton-base" style={{ height: '1.5rem', width: '60%' }} />
-        </div>
-
-        {/* Location + Travel Style */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SKELETON_SPACING.lg, marginBottom: SKELETON_SPACING.lg }}>
-          <div>
-            <div className="skeleton-base" style={{ height: '0.7rem', marginBottom: SKELETON_SPACING.sm, width: '40%' }} />
-            <div className="skeleton-base" style={{ height: '0.9rem' }} />
+        {/* Info section */}
+        <div style={{ flex: 1 }}>
+          {/* Name + Match score */}
+          <div style={{ display: 'flex', gap: SKELETON_SPACING.lg, alignItems: 'center', marginBottom: SKELETON_SPACING.md }}>
+            <div style={{ ...skeletonStyle, height: '1.5rem', width: '60%' }} />
           </div>
-          <div>
-            <div className="skeleton-base" style={{ height: '0.7rem', marginBottom: SKELETON_SPACING.sm, width: '40%' }} />
-            <div className="skeleton-base" style={{ height: '0.9rem' }} />
-          </div>
-        </div>
 
-        {/* Button */}
-        <div className="skeleton-base" style={{ height: SKELETON_SIZES.button.height, width: '150px' }} />
+          {/* Location + Travel Style */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: SKELETON_SPACING.lg, marginBottom: SKELETON_SPACING.lg }}>
+            <div>
+              <div style={{ ...skeletonStyle, height: '0.7rem', marginBottom: SKELETON_SPACING.sm, width: '40%' }} />
+              <div style={{ ...skeletonStyle, height: '0.9rem' }} />
+            </div>
+            <div>
+              <div style={{ ...skeletonStyle, height: '0.7rem', marginBottom: SKELETON_SPACING.sm, width: '40%' }} />
+              <div style={{ ...skeletonStyle, height: '0.9rem' }} />
+            </div>
+          </div>
+
+          {/* Button */}
+          <div style={{ ...skeletonStyle, height: SKELETON_SIZES.button.height, width: '150px' }} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 
 // ============================================
 // PROFILE FRIENDS LIST SKELETON
 // ============================================
-export const ProfileFriendsListSkeleton = ({ count = 5 }) => (
-  <div>
-    <div className="skeleton-base" style={{ height: '1.2rem', width: '100px', marginBottom: SKELETON_SPACING.lg }} />
-    {Array.from({ length: count }).map((_, i) => (
-      <div
-        key={i}
-        style={{
+export const ProfileFriendsListSkeleton = ({ count = 5 }) => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div>
+      <div style={{ ...skeletonStyle, height: '1.2rem', width: '100px', marginBottom: SKELETON_SPACING.lg }} />
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          key={i}
+          style={{
           display: 'flex',
           gap: '12px',
           alignItems: 'center',
@@ -221,7 +263,8 @@ export const ProfileFriendsListSkeleton = ({ count = 5 }) => (
         }}
       >
         {/* Avatar */}
-        <div className="skeleton-base" style={{
+        <div style={{
+          ...skeletonStyle,
           ...SKELETON_SIZES.avatarSm,
           borderRadius: '50%',
           flexShrink: 0
@@ -229,39 +272,45 @@ export const ProfileFriendsListSkeleton = ({ count = 5 }) => (
 
         {/* Name + Badge */}
         <div style={{ flex: 1 }}>
-          <div className="skeleton-base" style={{ height: '0.9rem', width: '70%' }} />
+          <div style={{ ...skeletonStyle, height: '0.9rem', width: '70%' }} />
         </div>
 
         {/* Travel Pace */}
-        <div className="skeleton-base" style={{
+        <div style={{
+          ...skeletonStyle,
           ...SKELETON_SIZES.travelPace,
           borderRadius: '50%',
           flexShrink: 0
         }} />
       </div>
     ))}
-  </div>
-);
+    </div>
+  );
+};
 
 
 // ============================================
 // MESSAGE BUBBLE SKELETON
 // ============================================
-export const MessageBubbleSkeleton = ({ isOwn = false }) => (
-  <div style={{
-    display: 'flex',
-    justifyContent: isOwn ? 'flex-end' : 'flex-start',
+export const MessageBubbleSkeleton = ({ isOwn = false }) => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: isOwn ? 'flex-end' : 'flex-start',
     marginBottom: SKELETON_SPACING.lg,
     animation: 'fadeIn 0.3s ease-in-out'
   }}>
-    <div className="skeleton-base" style={{
+    <div style={{
+      ...skeletonStyle,
       height: SKELETON_SIZES.messageBubble.height,
       width: '45%',
       minWidth: '100px',
       maxWidth: '300px'
     }} />
   </div>
-);
+  );
+};
 
 
 // ============================================
@@ -281,62 +330,71 @@ export const MessageThreadSkeleton = ({ count = 8 }) => (
 // ============================================
 // GENERIC BOX SKELETON
 // ============================================
-export const BoxSkeleton = ({ width = '100%', height = '2rem', borderRadius = BASE_BORDER_RADIUS, style = {} }) => (
-  <div className="skeleton-base" style={{ width, height, borderRadius, ...style }} />
-);
+export const BoxSkeleton = ({ width = '100%', height = '2rem', borderRadius = BASE_BORDER_RADIUS, style = {} }) => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ ...skeletonStyle, width, height, borderRadius, ...style }} />
+  );
+};
 
 
 // ============================================
 // STATS CARDS SKELETON
 // ============================================
-export const StatsCardSkeleton = () => (
-  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: SKELETON_SPACING.lg }}>
-    {[1, 2, 3].map(i => (
-      <div key={i} className="skeleton-base" style={{ padding: SKELETON_SPACING.xxl, borderRadius: '14px' }}>
-        <div className="skeleton-base" style={{ height: '1rem', marginBottom: SKELETON_SPACING.md, width: '60%' }} />
-        <div className="skeleton-base" style={{ height: '1.8rem', width: '40%' }} />
-      </div>
-    ))}
-  </div>
-);
+export const StatsCardSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: SKELETON_SPACING.lg }}>
+      {[1, 2, 3].map(i => (
+        <div key={i} style={{ ...skeletonStyle, padding: SKELETON_SPACING.xxl, borderRadius: '14px' }}>
+          <div style={{ ...skeletonStyle, height: '1rem', marginBottom: SKELETON_SPACING.md, width: '60%' }} />
+          <div style={{ ...skeletonStyle, height: '1.8rem', width: '40%' }} />
+        </div>
+      ))}
+    </div>
+  );
+};
 
 // ============================================
 // PHOTO GALLERY SKELETON
 // ============================================
-export const PhotoGallerySkeleton = () => (
-  <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden mb-12">
-    {/* Gallery Header */}
-    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-      <div className="skeleton-base" style={{ height: '0.8rem', width: '120px' }} />
-    </div>
-
-    {/* Gallery Content */}
-    <div style={{ padding: '1.5rem' }}>
-      {/* Trip Group 1 */}
-      <div style={{ marginBottom: '2rem' }}>
-        {/* Trip Header */}
-        <div className="skeleton-base" style={{ height: '2rem', marginBottom: '1rem', width: '180px', borderRadius: '8px' }} />
-        
-        {/* Photos Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
-          {[1, 2, 3].map(i => (
-            <div key={i} className="skeleton-base" style={{ aspectRatio: '1', borderRadius: '8px' }} />
-          ))}
-        </div>
+export const PhotoGallerySkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div className="rounded-2xl bg-white/3 border border-white/8 overflow-hidden mb-12">
+      {/* Gallery Header */}
+      <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+        <div style={{ ...skeletonStyle, height: '0.8rem', width: '120px' }} />
       </div>
 
-      {/* Trip Group 2 */}
-      <div>
-        {/* Trip Header */}
-        <div className="skeleton-base" style={{ height: '2rem', marginBottom: '1rem', width: '200px', borderRadius: '8px' }} />
-        
-        {/* Photos Grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="skeleton-base" style={{ aspectRatio: '1', borderRadius: '8px' }} />
-          ))}
+      {/* Gallery Content */}
+      <div style={{ padding: '1.5rem' }}>
+        {/* Trip Group 1 */}
+        <div style={{ marginBottom: '2rem' }}>
+          {/* Trip Header */}
+          <div style={{ ...skeletonStyle, height: '2rem', marginBottom: '1rem', width: '180px', borderRadius: '8px' }} />
+          
+          {/* Photos Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
+            {[1, 2, 3].map(i => (
+              <div key={i} style={{ ...skeletonStyle, aspectRatio: '1', borderRadius: '8px' }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Trip Group 2 */}
+        <div>
+          {/* Trip Header */}
+          <div style={{ ...skeletonStyle, height: '2rem', marginBottom: '1rem', width: '200px', borderRadius: '8px' }} />
+          
+          {/* Photos Grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.75rem' }}>
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} style={{ ...skeletonStyle, aspectRatio: '1', borderRadius: '8px' }} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
-  </div>
-);
+  );
+};

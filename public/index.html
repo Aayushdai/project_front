@@ -4,6 +4,19 @@
   <meta charset="utf-8" />
   <link rel="icon" type="image/png" href="%PUBLIC_URL%/content.png" />
   <title>TCS</title>
+  <script>
+    /* Initialize theme BEFORE React renders to prevent flash */
+    (function() {
+      try {
+        const savedTheme = localStorage.getItem('theme');
+        const isDarkMode = savedTheme !== 'light';
+        document.documentElement.setAttribute('data-theme', isDarkMode ? 'dark' : 'light');
+      } catch (e) {
+        /* If localStorage fails, default to dark mode */
+        document.documentElement.setAttribute('data-theme', 'dark');
+      }
+    })();
+  </script>
 </head>
 
 <body>

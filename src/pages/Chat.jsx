@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import useScrollbarExpand from "../hooks/useScrollbarExpand";
 import { ChatListSkeleton, MessageThreadSkeleton } from "../components/SkeletonLoaders";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -579,6 +580,9 @@ export default function Chat() {
 
     fetchConversations();
   }, [navigate]);
+
+  /* ── Enable scrollbar expansion on hover ── */
+  useScrollbarExpand(".chat-sidebar, .messages-list, .scrollbar-expandable");
 
   // Fetch messages for selected conversation (with polling)
   useEffect(() => {

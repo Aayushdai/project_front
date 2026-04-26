@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import useScrollbarExpand from "../hooks/useScrollbarExpand";
 import { MapPin } from "lucide-react";
 import bg from "../assets/bg.png";
 import api from "../API/api";
@@ -51,6 +52,9 @@ export default function Home() {
       .catch((err) => console.error("Destinations fetch failed:", err));
   }, []);
 
+  /* ── Enable scrollbar expansion on hover ── */
+  useScrollbarExpand(".scrollbar-expandable, [class*='carousel'], [class*='gallery']");
+
   const handleDestinationClick = (destinationName) => {
     navigate("/explore", { state: { destinationName } });
   };
@@ -69,30 +73,12 @@ export default function Home() {
   };
 
   return (
-    <div style={{ fontFamily: "'Poppins', sans-serif", background: "#0a0f1e", color: "#fff", minHeight: "100vh" }}>
+    <div className="home-root">
 
       {/* ── Hero ── */}
-      <section style={{
-        position: "relative",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        textAlign: "center",
-        padding: "2rem 1rem",
-        overflow: "hidden",
-        background: "linear-gradient(160deg, #0a0f1e 0%, #111827 55%, #0d1526 100%)",
-      }}>
+      <section className="hero-section">
         {/* Gold glow blob */}
-        <div style={{
-          position: "absolute",
-          top: "-140px", left: "50%",
-          transform: "translateX(-50%)",
-          width: 640, height: 640,
-          background: "radial-gradient(circle, rgba(255,213,128,0.07) 0%, transparent 68%)",
-          pointerEvents: "none",
-        }} />
+        <div className="hero-glow-blob" />
 
         {/* Background image overlay */}
         <div style={{
@@ -102,72 +88,31 @@ export default function Home() {
           backgroundPosition: "center 30%",
           opacity: 0.45,
         }} />
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "linear-gradient(to bottom, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.55) 60%, #0a0f1e 100%)",
-        }} />
+        <div className="hero-gradient-overlay" />
 
         {/* Content */}
         <div style={{ position: "relative", zIndex: 10, maxWidth: 560, width: "100%" }}>
           {/* Eyebrow */}
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 7,
-            background: "rgba(255,213,128,0.08)",
-            border: "0.5px solid rgba(255,213,128,0.28)",
-            borderRadius: 100,
-            padding: "5px 15px",
-            fontSize: 11, fontWeight: 600,
-            color: "#ffd580",
-            letterSpacing: "0.07em",
-            textTransform: "uppercase",
-            marginBottom: "1.5rem",
-          }}>
-            <span style={{
-              width: 6, height: 6, borderRadius: "50%",
-              background: "#ffd580",
-              animation: "pulse 2s infinite",
-              flexShrink: 0,
-            }} />
+          <div className="hero-eyebrow">
+            <span className="hero-eyebrow-dot" />
             Now live in Nepal
           </div>
 
-          <h1 style={{
-            fontSize: "clamp(2.2rem, 5vw, 3.4rem)",
-            fontWeight: 700,
-            lineHeight: 1.15,
-            letterSpacing: "-0.02em",
-            color: "#fff",
-            marginBottom: "1.1rem",
-          }}>
+          <h1 className="hero-title">
             Find Your Partner
             <br />
-            <span style={{ color: "#ffd580" }}>for the Adventure</span>
+            <span className="hero-title-accent">for the Adventure</span>
           </h1>
 
-          <p style={{
-            fontSize: 15,
-            color: "rgba(255,255,255,0.5)",
-            lineHeight: 1.75,
-            marginBottom: "2.5rem",
-            maxWidth: 440,
-            margin: "0 auto 2.5rem",
-          }}>
+          <p className="hero-subtitle">
             Connect with like-minded travelers, plan trips together,
             and explore the world — one journey at a time.
           </p>
 
           {/* Search bar */}
           <div style={{ position: "relative", maxWidth: 520, margin: "0 auto" }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              background: "rgba(255,255,255,0.05)",
-              border: "0.5px solid rgba(255,255,255,0.12)",
-              borderRadius: 100,
-              padding: "8px 8px 8px 20px",
-              backdropFilter: "blur(12px)",
-              transition: "border-color 0.2s",
-            }}>
-              <svg style={{ color: "rgba(255,255,255,0.3)", flexShrink: 0 }} width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="search-bar">
+              <svg className="search-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
               </svg>
               <input
@@ -176,22 +121,11 @@ export default function Home() {
                 onChange={(e) => { setQuery(e.target.value); }}
                 placeholder={PLACEHOLDER}
                 onKeyDown={(e) => { if (e.key === "Enter" && query.trim()) handleSearch(); }}
-                style={{
-                  flex: 1, background: "transparent", border: "none",
-                  outline: "none", fontSize: 14, color: "#fff",
-                  fontFamily: "inherit",
-                }}
+                className="search-input"
               />
               <button
                 onClick={handleSearch}
-                style={{
-                  background: "#ffd580", color: "#0a0f1e",
-                  border: "none", borderRadius: 100,
-                  padding: "9px 22px", fontSize: 13, fontWeight: 700,
-                  cursor: "pointer", fontFamily: "inherit",
-                  transition: "opacity 0.2s, transform 0.15s",
-                  flexShrink: 0,
-                }}
+                className="search-btn"
                 onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; e.currentTarget.style.transform = "scale(1.02)"; }}
                 onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; e.currentTarget.style.transform = "scale(1)"; }}
               >
@@ -201,54 +135,31 @@ export default function Home() {
 
             {/* Dropdown */}
             {query.trim() && (
-              <div style={{
-                position: "absolute", top: "calc(100% + 8px)", left: 0, right: 0,
-                background: "#111827",
-                border: "0.5px solid rgba(255,255,255,0.12)",
-                borderRadius: 14,
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                zIndex: 50,
-                maxHeight: 260,
-                overflowY: "auto",
-              }}>
+              <div className="search-dropdown">
                 {filtered.length > 0 ? (
                   filtered.map((d) => (
                     <button
                       key={d.id}
                       onClick={() => handleDestinationClick(d.name)}
-                      style={{
-                        width: "100%", textAlign: "left",
-                        padding: "12px 16px",
-                        background: "transparent", border: "none",
-                        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-                        cursor: "pointer", display: "flex", alignItems: "center", gap: 12,
-                        fontFamily: "inherit",
-                        transition: "background 0.15s",
-                      }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,213,128,0.07)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      className="dropdown-item"
+                      onMouseEnter={(e) => { e.currentTarget.classList.add("dropdown-item--hover"); }}
+                      onMouseLeave={(e) => { e.currentTarget.classList.remove("dropdown-item--hover"); }}
                     >
                       {d.image ? (
-                        <img src={d.image} alt={d.name} style={{ width: 38, height: 38, borderRadius: 8, objectFit: "cover", flexShrink: 0 }} />
+                        <img src={d.image} alt={d.name} className="dropdown-img" />
                       ) : (
-                        <div style={{
-                          width: 38, height: 38, borderRadius: 8,
-                          background: "rgba(255,213,128,0.1)",
-                          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-                        }}>
-                          <MapPin size={16} style={{ color: "#ffd580" }} />
+                        <div className="dropdown-img-placeholder">
+                          <MapPin size={16} className="dropdown-pin-icon" />
                         </div>
                       )}
                       <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: "#fff" }}>{d.name}</div>
-                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 1 }}>{d.location}</div>
+                        <div className="dropdown-name">{d.name}</div>
+                        <div className="dropdown-location">{d.location}</div>
                       </div>
                     </button>
                   ))
                 ) : (
-                  <div style={{ padding: "16px", textAlign: "center", fontSize: 13, color: "rgba(255,255,255,0.35)" }}>
-                    No destinations found
-                  </div>
+                  <div className="dropdown-empty">No destinations found</div>
                 )}
               </div>
             )}
@@ -256,14 +167,7 @@ export default function Home() {
         </div>
 
         {/* Scroll cue */}
-        <div style={{
-          position: "absolute", bottom: 32, left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-          color: "rgba(255,255,255,0.22)",
-          fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase",
-          animation: "scrollBounce 2.5s ease-in-out infinite",
-        }}>
+        <div className="scroll-cue">
           <span>scroll</span>
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -272,109 +176,64 @@ export default function Home() {
       </section>
 
       {/* ── Stats Bar ── */}
-      <div style={{
-        display: "flex", justifyContent: "center",
-        borderTop: "0.5px solid rgba(255,255,255,0.07)",
-        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-        background: "rgba(255,255,255,0.02)",
-      }}>
+      <div className="stats-bar">
         {STATS.map((s, i) => (
-          <div key={s.label} style={{
-            flex: 1, maxWidth: 200, textAlign: "center",
-            padding: "1.4rem 1rem",
-            borderRight: i < STATS.length - 1 ? "0.5px solid rgba(255,255,255,0.07)" : "none",
-          }}>
-            <span style={{ display: "block", fontSize: 22, fontWeight: 700, color: "#ffd580" }}>{s.number}</span>
-            <span style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", textTransform: "uppercase", letterSpacing: "0.07em" }}>{s.label}</span>
+          <div key={s.label} className={`stat-item${i < STATS.length - 1 ? " stat-item--border" : ""}`}>
+            <span className="stat-number">{s.number}</span>
+            <span className="stat-label">{s.label}</span>
           </div>
         ))}
       </div>
 
       {/* ── Destinations ── */}
-      <section style={{ padding: "5rem 1rem", background: "#0a0f1e" }}>
+      <section className="destinations-section">
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: "2.5rem", flexWrap: "wrap", gap: "1rem" }}>
+          <div className="destinations-header">
             <div>
-              <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", marginBottom: 6 }}>
-                Explore
-              </p>
-              <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 600, color: "#fff" }}>
-                Popular Destinations
-              </h2>
+              <p className="section-eyebrow">Explore</p>
+              <h2 className="section-title">Popular Destinations</h2>
             </div>
-            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.3)", paddingBottom: 4 }}>
+            <span className="destinations-count">
               Showing {startIndex + 1}–{Math.min(startIndex + ITEMS_PER_PAGE, destinations.length)} of {destinations.length}
             </span>
           </div>
 
           {destinations.length === 0 ? (
-            <p style={{ color: "rgba(255,255,255,0.3)", textAlign: "center", padding: "3rem 0" }}>No destinations found</p>
+            <p className="empty-state">No destinations found</p>
           ) : (
             <>
-              <div style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-                gap: 16,
-              }}>
+              <div className="destinations-grid">
                 {paginated.map((d) => (
                   <div
                     key={d.id}
                     onClick={() => handleDestinationClick(d.name)}
-                    style={{
-                      background: "rgba(255,255,255,0.04)",
-                      border: "0.5px solid rgba(255,255,255,0.09)",
-                      borderRadius: 14,
-                      overflow: "hidden",
-                      cursor: "pointer",
-                      transition: "transform 0.2s, border-color 0.2s, background 0.2s",
-                    }}
+                    className="destination-card"
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = "translateY(-4px)";
-                      e.currentTarget.style.borderColor = "rgba(255,213,128,0.3)";
-                      e.currentTarget.style.background = "rgba(255,255,255,0.07)";
+                      e.currentTarget.classList.add("destination-card--hover");
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = "translateY(0)";
-                      e.currentTarget.style.borderColor = "rgba(255,255,255,0.09)";
-                      e.currentTarget.style.background = "rgba(255,255,255,0.04)";
+                      e.currentTarget.classList.remove("destination-card--hover");
                     }}
                   >
-                    {/* Image area */}
-                    <div style={{
-                      width: "100%", height: 140,
-                      background: "linear-gradient(135deg, #1a2236 0%, #0d1526 100%)",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      position: "relative", overflow: "hidden",
-                    }}>
+                    <div className="destination-img-wrap">
                       {d.image ? (
                         <img
                           src={d.image}
                           alt={d.name}
-                          style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
-                          onMouseEnter={(e) => { e.currentTarget.style.transform = "scale(1.05)"; }}
-                          onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
+                          className="destination-img"
                         />
                       ) : (
-                        <MapPin size={32} style={{ color: "rgba(255,255,255,0.1)" }} />
+                        <MapPin size={32} className="destination-img-placeholder-icon" />
                       )}
                     </div>
-
-                    {/* Body */}
-                    <div style={{ padding: "14px 16px 16px" }}>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: "#fff", marginBottom: 5 }}>{d.name}</div>
-                      <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", display: "flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 5, height: 5, borderRadius: "50%", background: "#ffd580", opacity: 0.6, flexShrink: 0 }} />
+                    <div className="destination-body">
+                      <div className="destination-name">{d.name}</div>
+                      <div className="destination-location">
+                        <span className="destination-dot" />
                         {d.location}
                       </div>
                       {d.description && (
-                        <p style={{
-                          fontSize: 12, color: "rgba(255,255,255,0.3)",
-                          marginTop: 8, lineHeight: 1.5,
-                          display: "-webkit-box", WebkitLineClamp: 2,
-                          WebkitBoxOrient: "vertical", overflow: "hidden",
-                        }}>
-                          {d.description}
-                        </p>
+                        <p className="destination-desc">{d.description}</p>
                       )}
                     </div>
                   </div>
@@ -383,11 +242,11 @@ export default function Home() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginTop: "2.5rem" }}>
+                <div className="pagination">
                   <button
                     onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
                     disabled={currentPage === 1}
-                    style={paginationBtnStyle(false)}
+                    className="pagination-btn"
                   >
                     ← Prev
                   </button>
@@ -396,7 +255,7 @@ export default function Home() {
                     <button
                       key={page}
                       onClick={() => setCurrentPage(page)}
-                      style={paginationBtnStyle(page === currentPage)}
+                      className={`pagination-btn${page === currentPage ? " pagination-btn--active" : ""}`}
                     >
                       {page}
                     </button>
@@ -405,7 +264,7 @@ export default function Home() {
                   <button
                     onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
                     disabled={currentPage === totalPages}
-                    style={paginationBtnStyle(false)}
+                    className="pagination-btn"
                   >
                     Next →
                   </button>
@@ -417,60 +276,28 @@ export default function Home() {
       </section>
 
       {/* ── Features ── */}
-      <section style={{
-        padding: "5rem 1rem",
-        background: "rgba(255,255,255,0.015)",
-        borderTop: "0.5px solid rgba(255,255,255,0.07)",
-        borderBottom: "0.5px solid rgba(255,255,255,0.07)",
-      }}>
+      <section className="features-section">
         <div style={{ maxWidth: 1100, margin: "0 auto" }}>
           <div style={{ marginBottom: "2.5rem" }}>
-            <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", marginBottom: 8 }}>
-              Why Travel Sathi?
-            </p>
-            <h2 style={{ fontSize: "clamp(1.5rem, 3vw, 2rem)", fontWeight: 600, color: "#fff" }}>
+            <p className="section-eyebrow">Why Travel Sathi?</p>
+            <h2 className="section-title">
               Your journey,{" "}
-              <em style={{ color: "#ffd580", fontStyle: "italic" }}>elevated</em>
+              <em className="section-title-accent">elevated</em>
             </h2>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          <div className="features-grid">
             {FEATURES.map(({ icon, title, desc, tag }) => (
               <div
                 key={title}
-                style={{
-                  background: "rgba(255,255,255,0.03)",
-                  border: "0.5px solid rgba(255,255,255,0.08)",
-                  borderRadius: 16,
-                  padding: 28,
-                  transition: "border-color 0.25s, transform 0.25s, background 0.25s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(255,213,128,0.28)";
-                  e.currentTarget.style.background = "rgba(255,213,128,0.03)";
-                  e.currentTarget.style.transform = "translateY(-3px)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)";
-                  e.currentTarget.style.background = "rgba(255,255,255,0.03)";
-                  e.currentTarget.style.transform = "translateY(0)";
-                }}
+                className="feature-card"
+                onMouseEnter={(e) => { e.currentTarget.classList.add("feature-card--hover"); }}
+                onMouseLeave={(e) => { e.currentTarget.classList.remove("feature-card--hover"); }}
               >
-                <div style={{
-                  width: 44, height: 44, borderRadius: 10,
-                  background: "rgba(255,213,128,0.1)",
-                  border: "0.5px solid rgba(255,213,128,0.2)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  color: "#ffd580",
-                  marginBottom: 18,
-                }}>
-                  {icon}
-                </div>
-                <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.1em", color: "#ffd580", opacity: 0.7, marginBottom: 6 }}>
-                  {tag}
-                </p>
-                <h3 style={{ fontSize: 16, fontWeight: 600, color: "#fff", marginBottom: 8 }}>{title}</h3>
-                <p style={{ fontSize: 13, color: "rgba(255,255,255,0.42)", lineHeight: 1.65 }}>{desc}</p>
+                <div className="feature-icon-wrap">{icon}</div>
+                <p className="feature-tag">{tag}</p>
+                <h3 className="feature-title">{title}</h3>
+                <p className="feature-desc">{desc}</p>
               </div>
             ))}
           </div>
@@ -487,26 +314,389 @@ export default function Home() {
           50% { transform: translateX(-50%) translateY(8px); }
         }
         * { box-sizing: border-box; }
-        input::placeholder { color: rgba(255,255,255,0.3); }
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: rgba(255,213,128,0.25); border-radius: 4px; }
+
+        /* ── DARK MODE (default) ── */
+        :root,
+        [data-theme="dark"] {
+          --bg:              #0a0f1e;
+          --bg-section:      rgba(255,255,255,0.015);
+          --text:            #ffffff;
+          --text-muted:      rgba(255,255,255,0.5);
+          --text-light:      rgba(255,255,255,0.35);
+          --text-lighter:    rgba(255,255,255,0.22);
+          --accent:          #ffd580;
+          --accent-rgb:      255,213,128;
+          --accent-bg:       rgba(255,213,128,0.08);
+          --accent-border:   rgba(255,213,128,0.28);
+          --border:          rgba(255,255,255,0.07);
+          --border-card:     rgba(255,255,255,0.09);
+          --surface:         rgba(255,255,255,0.04);
+          --surface-hover:   rgba(255,255,255,0.07);
+          --surface-feat:    rgba(255,255,255,0.03);
+          --surface-feat-hover: rgba(255,213,128,0.03);
+          --search-bg:       rgba(255,255,255,0.05);
+          --search-border:   rgba(255,255,255,0.12);
+          --dropdown-bg:     #111827;
+          --dropdown-border: rgba(255,255,255,0.12);
+          --dropdown-hover:  rgba(255,213,128,0.07);
+          --hero-grad:       linear-gradient(160deg, #0a0f1e 0%, #111827 55%, #0d1526 100%);
+          --hero-overlay:    linear-gradient(to bottom, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.55) 60%, #0a0f1e 100%);
+          --img-placeholder-bg: linear-gradient(135deg, #1a2236 0%, #0d1526 100%);
+          --img-placeholder-icon: rgba(255,255,255,0.1);
+          --pagination-bg:   rgba(255,255,255,0.05);
+          --pagination-border: rgba(255,255,255,0.12);
+          --pagination-text: rgba(255,255,255,0.6);
+          --stats-bg:        rgba(255,255,255,0.02);
+          --scroll-color:    rgba(255,255,255,0.22);
+        }
+
+        /* ── LIGHT MODE ── */
+        [data-theme="light"] {
+          --bg:              #f8f5f0;
+          --bg-section:      #f0ece5;
+          --text:            #1a1209;
+          --text-muted:      rgba(26,18,9,0.65);
+          --text-light:      rgba(26,18,9,0.5);
+          --text-lighter:    rgba(26,18,9,0.38);
+          --accent:          #b45309;
+          --accent-rgb:      180,83,9;
+          --accent-bg:       rgba(180,83,9,0.08);
+          --accent-border:   rgba(180,83,9,0.3);
+          --border:          rgba(26,18,9,0.1);
+          --border-card:     rgba(26,18,9,0.12);
+          --surface:         rgba(255,255,255,0.7);
+          --surface-hover:   rgba(255,255,255,0.95);
+          --surface-feat:    rgba(255,255,255,0.6);
+          --surface-feat-hover: rgba(180,83,9,0.04);
+          --search-bg:       rgba(255,255,255,0.75);
+          --search-border:   rgba(26,18,9,0.2);
+          --dropdown-bg:     #ffffff;
+          --dropdown-border: rgba(26,18,9,0.12);
+          --dropdown-hover:  rgba(180,83,9,0.06);
+          --hero-grad:       linear-gradient(160deg, #2d1b00 0%, #3d2510 55%, #1a0e00 100%);
+          --hero-overlay:    linear-gradient(to bottom, rgba(26,14,0,0.35) 0%, rgba(26,14,0,0.6) 60%, #f8f5f0 100%);
+          --img-placeholder-bg: linear-gradient(135deg, #e8dfd0 0%, #d4c9b8 100%);
+          --img-placeholder-icon: rgba(26,18,9,0.2);
+          --pagination-bg:   rgba(255,255,255,0.8);
+          --pagination-border: rgba(26,18,9,0.15);
+          --pagination-text: rgba(26,18,9,0.6);
+          --stats-bg:        rgba(255,255,255,0.5);
+          --scroll-color:    rgba(255,255,255,0.7);
+        }
+
+        /* ── BASE ── */
+        .home-root {
+          font-family: 'Poppins', sans-serif;
+          background: var(--bg);
+          color: var(--text);
+          min-height: 100vh;
+        }
+
+        /* ── HERO ── */
+        .hero-section {
+          position: relative;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 2rem 1rem;
+          overflow: hidden;
+          background: var(--hero-grad);
+        }
+        .hero-glow-blob {
+          position: absolute;
+          top: -140px; left: 50%;
+          transform: translateX(-50%);
+          width: 640px; height: 640px;
+          background: radial-gradient(circle, rgba(var(--accent-rgb),0.07) 0%, transparent 68%);
+          pointer-events: none;
+        }
+        .hero-gradient-overlay {
+          position: absolute; inset: 0;
+          background: var(--hero-overlay);
+        }
+
+        /* Eyebrow */
+        .hero-eyebrow {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          background: var(--accent-bg);
+          border: 0.5px solid var(--accent-border);
+          border-radius: 100px;
+          padding: 5px 15px;
+          font-size: 11px; font-weight: 600;
+          color: var(--accent);
+          letter-spacing: 0.07em;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
+        }
+        .hero-eyebrow-dot {
+          width: 6px; height: 6px; border-radius: 50%;
+          background: var(--accent);
+          animation: pulse 2s infinite;
+          flex-shrink: 0;
+        }
+        .hero-title {
+          font-size: clamp(2.2rem, 5vw, 3.4rem);
+          font-weight: 700;
+          line-height: 1.15;
+          letter-spacing: -0.02em;
+          color: #fff;
+          margin-bottom: 1.1rem;
+        }
+        .hero-title-accent { color: var(--accent); }
+        .hero-subtitle {
+          font-size: 15px;
+          color: rgba(255,255,255,0.55);
+          line-height: 1.75;
+          max-width: 440px;
+          margin: 0 auto 2.5rem;
+        }
+
+        /* Search */
+        .search-bar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: var(--search-bg);
+          border: 0.5px solid var(--search-border);
+          border-radius: 100px;
+          padding: 8px 8px 8px 20px;
+          backdrop-filter: blur(12px);
+          transition: border-color 0.2s;
+        }
+        .search-icon { color: rgba(255,255,255,0.4); flex-shrink: 0; }
+        .search-input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          outline: none;
+          font-size: 14px;
+          color: #fff;
+          font-family: inherit;
+        }
+        .search-input::placeholder { color: rgba(255,255,255,0.35); }
+        .search-btn {
+          background: var(--accent);
+          color: #1a0e00;
+          border: none;
+          border-radius: 100px;
+          padding: 9px 22px;
+          font-size: 13px;
+          font-weight: 700;
+          cursor: pointer;
+          font-family: inherit;
+          transition: opacity 0.2s, transform 0.15s;
+          flex-shrink: 0;
+        }
+
+        /* Dropdown */
+        .search-dropdown {
+          position: absolute;
+          top: calc(100% + 8px); left: 0; right: 0;
+          background: var(--dropdown-bg);
+          border: 0.5px solid var(--dropdown-border);
+          border-radius: 14px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+          z-index: 50;
+          max-height: 260px;
+          overflow-y: auto;
+        }
+        .dropdown-item {
+          width: 100%;
+          text-align: left;
+          padding: 12px 16px;
+          background: transparent;
+          border: none;
+          border-bottom: 0.5px solid var(--border);
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          font-family: inherit;
+          transition: background 0.15s;
+        }
+        .dropdown-item--hover { background: var(--dropdown-hover) !important; }
+        .dropdown-img { width: 38px; height: 38px; border-radius: 8px; object-fit: cover; flex-shrink: 0; }
+        .dropdown-img-placeholder {
+          width: 38px; height: 38px; border-radius: 8px;
+          background: var(--accent-bg);
+          display: flex; align-items: center; justify-content: center;
+          flex-shrink: 0;
+        }
+        .dropdown-pin-icon { color: var(--accent); }
+        .dropdown-name { font-size: 14px; font-weight: 600; color: var(--text); }
+        .dropdown-location { font-size: 12px; color: var(--text-light); margin-top: 1px; }
+        .dropdown-empty { padding: 16px; text-align: center; font-size: 13px; color: var(--text-light); }
+
+        /* Scroll cue */
+        .scroll-cue {
+          position: absolute;
+          bottom: 32px; left: 50%;
+          transform: translateX(-50%);
+          display: flex; flex-direction: column; align-items: center; gap: 4px;
+          color: var(--scroll-color);
+          font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+          animation: scrollBounce 2.5s ease-in-out infinite;
+        }
+
+        /* ── STATS ── */
+        .stats-bar {
+          display: flex;
+          justify-content: center;
+          border-top: 0.5px solid var(--border);
+          border-bottom: 0.5px solid var(--border);
+          background: var(--stats-bg);
+        }
+        .stat-item {
+          flex: 1; max-width: 200px;
+          text-align: center;
+          padding: 1.4rem 1rem;
+        }
+        .stat-item--border { border-right: 0.5px solid var(--border); }
+        .stat-number { display: block; font-size: 22px; font-weight: 700; color: var(--accent); }
+        .stat-label { font-size: 11px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.07em; }
+
+        /* ── DESTINATIONS ── */
+        .destinations-section { padding: 5rem 1rem; background: var(--bg); }
+        .destinations-header {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
+          margin-bottom: 2.5rem;
+          flex-wrap: wrap;
+          gap: 1rem;
+        }
+        .section-eyebrow {
+          font-size: 11px; font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          color: var(--accent);
+          margin-bottom: 6px;
+        }
+        .section-title { font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; color: var(--text); }
+        .section-title-accent { color: var(--accent); font-style: italic; }
+        .destinations-count { font-size: 13px; color: var(--text-lighter); padding-bottom: 4px; }
+        .empty-state { color: var(--text-light); text-align: center; padding: 3rem 0; }
+
+        .destinations-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+          gap: 16px;
+        }
+        .destination-card {
+          background: var(--surface);
+          border: 0.5px solid var(--border-card);
+          border-radius: 14px;
+          overflow: hidden;
+          cursor: pointer;
+          transition: transform 0.2s, border-color 0.2s, background 0.2s,
+                      box-shadow 0.2s;
+        }
+        .destination-card--hover {
+          transform: translateY(-4px);
+          border-color: rgba(var(--accent-rgb),0.35) !important;
+          background: var(--surface-hover) !important;
+          box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+        }
+        .destination-img-wrap {
+          width: 100%; height: 140px;
+          background: var(--img-placeholder-bg);
+          display: flex; align-items: center; justify-content: center;
+          position: relative; overflow: hidden;
+        }
+        .destination-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .destination-img:hover { transform: scale(1.05); }
+        .destination-img-placeholder-icon { color: var(--img-placeholder-icon); }
+        .destination-body { padding: 14px 16px 16px; }
+        .destination-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 5px; }
+        .destination-location {
+          font-size: 12px; color: var(--text-light);
+          display: flex; align-items: center; gap: 5px;
+        }
+        .destination-dot {
+          width: 5px; height: 5px; border-radius: 50%;
+          background: var(--accent); opacity: 0.6; flex-shrink: 0;
+        }
+        .destination-desc {
+          font-size: 12px; color: var(--text-lighter);
+          margin-top: 8px; line-height: 1.5;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        /* ── PAGINATION ── */
+        .pagination {
+          display: flex; align-items: center; justify-content: center;
+          gap: 8px; margin-top: 2.5rem;
+        }
+        .pagination-btn {
+          background: var(--pagination-bg);
+          border: 0.5px solid var(--pagination-border);
+          border-radius: 8px;
+          color: var(--pagination-text);
+          padding: 8px 16px;
+          font-size: 13px;
+          font-weight: 400;
+          font-family: inherit;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+        .pagination-btn--active {
+          background: var(--accent) !important;
+          border-color: var(--accent) !important;
+          color: #1a0e00 !important;
+          font-weight: 700;
+        }
+        .pagination-btn:disabled { opacity: 0.4; cursor: default; }
+
+        /* ── FEATURES ── */
+        .features-section {
+          padding: 5rem 1rem;
+          background: var(--bg-section);
+          border-top: 0.5px solid var(--border);
+          border-bottom: 0.5px solid var(--border);
+        }
+        .features-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+          gap: 16px;
+        }
+        .feature-card {
+          background: var(--surface-feat);
+          border: 0.5px solid var(--border-card);
+          border-radius: 16px;
+          padding: 28px;
+          transition: border-color 0.25s, transform 0.25s, background 0.25s, box-shadow 0.25s;
+        }
+        .feature-card--hover {
+          border-color: rgba(var(--accent-rgb),0.3) !important;
+          background: var(--surface-feat-hover) !important;
+          transform: translateY(-3px);
+          box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+        }
+        .feature-icon-wrap {
+          width: 44px; height: 44px; border-radius: 10px;
+          background: var(--accent-bg);
+          border: 0.5px solid var(--accent-border);
+          display: flex; align-items: center; justify-content: center;
+          color: var(--accent);
+          margin-bottom: 18px;
+        }
+        .feature-tag {
+          font-size: 10px; font-weight: 700;
+          text-transform: uppercase; letter-spacing: 0.1em;
+          color: var(--accent); opacity: 0.75;
+          margin-bottom: 6px;
+        }
+        .feature-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+        .feature-desc { font-size: 13px; color: var(--text-muted); line-height: 1.65; }
       `}</style>
     </div>
   );
-}
-
-function paginationBtnStyle(isActive) {
-  return {
-    background: isActive ? "#ffd580" : "rgba(255,255,255,0.05)",
-    border: isActive ? "0.5px solid #ffd580" : "0.5px solid rgba(255,255,255,0.12)",
-    borderRadius: 8,
-    color: isActive ? "#0a0f1e" : "rgba(255,255,255,0.6)",
-    padding: "8px 16px",
-    fontSize: 13,
-    fontWeight: isActive ? 700 : 400,
-    fontFamily: "inherit",
-    cursor: "pointer",
-    transition: "all 0.2s",
-  };
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { apiFetch, getBaseUrl, getToken } from "../utils/api";
+import useScrollbarExpand from "../hooks/useScrollbarExpand";
 
 // ── Icons ────────────────────────────────────────────────────────────────────
 const Icon = ({ d, children, size = 16 }) => (
@@ -79,6 +80,22 @@ function getStrength(val) {
   return { score: s, pct: map[s - 1]?.pct ?? "20%", ...map[s - 1] };
 }
 
+// ── Theme storage helper using localStorage ──────────────────────────────────
+const ThemeStorage = {
+  set: (isDarkMode) => {
+    localStorage.setItem("theme", isDarkMode ? "dark" : "light");
+  },
+  get: () => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark") return true;
+    if (saved === "light") return false;
+    return null; // No saved theme
+  },
+  delete: () => {
+    localStorage.removeItem("theme");
+  }
+};
+
 // ── Main component ────────────────────────────────────────────────────────────
 export default function SettingPage() {
   const { logout } = useAuth();
@@ -129,44 +146,84 @@ export default function SettingPage() {
     setTimeout(() => setToast({ type: "", message: "" }), duration);
   };
 
+  // ── Apply saved theme from localStorage on page load ────────────────────────
+  useEffect(() => {
+    const savedTheme = ThemeStorage.get();
+    if (savedTheme !== null) {
+      document.documentElement.setAttribute("data-theme", savedTheme ? "dark" : "light");
+    }
+  }, []);
+
+  // ── Listen for theme changes from navbar and sync ───────────────────────────
+  useEffect(() => {
+    const handleThemeChange = (e) => {
+      const isDark = e.detail?.isDarkMode ?? (localStorage.getItem("theme") === "dark");
+      // Update the prefs state to sync with navbar
+      setPrefs(prev => ({ ...prev, darkMode: isDark }));
+      // Apply theme to document
+      document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
+    };
+
+    window.addEventListener("theme-changed", handleThemeChange);
+    return () => window.removeEventListener("theme-changed", handleThemeChange);
+  }, []);
+
   // ── Fetch user on mount ─────────────────────────────────────────────────────
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await apiFetch("users/me/");
-        setProfileData(data);
-        setProfileForm({
-          firstName: data.first_name || "",
-          lastName: data.last_name || "",
-          bio: data.bio || "",
-          username: data.username || "",
-        });
-        if (data?.profile_picture) {
-          const url = data.profile_picture.startsWith("http")
-            ? data.profile_picture
-            : `${getBaseUrl()}${data.profile_picture}`;
-          setProfilePic(url);
-        }
-        if (data?.last_login) {
-          setLastLoginDate(new Date(data.last_login));
-        }
+        // Check for saved theme in localStorage first
+        const savedTheme = ThemeStorage.get();
+        let darkModeToUse = true; // Default to dark if nothing saved
+        
+        try {
+          const data = await apiFetch("users/me/");
+          setProfileData(data);
+          setProfileForm({
+            firstName: data.first_name || "",
+            lastName: data.last_name || "",
+            bio: data.bio || "",
+            username: data.username || "",
+          });
+          if (data?.profile_picture) {
+            const url = data.profile_picture.startsWith("http")
+              ? data.profile_picture
+              : `${getBaseUrl()}${data.profile_picture}`;
+            setProfilePic(url);
+          }
+          if (data?.last_login) {
+            setLastLoginDate(new Date(data.last_login));
+          }
 
-        // Load preferences
-        const prefsData = await apiFetch("users/me/preferences/");
-        const darkModeEnabled = prefsData.darkMode ?? true;
-        setPrefs({
-          emailNotifications: prefsData.emailNotifications,
-          tripUpdates: prefsData.tripUpdates,
-          friendRequests: prefsData.friendRequests,
-          tripInviteNotifications: prefsData.friendRequests, // Mirrors friendRequests
-          shareTripActivity: prefsData.shareTripActivity,
-          publicProfile: prefsData.publicProfile,
-          searchableByEmail: prefsData.searchableByEmail,
-          showOnlineStatus: prefsData.showOnlineStatus,
-          darkMode: darkModeEnabled,
-        });
-        // Apply initial theme
-        document.documentElement.setAttribute("data-theme", darkModeEnabled ? "dark" : "light");
+          // Load preferences from backend
+          const prefsData = await apiFetch("users/me/preferences/");
+          darkModeToUse = prefsData.darkMode ?? true;
+          
+          // If localStorage has a saved theme, use it instead (localStorage takes precedence)
+          if (savedTheme !== null) {
+            darkModeToUse = savedTheme;
+          }
+          
+          setPrefs({
+            emailNotifications: prefsData.emailNotifications,
+            tripUpdates: prefsData.tripUpdates,
+            friendRequests: prefsData.friendRequests,
+            tripInviteNotifications: prefsData.friendRequests,
+            shareTripActivity: prefsData.shareTripActivity,
+            publicProfile: prefsData.publicProfile,
+            searchableByEmail: prefsData.searchableByEmail,
+            showOnlineStatus: prefsData.showOnlineStatus,
+            darkMode: darkModeToUse,
+          });
+        } catch (err) {
+          // If backend fetch fails, still use localStorage preference if available
+          if (savedTheme !== null) {
+            darkModeToUse = savedTheme;
+          }
+        }
+        
+        // Apply theme immediately from localStorage (or use default)
+        document.documentElement.setAttribute("data-theme", darkModeToUse ? "dark" : "light");
       } catch {
         showToast("error", "Failed to load user data");
       } finally {
@@ -202,6 +259,9 @@ export default function SettingPage() {
     };
     loadSecurityQuestions();
   }, []);
+
+  /* ── Enable scrollbar expansion on hover ── */
+  useScrollbarExpand(".settings-panel, .scrollbar-expandable");
 
   // ── Handlers ────────────────────────────────────────────────────────────────
   const handleUpdateProfile = async (e) => {
@@ -243,9 +303,15 @@ export default function SettingPage() {
     const updated = { ...prefs, [key]: !prefs[key] };
     setPrefs(updated);
     
-    // Apply theme to document if darkMode changed
+    // Apply theme to document and save to localStorage if darkMode changed
     if (key === "darkMode") {
       document.documentElement.setAttribute("data-theme", updated.darkMode ? "dark" : "light");
+      ThemeStorage.set(updated.darkMode); // Save theme preference to localStorage
+      
+      // Dispatch custom event to sync navbar and other components
+      window.dispatchEvent(new CustomEvent("theme-changed", { 
+        detail: { isDarkMode: updated.darkMode } 
+      }));
     }
     
     try {
@@ -276,7 +342,14 @@ export default function SettingPage() {
         setPrefs((prev) => ({ ...prev, [key]: !updated[key] }));
         // Revert theme if darkMode change was reverted
         if (key === "darkMode") {
-          document.documentElement.setAttribute("data-theme", updated.darkMode ? "light" : "dark");
+          const revertedMode = !updated.darkMode;
+          document.documentElement.setAttribute("data-theme", revertedMode ? "dark" : "light");
+          ThemeStorage.set(revertedMode);
+          
+          // Dispatch event to sync navbar on revert
+          window.dispatchEvent(new CustomEvent("theme-changed", { 
+            detail: { isDarkMode: revertedMode } 
+          }));
         }
       }
     } catch (err) {
@@ -286,7 +359,14 @@ export default function SettingPage() {
       setPrefs((prev) => ({ ...prev, [key]: !updated[key] }));
       // Revert theme if darkMode change was reverted
       if (key === "darkMode") {
-        document.documentElement.setAttribute("data-theme", updated.darkMode ? "light" : "dark");
+        const revertedMode = !updated.darkMode;
+        document.documentElement.setAttribute("data-theme", revertedMode ? "dark" : "light");
+        ThemeStorage.set(revertedMode);
+        
+        // Dispatch event to sync navbar on revert
+        window.dispatchEvent(new CustomEvent("theme-changed", { 
+          detail: { isDarkMode: revertedMode } 
+        }));
       }
     }
   };

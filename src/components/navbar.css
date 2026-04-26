@@ -9,10 +9,10 @@
 
 /* Light mode overrides */
 [data-theme="light"] {
-  --navbar-bg: #141A29;
-  --navbar-text: #ffffff;
-  --navbar-text-secondary: #cccccc;
-  --navbar-hover: #ffffff;
+  --navbar-bg: #909090;
+  --navbar-text: #0d0d0d;
+  --navbar-text-secondary: #333333;
+  --navbar-hover: #1a1a2e;
 }
 
 nav {
@@ -39,6 +39,32 @@ nav button:hover {
   color: var(--navbar-hover);
 }
 
+/* Light mode button styling */
+[data-theme="light"] nav button:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Light mode dropdown styling */
+[data-theme="light"] nav .bg-\[\#111\] {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+[data-theme="light"] nav .bg-\[\#111\] a,
+[data-theme="light"] nav .bg-\[\#111\] p {
+  color: #1a1a2e !important;
+}
+
+[data-theme="light"] nav .bg-\[\#111\] a:hover,
+[data-theme="light"] nav .bg-\[\#111\] button:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+  color: #0d0d0d !important;
+}
+
+[data-theme="light"] nav .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
 /* Override specific Tailwind classes */
 nav .bg-\[\#111\] {
   background-color: rgba(17, 17, 17, 1) !important;
@@ -57,24 +83,48 @@ nav .text-white {
   color: #ffffff;
 }
 
+[data-theme="light"] nav .text-white {
+  color: #0d0d0d !important;
+}
+
 nav .text-white\/80 {
   color: #cccccc;
+}
+
+[data-theme="light"] nav .text-white\/80 {
+  color: #333333 !important;
 }
 
 nav .text-white\/70 {
   color: #b3b3b3;
 }
 
+[data-theme="light"] nav .text-white\/70 {
+  color: #555555 !important;
+}
+
 nav .text-white\/50 {
   color: #808080;
+}
+
+[data-theme="light"] nav .text-white\/50 {
+  color: #777777 !important;
 }
 
 nav .text-slate-300 {
   color: #cbd5e1;
 }
 
+[data-theme="light"] nav .text-slate-300 {
+  color: #333333 !important;
+}
+
 nav .text-slate-400 {
   color: #94a3b8;
+}
+
+[data-theme="light"] nav .text-slate-400 {
+  color: #555555 !important;
 }
 
 nav .text-red-400,
@@ -82,24 +132,49 @@ nav .text-red-300 {
   color: #f87171;
 }
 
+[data-theme="light"] nav .text-red-400,
+[data-theme="light"] nav .text-red-300 {
+  color: #dc2626 !important;
+}
+
 nav .hover\:text-white:hover {
   color: #ffffff !important;
+}
+
+[data-theme="light"] nav .hover\:text-white:hover {
+  color: #0d0d0d !important;
 }
 
 nav .hover\:bg-white\/10:hover {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+[data-theme="light"] nav .hover\:bg-white\/10:hover {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
 nav .border-white\/10 {
   border-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] nav .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
 nav .border-t {
   border-color: rgba(255, 255, 255, 0.1);
 }
 
+[data-theme="light"] nav .border-t {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
 nav .border-b {
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] nav .border-b {
+  border-color: rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Avatar and icon styling */
@@ -109,6 +184,10 @@ nav .bg-\[\#1976D2\] {
 
 nav .ring-white\/10 {
   --tw-ring-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="light"] nav .ring-white\/10 {
+  --tw-ring-color: rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Search bar styling */
@@ -121,5 +200,14 @@ nav .text-slate-300::placeholder {
 
 nav input::placeholder {
   color: var(--text-muted);
+}
+
+[data-theme="light"] nav input {
+  background-color: #e5e5e5 !important;
+  color: #0d0d0d !important;
+}
+
+[data-theme="light"] nav input::placeholder {
+  color: #000000 !important;
 }
 
