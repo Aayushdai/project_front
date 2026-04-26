@@ -398,3 +398,86 @@ export const PhotoGallerySkeleton = () => {
     </div>
   );
 };
+
+// ============================================
+// DASHBOARD HEADER SKELETON
+// ============================================
+export const DashboardHeaderSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ marginBottom: SKELETON_SPACING.xxxl }}>
+      {/* Greeting line */}
+      <div style={{ ...skeletonStyle, height: '2.2rem', width: '50%', marginBottom: SKELETON_SPACING.md, borderRadius: '12px' }} />
+      {/* Subtext line */}
+      <div style={{ ...skeletonStyle, height: '0.9rem', width: '65%', borderRadius: '8px' }} />
+    </div>
+  );
+};
+
+// ============================================
+// DASHBOARD TABS SKELETON
+// ============================================
+export const DashboardTabsSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <div style={{ display: 'flex', gap: SKELETON_SPACING.md, marginBottom: SKELETON_SPACING.xxl }}>
+      {[1, 2, 3, 4].map(i => (
+        <div key={i} style={{ ...skeletonStyle, height: '2.5rem', width: '120px', borderRadius: '10px' }} />
+      ))}
+    </div>
+  );
+};
+
+// ============================================
+// DASHBOARD SEARCH & FILTER SKELETON
+// ============================================
+export const DashboardSearchFilterSkeleton = () => {
+  const skeletonStyle = getSkeletonStyle();
+  return (
+    <>
+      {/* Search Bar */}
+      <div style={{ marginBottom: SKELETON_SPACING.lg }}>
+        <div style={{ ...skeletonStyle, height: '2.5rem', borderRadius: '12px' }} />
+      </div>
+      
+      {/* Filter Button */}
+      <div style={{ marginBottom: SKELETON_SPACING.lg }}>
+        <div style={{ ...skeletonStyle, height: '2rem', width: '200px', borderRadius: '8px' }} />
+      </div>
+    </>
+  );
+};
+
+// ============================================
+// DASHBOARD COMPLETE LOADING SKELETON
+// ============================================
+export const DashboardLoadingSkeleton = () => {
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'inherit',
+      padding: '2.5rem 1.5rem 4rem',
+    }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+        {/* Header */}
+        <DashboardHeaderSkeleton />
+        
+        {/* Stats */}
+        <div style={{ marginBottom: SKELETON_SPACING.xxxl }}>
+          <StatsCardSkeleton />
+        </div>
+        
+        {/* Tabs */}
+        <DashboardTabsSkeleton />
+        
+        {/* Search & Filter */}
+        <DashboardSearchFilterSkeleton />
+        
+        {/* Trips Grid */}
+        <div>
+          <TripsGridSkeleton count={6} />
+        </div>
+      </div>
+    </div>
+  );
+};

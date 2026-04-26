@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import useScrollbarExpand from "../hooks/useScrollbarExpand";
 import api from "../API/api";
 import KYCBanner from "../components/KYCBanner";
-import { TripsGridSkeleton, StatsCardSkeleton } from "../components/SkeletonLoaders";
+import { DashboardLoadingSkeleton } from "../components/SkeletonLoaders";
 import {
   PlusCircle,
   Compass,
@@ -1459,13 +1459,8 @@ export default function Dashboard() {
       
       {/* KYC Blocking Screen */}
       {kycLoading ? (
-        <div className="db-root" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}>
-          <div className="db-inner">
-            <div style={{ marginBottom: '1.5rem' }}>
-              <StatsCardSkeleton />
-            </div>
-            <TripsGridSkeleton count={6} />
-          </div>
+        <div className="db-root">
+          <DashboardLoadingSkeleton />
         </div>
       ) : userProfile && userProfile.status && userProfile.status !== "approved" ? (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", width: "100vw", background: "linear-gradient(135deg, #07080f 0%, #0d0e1a 100%)", fontFamily: "'Syne',sans-serif" }}>
@@ -1562,12 +1557,7 @@ export default function Dashboard() {
 
           {/* Content */}
           {loading ? (
-            <>
-              <div style={{ marginBottom: '1.5rem' }}>
-                <StatsCardSkeleton />
-              </div>
-              <TripsGridSkeleton count={6} />
-            </>
+            <DashboardLoadingSkeleton />
           ) : (
             <>
               {/* Search Bar (visible on myTrips, available, and history tabs) */}
