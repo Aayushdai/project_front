@@ -111,7 +111,7 @@ const getThemeColors = () => {
       text: "#0f172a",
       textSecondary: "#475569",
       textTertiary: "#64748b",
-      inputBg: "#ffffff",
+      inputBg: "#f3f4f6",
       dropdownBg: "#ffffff",
       popupBg: "#ffffff",
       popupText: "#0f172a",
@@ -165,8 +165,8 @@ const ERROR_MESSAGES = {
 };
 
 const MESSAGES = {
-  travelNepal: "TCS:travel companion",
-  nepal: "system",
+  travelNepal: "Travel ",
+  nepal: "Explorer",
   route: "Route",
   nearby: "Nearby",
   saved: "Saved",
