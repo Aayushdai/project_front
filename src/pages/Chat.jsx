@@ -862,6 +862,8 @@ export default function Chat() {
                 : friend.username || "Friend",
               avatar: profilePic,
               userId: friend.id,
+              isOnline: friend.is_online || false,
+              lastLogin: friend.last_login || null,
               unread: 0,
               lastMessage: "",
               lastMessageTime: null,
@@ -876,11 +878,14 @@ export default function Chat() {
               ? tripsData
               : tripsData.results || tripsData.trips || [];
             
+            console.log("📍 Fetched trips:", trips.length, "total trips");
+            
             // Get current user's ID to filter joined trips
             let currentUserId = null;
             try {
               const user = JSON.parse(localStorage.getItem("user") || "{}");
               currentUserId = user?.id;
+              console.log("👤 Current User ID:", currentUserId);
             } catch (e) {
               console.error("Failed to get user ID:", e);
             }
@@ -888,10 +893,23 @@ export default function Chat() {
             // Filter trips to show only ones user is a participant of
             const joinedTrips = trips.filter(trip => {
               if (!trip.participants) return false;
-              return trip.participants.some(p => 
-                (p.id === currentUserId) || (p.user?.id === currentUserId)
+              // p.user is the actual User ID (from UserProfileSerializer)
+              // p.id is the UserProfile ID
+              const isParticipant = trip.participants.some(p => 
+                (p.user === currentUserId) || (p.id === currentUserId)
               );
+              
+              if (isParticipant) {
+                console.log(`✅ Trip "${trip.title}" - User IS participant`, {
+                  tripId: trip.id,
+                  participants: trip.participants.map(p => ({ id: p.id, user: p.user, name: p.first_name }))
+                });
+              }
+              
+              return isParticipant;
             });
+            
+            console.log("🎯 Joined trips count:", joinedTrips.length);
             
             const groupConvos = joinedTrips.map(trip => ({
               id: `group-${trip.id}`,
@@ -931,6 +949,68 @@ export default function Chat() {
 
     fetchConversations();
   }, [navigate]);
+
+  // Poll for online status updates every 30 seconds
+  useEffect(() => {
+    const pollFriendsStatus = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) return;
+
+        const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
+        const friendsRes = await fetch(`${backendUrl}users/friends/`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (!friendsRes.ok) return;
+
+        const friendsData = await friendsRes.json();
+        const friends = Array.isArray(friendsData)
+          ? friendsData
+          : friendsData.friends || friendsData.results || [];
+
+        const baseUrl = backendUrl.replace('/api/', '');
+
+        // Update conversations with new online status for friends
+        setConversations(prevConvos =>
+          prevConvos.map(conv => {
+            if (conv.type === "direct" && conv.userId) {
+              const updatedFriend = friends.find(f => f.id === conv.userId);
+              if (updatedFriend) {
+                return {
+                  ...conv,
+                  isOnline: updatedFriend.is_online || false,
+                  lastLogin: updatedFriend.last_login || null,
+                };
+              }
+            }
+            return conv;
+          })
+        );
+
+        // Also update selected conversation if it's a direct chat
+        setSelectedConversation(prevSelected => {
+          if (!prevSelected || prevSelected.type !== "direct") return prevSelected;
+          const updatedFriend = friends.find(f => f.id === prevSelected.userId);
+          if (updatedFriend) {
+            return {
+              ...prevSelected,
+              isOnline: updatedFriend.is_online || false,
+              lastLogin: updatedFriend.last_login || null,
+            };
+          }
+          return prevSelected;
+        });
+      } catch (error) {
+        console.error("Failed to poll friends status:", error);
+      }
+    };
+
+    // Start polling every 30 seconds
+    const interval = setInterval(pollFriendsStatus, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   /* ── Enable scrollbar expansion on hover ── */
   useScrollbarExpand(".conv-list, .messages-area, .scrollbar-expandable");
@@ -1186,8 +1266,10 @@ export default function Chat() {
                     `${selectedConversation.memberCount} ${MESSAGES.membersLabel}`
                   ) : (
                     <>
-                      <span className="online-dot" />
-                      {MESSAGES.online}
+                      <span className="online-dot" style={{
+                        background: selectedConversation.isOnline ? "var(--online)" : "rgba(255, 255, 255, 0.30)"
+                      }} />
+                      {selectedConversation.isOnline ? "Online" : "Offline"}
                     </>
                   )}
                 </div>
@@ -1379,15 +1461,49 @@ function ConvItem({ conv, idx, active, onClick }) {
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
-        />
+        >
+          {/* Online status indicator for direct conversations */}
+          {conv.type === "direct" && (
+            <span
+              className="online-indicator"
+              style={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                background: conv.isOnline ? "var(--online)" : "rgba(255, 255, 255, 0.30)",
+                border: "2px solid white",
+              }}
+            />
+          )}
+        </div>
       ) : (
         <div
           className={`avatar${conv.type === "group" ? " group" : ""}`}
-          style={conv.type === "group" ? {} : { background: ac.bg, color: ac.color }}
+          style={conv.type === "group" ? {} : { background: ac.bg, color: ac.color, position: "relative" }}
         >
           {conv.type === "group"
             ? <GroupIcon size={16} />
             : conv.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+          
+          {/* Online status indicator for direct conversations */}
+          {conv.type === "direct" && (
+            <span
+              className="online-indicator"
+              style={{
+                position: "absolute",
+                bottom: 0,
+                right: 0,
+                width: "10px",
+                height: "10px",
+                borderRadius: "50%",
+                background: conv.isOnline ? "var(--online)" : "rgba(255, 255, 255, 0.30)",
+                border: "2px solid white",
+              }}
+            />
+          )}
         </div>
       )}
 

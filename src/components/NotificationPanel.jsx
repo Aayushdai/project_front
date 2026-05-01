@@ -415,40 +415,40 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
 
   return (
     <div
-      className="absolute right-0 top-12 w-[420px] rounded-2xl bg-gradient-to-b from-[#111827]/95 to-[#0f1419]/95 shadow-2xl z-50 border border-white/10 overflow-hidden backdrop-blur-xl"
+      className="notification-panel absolute right-0 top-12 w-[420px] rounded-2xl shadow-2xl z-50 border overflow-hidden backdrop-blur-xl"
       style={{ maxHeight: "600px", display: "flex", flexDirection: "column" }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-gradient-to-r from-white/5 to-transparent">
-        <h3 className="font-bold text-white text-lg flex items-center gap-2">
+      <div className="notification-panel-header flex items-center justify-between px-6 py-4 border-b">
+        <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
           <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
             <AlertCircle size={18} className="text-cyan-400" />
           </div>
           Notifications
         </h3>
-        <button onClick={onClose} className="text-white/50 hover:text-white transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+        <button onClick={onClose} className="text-[var(--text-lighter)] hover:text-[var(--text)] transition-colors p-1.5 hover:bg-white/10 rounded-lg">
           <X size={20} />
         </button>
       </div>
 
       {/* Notifications List */}
-      <div style={{ flex: 1, overflowY: "auto" }} className="scrollbar-hide">
+      <div style={{ flex: 1, overflowY: "auto" }} className="notification-panel-list scrollbar-hide">
         {loading ? (
           <div className="flex items-center justify-center h-48">
             <Loader2 size={24} className="text-cyan-400 animate-spin" />
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-red-400/80 text-sm font-medium">{error}</div>
+          <div className="p-8 text-center text-red-400/80 text-sm font-medium" style={{ color: "#f87171" }}>{error}</div>
         ) : notifications.length === 0 ? (
           <div className="p-8 text-center">
-            <div className="mx-auto w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-3">
-              <AlertCircle size={24} className="text-white/40" />
+            <div className="notification-panel-empty mx-auto w-12 h-12 rounded-full border flex items-center justify-center mb-3">
+              <AlertCircle size={24} className="" style={{ color: "var(--text-faintest)" }} />
             </div>
-            <p className="text-white/40 text-sm font-medium">No notifications yet</p>
-            <p className="text-white/20 text-xs mt-1">Stay tuned for updates!</p>
+            <p className="text-sm font-medium" style={{ color: "var(--text-lighter)" }}>No notifications yet</p>
+            <p className="text-xs mt-1" style={{ color: "var(--text-faintest)" }}>Stay tuned for updates!</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
+          <div className="notification-panel-divider divide-y">
             {notifications.map(notif => {
               // Render friend requests
               if (notif.notification_type === "friend_request") {
@@ -475,24 +475,26 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-white truncate group-hover:text-purple-300 transition">
+                        <p className="text-sm font-semibold transition" style={{ color: "var(--text)" }}>
                           {notif.actor_name}
                         </p>
-                        <p className="text-xs text-white/40">@{notif.username}</p>
-                        <p className="text-xs text-purple-300/70 mt-1 font-medium">sent you a friend request</p>
+                        <p className="text-xs" style={{ color: "var(--text-lighter)" }}>@{notif.username}</p>
+                        <p className="text-xs mt-1 font-medium" style={{ color: "#c084fc" }}>sent you a friend request</p>
                       </div>
                       <div className="flex gap-2 flex-shrink-0">
                         <button
                           onClick={(e) => {e.stopPropagation(); handleFriendRequestResponse(notif, "accept");}}
                           disabled={requestAction[notif.id]}
-                          className="h-8 w-8 rounded-lg bg-purple-500/30 border border-purple-500/50 text-purple-200 hover:bg-purple-500/50 disabled:opacity-40 flex items-center justify-center transition-all font-medium text-sm"
+                          className="h-8 w-8 rounded-lg border flex items-center justify-center transition-all font-medium text-sm disabled:opacity-40"
+                          style={{ backgroundColor: "rgba(168, 85, 247, 0.3)", borderColor: "rgba(168, 85, 247, 0.5)", color: "#e9d5ff" }}
                         >
                           {requestAction[notif.id] ? <Loader2 size={16} className="animate-spin" /> : "✓"}
                         </button>
                         <button
                           onClick={(e) => {e.stopPropagation(); handleFriendRequestResponse(notif, "reject");}}
                           disabled={requestAction[notif.id]}
-                          className="h-8 w-8 rounded-lg bg-white/8 border border-white/15 text-white/60 hover:bg-white/12 disabled:opacity-40 flex items-center justify-center transition-all font-medium text-sm"
+                          className="h-8 w-8 rounded-lg border flex items-center justify-center transition-all font-medium text-sm disabled:opacity-40"
+                          style={{ backgroundColor: "var(--surface-hover)", borderColor: "var(--border)", color: "var(--text-lighter)" }}
                         >
                           {requestAction[notif.id] ? <Loader2 size={16} className="animate-spin" /> : "✕"}
                         </button>
@@ -514,7 +516,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                     key={notif.id}
                     className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
                       notif.is_read
-                        ? "border-l-white/15 bg-white/2 hover:bg-white/5"
+                        ? "border-l-transparent bg-transparent hover:bg-[var(--surface-hover)]"
                         : "border-l-cyan-500/50 bg-gradient-to-r from-cyan-500/8 to-transparent hover:from-cyan-500/12"
                     }`}
                     onClick={() => handleMessageNotificationClick(notif)}
@@ -541,7 +543,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-white group-hover:text-cyan-300 transition">
+                            <p className="text-sm font-semibold transition" style={{ color: "var(--text)" }}>
                                 {notif.sender_name}
                               </p>
                               {hasMultiple && (
@@ -555,16 +557,16 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                                 message in <span className="text-cyan-200 font-semibold">{notif.trip_name}</span>
                               </p>
                             ) : (
-                              <p className="text-xs text-white/50 mt-0.5">sent you a message</p>
+                              <p className="text-xs mt-0.5" style={{ color: "var(--text-lighter)" }}>sent you a message</p>
                             )}
                             
-                            <p className="text-xs text-white/50 mt-2 line-clamp-2 leading-relaxed">{latestMsg?.message}</p>
+                            <p className="text-xs mt-2 line-clamp-2 leading-relaxed" style={{ color: "var(--text-lighter)" }}>{latestMsg?.message}</p>
                           </div>
                           {!notif.is_read && (
                             <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-500 shadow-lg mt-1.5" />
                           )}
                         </div>
-                        <p className="text-xs text-white/35 mt-2.5 font-medium">{notif.time_ago}</p>
+                        <p className="text-xs mt-2.5 font-medium" style={{ color: "var(--text-faintest)" }}>{notif.time_ago}</p>
                       </div>
                     </div>
                   </div>
@@ -577,7 +579,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                   key={notif.id}
                   className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
                     notif.is_read
-                      ? "border-l-white/15 bg-white/2 hover:bg-white/5"
+                      ? "border-l-transparent hover:bg-[var(--surface-hover)]"
                       : "border-l-blue-500/50 bg-gradient-to-r from-blue-500/8 to-transparent hover:from-blue-500/12"
                   }`}
                   onClick={() => {
@@ -592,22 +594,22 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1">
-                          <p className="text-sm font-semibold text-white group-hover:text-blue-300 transition">
+                          <p className="text-sm font-semibold transition" style={{ color: "var(--text)" }}>
                             {notif.trip_title}
                           </p>
-                          <p className="text-xs text-white/50 mt-0.5 font-medium">
+                          <p className="text-xs mt-0.5 font-medium" style={{ color: "var(--text-lighter)" }}>
                             {notif.actor_name && `${notif.actor_name} • `}
                             {notif.notification_type_display}
                           </p>
                           {notif.message && (
-                            <p className="text-xs text-white/40 mt-2 line-clamp-2">{notif.message}</p>
+                            <p className="text-xs mt-2 line-clamp-2" style={{ color: "var(--text-lighter)" }}>{notif.message}</p>
                           )}
                         </div>
                         {!notif.is_read && (
                           <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 shadow-lg mt-1.5" />
                         )}
                       </div>
-                      <p className="text-xs text-white/35 mt-2.5 font-medium">{notif.time_ago}</p>
+<p className="text-xs mt-2.5 font-medium" style={{ color: "var(--text-faintest)" }}>{notif.time_ago}</p>
 
                       {/* Action Buttons for Invitations */}
                       {notif.notification_type === "invitation_received" && !notif.is_expired && (
@@ -622,7 +624,8 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                           <button
                             onClick={() => handleInvitationAction(notif, "reject")}
                             disabled={actionLoading[notif.id]}
-                            className="flex-1 px-3 py-2 text-xs font-semibold bg-white/8 text-white/70 hover:bg-white/12 border border-white/15 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            className="flex-1 px-3 py-2 text-xs font-semibold rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 border"
+                            style={{ backgroundColor: "var(--surface-hover)", color: "var(--text-lighter)", borderColor: "var(--border)" }}
                           >
                             {actionLoading[notif.id] ? <Loader2 size={14} className="animate-spin" /> : <>✕ Decline</>}
                           </button>
@@ -639,15 +642,77 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
 
       {/* Footer */}
       {unreadCount > 0 && notifications.length > 0 && (
-        <div className="border-t border-white/10 p-3 bg-[#0a0c16]">
+        <div className="notification-panel-footer border-t p-3">
           <button
             onClick={handleMarkAllAsRead}
-            className="w-full text-center text-xs font-medium text-blue-400 hover:text-blue-300 py-2 rounded-lg hover:bg-blue-500/10 transition"
+            className="w-full text-center text-xs font-medium py-2 rounded-lg hover:bg-blue-500/10 transition"
+            style={{ color: "var(--accent)", borderColor: "var(--border)" }}
           >
             Mark all as read
           </button>
         </div>
       )}
+
+      {/* LIGHT MODE CSS & THEME VARIABLES */}
+      <style>{`
+        .notification-panel {
+          background: linear-gradient(180deg, var(--surface) 0%, var(--surface) 95%);
+          border-color: var(--border-card);
+        }
+
+        .notification-panel-header {
+          background: linear-gradient(90deg, var(--surface-hover) 0%, transparent 100%);
+          border-bottom-color: var(--border);
+        }
+
+        .notification-panel-list {
+          background: var(--surface);
+        }
+
+        .notification-panel-divider {
+          --tw-divide-opacity: 1;
+          border-color: rgb(0 0 0 / calc(0.1 * var(--tw-divide-opacity)));
+        }
+
+        .notification-panel-empty {
+          background: var(--surface-hover);
+          border-color: var(--border);
+        }
+
+        .notification-panel-footer {
+          background: var(--surface);
+          border-top-color: var(--border);
+        }
+
+        [data-theme="light"] .notification-panel {
+          background: linear-gradient(180deg, #ffffff 0%, #f7f2ea 95%);
+          border-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .notification-panel-header {
+          background: linear-gradient(90deg, #f7f2ea 0%, transparent 100%);
+          border-bottom-color: rgba(21, 18, 13, 0.08);
+        }
+
+        [data-theme="light"] .notification-panel-list {
+          background: #ffffff;
+        }
+
+        [data-theme="light"] .notification-panel-divider {
+          --tw-divide-opacity: 1;
+          border-color: rgba(21, 18, 13, 0.08);
+        }
+
+        [data-theme="light"] .notification-panel-empty {
+          background: #f7f2ea;
+          border-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .notification-panel-footer {
+          background: #ffffff;
+          border-top-color: rgba(21, 18, 13, 0.10);
+        }
+      `}</style>
     </div>
   );
 }

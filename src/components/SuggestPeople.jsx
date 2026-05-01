@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Users, Loader2, AlertCircle, UserPlus, X, ChevronRight, ChevronLeft, Gem } from "lucide-react";
+import { Users, AlertCircle, UserPlus, X, ChevronRight, ChevronLeft, Gem } from "lucide-react";
 import { apiFetch, getBaseUrl } from "../utils/api";
 
 // ============================================
@@ -12,9 +12,45 @@ const FONTS = {
   mono: "DM Mono, monospace",
 };
 
-const COLORS = {
-  primary: "#C9A84C",
-  primaryHover: "#d4b85f",
+const PALETTES = {
+  dark: {
+    primary: "#C9A84C",
+    primaryHover: "#d4b85f",
+    text: "#ffffff",
+    textMuted: "rgba(255,255,255,0.65)",
+    bg: "rgba(255,255,255,0.04)",
+  },
+  light: {
+    primary: "#ff6a00",
+    primaryHover: "#ff8a2a",
+    text: "#15120d",
+    textMuted: "rgba(21, 18, 13, 0.70)",
+    bg: "#ffffff",
+  },
+};
+
+const getTheme = () => {
+  return document.documentElement.getAttribute("data-theme") || "dark";
+};
+
+const useThemeColors = () => {
+  const [theme, setTheme] = useState(getTheme());
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const newTheme = getTheme();
+      setTheme(newTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return PALETTES[theme];
 };
 
 const SCROLL_AMOUNT = 250; // Card width + gap
@@ -40,9 +76,101 @@ const CAROUSEL_CSS = `
     scrollbar-width: none;
     scroll-behavior: smooth;
   }
+  
+  /* Carousel viewport - prevents overflow */
+  .carousel-viewport {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    display: flex;
+    align-items: flex-start;
+  }
+  
+  /* Carousel track - flex container */
+  .carousel-track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-behavior: smooth;
+    padding-bottom: 1rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .carousel-track::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Card sizing - desktop: 4 cards, tablet: 2 cards, mobile: 1 card */
+  .carousel-card {
+    flex: 0 0 calc((100% - 3rem) / 4);
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+  
+  @media (max-width: 1024px) {
+    .carousel-card {
+      flex: 0 0 calc((100% - 1rem) / 2);
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .carousel-card {
+      flex: 0 0 100%;
+    }
+  }
 `;
 
+// Skeleton Loading Card - EXACT MATCH to SuggestedUserCard dimensions
+function SkeletonCard() {
+  const C = useThemeColors();
+  return (
+    <div 
+      className="group relative carousel-card rounded-2xl overflow-hidden border animate-pulse"
+      style={{
+        background: C.bg,
+        borderColor: getTheme() === "light" ? "rgba(21, 18, 13, 0.10)" : "rgba(255, 255, 255, 0.10)",
+        borderWidth: "0.5px",
+      }}
+    >
+      {/* Dismiss Button skeleton */}
+      <div
+        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex-shrink-0"
+        style={{
+          background: "rgba(201, 168, 76, 0.08)",
+        }}
+      />
+
+      {/* Image placeholder - EXACT MATCH: h-56 */}
+      <div 
+        className="relative h-56 w-full"
+        style={{ background: "rgba(201, 168, 76, 0.08)" }}
+      />
+      
+      {/* Info section - EXACT MATCH: px-4 py-4 gap-3 */}
+      <div className="px-4 py-4 flex flex-col gap-3">
+        {/* Name skeleton - EXACT MATCH to h3 height */}
+        <div className="h-6 rounded-lg" style={{ background: "rgba(201, 168, 76, 0.12)" }} />
+        
+        {/* Mutual friends skeleton - EXACT MATCH to conditional mutual friends display */}
+        <div className="h-4 rounded-lg w-2/3" style={{ background: "rgba(201, 168, 76, 0.08)" }} />
+        
+        {/* Button skeleton - EXACT MATCH: h-10 py-2.5 rounded-xl */}
+        <div className="h-10 rounded-xl" style={{ background: "rgba(201, 168, 76, 0.15)" }} />
+        
+        {/* View Profile skeleton - EXACT MATCH: py-2 rounded-lg text-xs */}
+        <div className="h-9 rounded-lg" style={{ background: "rgba(201, 168, 76, 0.08)" }} />
+      </div>
+    </div>
+  );
+}
+
 function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPending = false }) {
+  const C = useThemeColors();
   const avatar = user.profile_picture?.startsWith("http")
     ? user.profile_picture
     : user.profile_picture ? `${getBaseUrl()}${user.profile_picture}` : null;
@@ -56,18 +184,34 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
   const mutualFriendsCount = user.mutual_friends_count || 0;
 
   return (
-    <div className="group relative flex-shrink-0 w-48 rounded-2xl overflow-hidden bg-gradient-to-b from-white/10 to-white/5 border border-white/10 hover:border-[#C9A84C]/40 transition-all hover:shadow-lg hover:shadow-[#C9A84C]/20">
+    <div 
+      className="group relative carousel-card rounded-2xl overflow-hidden border hover:border-opacity-100 transition-all hover:shadow-lg"
+      style={{
+        background: C.bg,
+        borderColor: getTheme() === "light" ? "rgba(21, 18, 13, 0.10)" : "rgba(255, 255, 255, 0.10)",
+        borderWidth: "0.5px",
+      }}
+    >
       {/* Dismiss Button */}
       <button
         onClick={() => onDismiss?.(user.id)}
-        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center transition group-hover:bg-[#C9A84C]/30"
+        className="absolute top-3 right-3 z-20 w-8 h-8 rounded-full flex items-center justify-center transition"
+        style={{
+          background: getTheme() === "light" ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.5)",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = getTheme() === "light" ? "rgba(255, 106, 0, 0.3)" : `${C.primary}30`;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = getTheme() === "light" ? "rgba(0, 0, 0, 0.2)" : "rgba(0, 0, 0, 0.5)";
+        }}
       >
-        <X className="w-4 h-4 text-white" />
+        <X className="w-4 h-4" style={{ color: C.text }} />
       </button>
 
       {/* Profile Image */}
       <Link to={`/user/${user.username}`} className="block">
-        <div className="relative h-56 bg-gradient-to-br from-[#C9A84C]/40 to-[#8b6914]/40 overflow-hidden">
+        <div className="relative h-56 overflow-hidden" style={{ background: `${C.primary}30` }}>
           {avatar ? (
             <img
               src={avatar}
@@ -78,7 +222,7 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
               }}
             />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-5xl font-bold text-[#C9A84C]/40">
+            <div className="flex h-full w-full items-center justify-center text-5xl font-bold" style={{ color: `${C.primary}40` }}>
               {initial}
             </div>
           )}
@@ -92,8 +236,14 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
         {/* Name */}
         <Link to={`/user/${user.username}`}>
           <h3
-            className="text-base font-bold text-white hover:text-[#C9A84C] transition line-clamp-2"
-            style={{ fontFamily: FONTS.body }}
+            className="text-base font-bold transition line-clamp-2"
+            style={{ fontFamily: FONTS.body, color: C.text }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = C.primary;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = C.text;
+            }}
           >
             {fullName}
           </h3>
@@ -101,7 +251,7 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
 
         {/* Mutual Friends */}
         {mutualFriendsCount > 0 && (
-          <div className="flex items-center gap-1.5 text-xs text-white/60" style={{ fontFamily: FONTS.body }}>
+          <div className="flex items-center gap-1.5 text-xs" style={{ fontFamily: FONTS.body, color: C.textMuted }}>
             <Users className="w-3.5 h-3.5 flex-shrink-0" />
             <span>{mutualFriendsCount} mutual friend{mutualFriendsCount !== 1 ? 's' : ''}</span>
           </div>
@@ -110,12 +260,27 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
         {/* Add Friend Button or Cancel Request */}
         <button
           onClick={() => isPending ? onCancelRequest?.(user.id) : onAddFriend?.(user.id)}
-          className={`w-full rounded-xl font-bold text-sm py-2.5 transition flex items-center justify-center gap-2 ${
-            isPending
-              ? 'bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30'
-              : 'bg-[#C9A84C] hover:bg-[#d4b85f] text-black'
-          }`}
-          style={{ fontFamily: FONTS.body }}
+          className="w-full rounded-xl font-bold text-sm py-2.5 transition flex items-center justify-center gap-2"
+          style={{
+            fontFamily: FONTS.body,
+            background: isPending 
+              ? (getTheme() === "light" ? "rgba(220, 38, 38, 0.15)" : "rgba(239, 68, 68, 0.20)")
+              : C.primary,
+            color: isPending 
+              ? (getTheme() === "light" ? "#dc2626" : "#ef4444")
+              : "#000",
+            border: isPending ? `1px solid ${getTheme() === "light" ? "rgba(220, 38, 38, 0.3)" : "rgba(239, 68, 68, 0.3)"}` : "none",
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = isPending 
+              ? (getTheme() === "light" ? "rgba(220, 38, 38, 0.25)" : "rgba(239, 68, 68, 0.30)")
+              : C.primaryHover;
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = isPending 
+              ? (getTheme() === "light" ? "rgba(220, 38, 38, 0.15)" : "rgba(239, 68, 68, 0.20)")
+              : C.primary;
+          }}
         >
           {isPending ? (
             <>
@@ -133,8 +298,19 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
         {/* View Profile Link */}
         <Link
           to={`/user/${user.username}`}
-          className="w-full text-center rounded-lg bg-white/8 hover:bg-white/12 text-white text-xs font-semibold py-2 transition"
-          style={{ fontFamily: FONTS.body }}
+          className="w-full text-center rounded-lg text-xs font-semibold py-2 transition"
+          style={{
+            fontFamily: FONTS.body,
+            background: getTheme() === "light" ? "rgba(255, 106, 0, 0.08)" : "rgba(255,255,255,0.08)",
+            color: getTheme() === "light" ? "#15120d" : "#fff",
+            border: `1px solid ${getTheme() === "light" ? "rgba(255, 106, 0, 0.15)" : "rgba(255,255,255,0.12)"}`,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = getTheme() === "light" ? "rgba(255, 106, 0, 0.12)" : "rgba(255,255,255,0.12)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = getTheme() === "light" ? "rgba(255, 106, 0, 0.08)" : "rgba(255,255,255,0.08)";
+          }}
         >
           View Profile
         </Link>
@@ -145,6 +321,7 @@ function SuggestedUserCard({ user, onAddFriend, onCancelRequest, onDismiss, isPe
 
 export default function SuggestPeople({ currentUserId }) {
   const navigate = useNavigate();
+  const C = useThemeColors();
   
   const [allSuggestions, setAllSuggestions] = useState([]);
   const [dismissed, setDismissed] = useState([]);
@@ -163,6 +340,56 @@ export default function SuggestPeople({ currentUserId }) {
   useEffect(() => {
     localStorage.setItem('pendingFriendRequests', JSON.stringify(pendingRequests));
   }, [pendingRequests]);
+
+  // Listen for profile tag updates to refetch recommendations
+  useEffect(() => {
+    const handleProfileTagsUpdated = () => {
+      // Refetch suggestions when profile tags are updated
+      const fetchUpdatedSuggestions = async () => {
+        try {
+          setLoading(true);
+          let suggestions = [];
+          
+          try {
+            const similarData = await apiFetch("users/matches/");
+            
+            if (Array.isArray(similarData) && similarData.length > 0) {
+              const enhancedMatches = [];
+              
+              for (const match of similarData) {
+                try {
+                  const userSearch = await apiFetch(`users/search/?q=${encodeURIComponent(match.username)}`);
+                  if (userSearch.results && userSearch.results.length > 0) {
+                    const user = userSearch.results[0];
+                    user.mutual_friends_count = 0;
+                    enhancedMatches.push({
+                      ...user,
+                      similarity: match.similarity,
+                    });
+                  }
+                } catch (err) {
+                  // Silent fail for user search
+                }
+              }
+              
+              suggestions = enhancedMatches;
+            }
+          } catch (err) {
+            console.error("Error refetching suggestions:", err);
+          }
+          
+          setAllSuggestions(suggestions);
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      fetchUpdatedSuggestions();
+    };
+    
+    window.addEventListener("profile-tags-updated", handleProfileTagsUpdated);
+    return () => window.removeEventListener("profile-tags-updated", handleProfileTagsUpdated);
+  }, []);
 
   useEffect(() => {
     const fetchSuggestions = async () => {
@@ -280,13 +507,64 @@ export default function SuggestPeople({ currentUserId }) {
     }
   };
 
+  // Loading state with skeleton cards - IDENTICAL STRUCTURE to loaded carousel
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <Loader2 className="w-6 h-6 text-[#C9A84C] animate-spin" />
-        <p className="text-sm text-white/40" style={{ fontFamily: FONTS.body }}>
-          {MESSAGES.loading}
-        </p>
+      <div className="flex flex-col gap-6">
+        <div>
+          <div className="mb-6 flex items-center gap-2">
+            <Users className="w-5 h-5" style={{ color: C.primary }} />
+            <h3
+              className="text-lg font-bold"
+              style={{ fontFamily: FONTS.display, color: C.text }}
+            >
+              People you may know
+            </h3>
+          </div>
+          
+          <style>{CAROUSEL_CSS}</style>
+          
+          <div className="relative group">
+            {/* Left Arrow - Always visible - SAME POSITIONING */}
+            <button
+              disabled
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
+              style={{
+                background: `${C.primary}30`,
+                borderColor: `${C.primary}50`,
+                borderWidth: "1px",
+                color: C.primary,
+              }}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+
+            {/* Carousel Container - EXACT SAME STRUCTURE AS LOADED STATE */}
+            <div className="carousel-viewport" style={{ paddingLeft: "20px", paddingRight: "20px" }}>
+              <div
+                className="carousel-track suggest-people-carousel"
+              >
+                {[...Array(4)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            </div>
+
+            {/* Right Arrow - Always visible - SAME POSITIONING */}
+            <button
+              disabled
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
+              style={{
+                background: `${C.primary}30`,
+                borderColor: `${C.primary}50`,
+                borderWidth: "1px",
+                color: C.primary,
+              }}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -295,24 +573,38 @@ export default function SuggestPeople({ currentUserId }) {
   if (kycRequired) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
-        <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-8 max-w-md text-center">
-          <Gem className="w-12 h-12 text-amber-400 mx-auto mb-4" />
+        <div className="rounded-2xl p-8 max-w-md text-center" style={{
+          background: "rgba(245, 158, 11, 0.10)",
+          border: "1px solid rgba(245, 158, 11, 0.30)",
+        }}>
+          <Gem className="w-12 h-12 mx-auto mb-4" style={{ color: "rgb(245, 158, 11)" }} />
           <h3 
-            className="text-base font-bold text-amber-300 mb-2"
-            style={{ fontFamily: FONTS.body }}
+            className="text-base font-bold mb-2"
+            style={{ fontFamily: FONTS.body, color: "rgb(217, 119, 6)" }}
           >
             {MESSAGES.kycRequired}
           </h3>
           <p 
-            className="text-sm text-amber-200/70 mb-4"
-            style={{ fontFamily: FONTS.body }}
+            className="text-sm mb-4"
+            style={{ fontFamily: FONTS.body, color: C.textMuted }}
           >
             {MESSAGES.kycMessage}
           </p>
           <button
             onClick={() => navigate("/kyc")}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 border border-amber-400/40 text-amber-300 font-semibold text-sm transition"
-            style={{ fontFamily: FONTS.body }}
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-semibold text-sm transition"
+            style={{
+              fontFamily: FONTS.body,
+              background: `${C.primary}30`,
+              border: `1px solid ${C.primary}`,
+              color: C.primary,
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = `${C.primary}40`;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = `${C.primary}30`;
+            }}
           >
             Complete KYC Verification <ChevronRight className="w-4 h-4" />
           </button>
@@ -325,25 +617,31 @@ export default function SuggestPeople({ currentUserId }) {
   if (incompleteProfile.length > 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-4">
-        <div className="rounded-2xl bg-[#C9A84C]/10 border border-[#C9A84C]/30 p-8 max-w-md text-center">
-          <Users className="w-12 h-12 text-[#C9A84C] mx-auto mb-4" />
+        <div className="rounded-2xl p-8 max-w-md text-center" style={{
+          background: `${C.primary}10`,
+          border: `1px solid ${C.primary}30`,
+        }}>
+          <Users className="w-12 h-12 mx-auto mb-4" style={{ color: C.primary }} />
           <h3 
-            className="text-base font-bold text-white mb-2"
-            style={{ fontFamily: FONTS.body }}
+            className="text-base font-bold mb-2"
+            style={{ fontFamily: FONTS.body, color: C.text }}
           >
             {MESSAGES.profileIncomplete}
           </h3>
           <p 
-            className="text-sm text-white/70 mb-4"
-            style={{ fontFamily: FONTS.body }}
+            className="text-sm mb-4"
+            style={{ fontFamily: FONTS.body, color: C.textMuted }}
           >
             {MESSAGES.profileMessage}
           </p>
-          <div className="bg-[#C9A84C]/5 border border-[#C9A84C]/20 rounded-lg p-3 mb-4">
-            <ul className="text-left text-sm text-white/80 space-y-1">
+          <div className="rounded-lg p-3 mb-4" style={{
+            background: `${C.primary}05`,
+            border: `1px solid ${C.primary}20`,
+          }}>
+            <ul className="text-left text-sm space-y-1">
               {incompleteProfile.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="text-[#C9A84C] mt-0.5">•</span>
+                <li key={item} className="flex items-start gap-2" style={{ color: C.textMuted }}>
+                  <span style={{ color: C.primary }} className="mt-0.5">•</span>
                   <span>{item}</span>
                 </li>
               ))}
@@ -359,11 +657,11 @@ export default function SuggestPeople({ currentUserId }) {
   if (visibleSuggestions.length === 0 && !error) {
     return (
       <div className="flex flex-col items-center justify-center py-12 gap-3">
-        <Users className="w-8 h-8 text-white/20" />
-        <p className="text-sm text-white/40" style={{ fontFamily: FONTS.body }}>
+        <Users className="w-8 h-8" style={{ opacity: 0.2, color: C.text }} />
+        <p className="text-sm" style={{ fontFamily: FONTS.body, color: C.textMuted }}>
           {MESSAGES.noSuggestions}
         </p>
-        <p className="text-xs text-white/25 text-center max-w-xs" style={{ fontFamily: FONTS.body }}>
+        <p className="text-xs text-center max-w-xs" style={{ fontFamily: FONTS.body, color: C.textMuted, opacity: 0.7 }}>
           {MESSAGES.noSuggestionsHint}
         </p>
       </div>
@@ -373,9 +671,12 @@ export default function SuggestPeople({ currentUserId }) {
   return (
     <div className="flex flex-col gap-6">
       {error && (
-        <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
-          <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="text-sm text-amber-300" style={{ fontFamily: FONTS.body }}>
+        <div className="flex items-start gap-3 rounded-xl p-4" style={{
+          background: "rgba(245, 158, 11, 0.10)",
+          border: "1px solid rgba(245, 158, 11, 0.20)",
+        }}>
+          <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: "rgb(245, 158, 11)" }} />
+          <p className="text-sm" style={{ fontFamily: FONTS.body, color: "rgb(217, 119, 6)" }}>
             {error}
           </p>
         </div>
@@ -387,23 +688,29 @@ export default function SuggestPeople({ currentUserId }) {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Users className="w-5 h-5 text-[#C9A84C]" />
+                <Users className="w-5 h-5" style={{ color: C.primary }} />
                 <h3
-                  className="text-lg font-bold text-white"
-                  style={{ fontFamily: FONTS.display }}
+                  className="text-lg font-bold"
+                  style={{ fontFamily: FONTS.display, color: C.text }}
                 >
                   {showAll ? "All Suggestions" : "People you may know"}
                 </h3>
               </div>
-              <p className="text-xs text-white/40" style={{ fontFamily: FONTS.body }}>
+              <p className="text-xs" style={{ fontFamily: FONTS.body, color: C.textMuted }}>
                 {showAll ? `Showing all ${visibleSuggestions.length} suggestions` : "Based on your travel style and interests"}
               </p>
             </div>
             {!showAll && visibleSuggestions.length > 4 && (
               <button
                 onClick={() => setShowAll(true)}
-                className="flex items-center gap-1 text-sm text-[#C9A84C] hover:text-[#d4b85f] transition"
-                style={{ fontFamily: FONTS.body }}
+                className="flex items-center gap-1 text-sm transition"
+                style={{ fontFamily: FONTS.body, color: C.primary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = C.primaryHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = C.primary;
+                }}
               >
                 See more <ChevronRight className="w-4 h-4" />
               </button>
@@ -411,8 +718,14 @@ export default function SuggestPeople({ currentUserId }) {
             {showAll && (
               <button
                 onClick={() => setShowAll(false)}
-                className="flex items-center gap-1 text-sm text-[#C9A84C] hover:text-[#d4b85f] transition"
-                style={{ fontFamily: FONTS.body }}
+                className="flex items-center gap-1 text-sm transition"
+                style={{ fontFamily: FONTS.body, color: C.primary }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = C.primaryHover;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = C.primary;
+                }}
               >
                 Show carousel <ChevronLeft className="w-4 h-4" />
               </button>
@@ -424,40 +737,75 @@ export default function SuggestPeople({ currentUserId }) {
           
           {!showAll ? (
             <div className="relative group">
-              {/* Left Arrow */}
+              {/* Left Arrow - Always visible */}
               <button
                 onClick={() => scrollCarousel('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
                 aria-label="Previous"
+                style={{
+                  background: `${C.primary}30`,
+                  borderColor: `${C.primary}50`,
+                  borderWidth: "1px",
+                  color: C.primary,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = `${C.primary}50`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = `${C.primary}30`;
+                }}
               >
-                <ChevronLeft className="w-5 h-5 text-[#C9A84C]" />
+                <ChevronLeft className="w-5 h-5" />
               </button>
 
-              {/* Carousel */}
-              <div
-                ref={carouselRef}
-                className="suggest-people-carousel flex gap-4 overflow-x-auto pb-4 px-4"
-              >
-                {visibleSuggestions.map((user) => (
-                  <SuggestedUserCard
-                    key={user.id}
-                    user={user}
-                    onAddFriend={handleAddFriend}
-                    onCancelRequest={handleCancelRequest}
-                    onDismiss={handleDismiss}
-                    isPending={pendingRequests.includes(user.id)}
-                  />
-                ))}
+              {/* Carousel Container - Fixed width to show exactly 4 cards */}
+              <div className="carousel-viewport" style={{ paddingLeft: "20px", paddingRight: "20px" }}>
+                <div
+                  ref={carouselRef}
+                  className="carousel-track suggest-people-carousel"
+                >
+                  {visibleSuggestions.map((user) => (
+                    <SuggestedUserCard
+                      key={user.id}
+                      user={user}
+                      onAddFriend={handleAddFriend}
+                      onCancelRequest={handleCancelRequest}
+                      onDismiss={handleDismiss}
+                      isPending={pendingRequests.includes(user.id)}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {/* Right Arrow */}
+              {/* Right Arrow - Always visible */}
               <button
                 onClick={() => scrollCarousel('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-[#C9A84C]/20 hover:bg-[#C9A84C]/40 border border-[#C9A84C]/50 flex items-center justify-center transition opacity-0 group-hover:opacity-100"
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
                 aria-label="Next"
+                style={{
+                  background: `${C.primary}30`,
+                  borderColor: `${C.primary}50`,
+                  borderWidth: "1px",
+                  color: C.primary,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = `${C.primary}50`;
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = `${C.primary}30`;
+                }}
               >
-                <ChevronRight className="w-5 h-5 text-[#C9A84C]" />
+                <ChevronRight className="w-5 h-5" />
               </button>
+
+              {/* Limit visible width with CSS */}
+              <style>{`
+                .suggest-people-carousel-wrapper {
+                  width: calc(192px * 4 + 16px * 3);
+                  margin: 0 auto;
+                  overflow: hidden;
+                }
+              `}</style>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -475,8 +823,6 @@ export default function SuggestPeople({ currentUserId }) {
           )}
         </div>
       )}
-
-
     </div>
   );
 }

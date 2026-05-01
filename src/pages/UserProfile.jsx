@@ -30,6 +30,43 @@ const FONTS = {
   mono: "DM Mono, monospace",
 };
 
+const PALETTES = {
+  dark: {
+    gold: "#C9A84C",
+    goldLight: "#d4b76a",
+    goldDark: "#9a7a3f",
+    bgDark: "#0a0c16",
+    bgDarker: "#0e0e0e",
+    white: "#ffffff",
+    textGold: "#C9A84C",
+    textMuted: "rgba(255,255,255,0.8)",
+    textDim: "rgba(255,255,255,0.70)",
+    red400: "#ff0000",
+  },
+  light: {
+    gold: "#ff6a00",
+    goldLight: "#ff8a2a",
+    goldDark: "#f45100",
+    bgDark: "#f4f0e8",
+    bgDarker: "#f4f0e8",
+    white: "#ffffff",
+    textGold: "#ff6a00",
+    textMuted: "rgba(21, 18, 13, 0.80)",
+    textDim: "rgba(21, 18, 13, 0.70)",
+    red400: "#dc2626",
+  }
+};
+
+const getTheme = () => {
+  if (typeof document !== 'undefined') {
+    const theme = document.documentElement.getAttribute('data-theme');
+    return theme === 'light' ? 'light' : 'dark';
+  }
+  return 'dark';
+};
+
+const COLORS = PALETTES[getTheme()];
+
 const MESSAGES = {
   failedToLoad: "Failed to load user profile",
   userNotFound: "User not found",
@@ -62,18 +99,25 @@ const MESSAGES = {
   makingFriends: "Help them make new friends!",
 };
 
-const COLORS = {
-  gold: "#C9A84C",
-  goldLight: "#d4b76a",
-  goldDark: "#9a7a3f",
-  bgDark: "#0a0c16",
-  bgDarker: "#0e0e0e",
-  white: "#ffffff",
-  textGold: "#C9A84C",
-  textMuted: "rgba(255,255,255,0.8)",
-  textDim: "rgba(255,255,255,0.70)",
-  red400: "#ff0000",
-};
+function useThemeColors() {
+  const [theme, setTheme] = useState(getTheme());
+  const [colors, setColors] = useState(PALETTES[theme]);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const newTheme = getTheme();
+      setTheme(newTheme);
+      setColors(PALETTES[newTheme]);
+    };
+
+    const observer = new MutationObserver(handleThemeChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return colors;
+}
 
 function SimilarityBadge({ score }) {
   if (!score && score !== 0) return null;
@@ -108,6 +152,7 @@ export default function UserProfile() {
   const { username } = useParams();
   const { user: currentUser } = useAuth();
   const navigate = useNavigate();
+  const C = useThemeColors();
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1076,6 +1121,102 @@ export default function UserProfile() {
           </div>
         )}
       </div>
+
+      <style>{`
+        [data-theme="light"] {
+          --bg: #f4f0e8;
+          --accent: #ff6a00;
+          --accent-dark: #e55a00;
+          --accent-light: #ffb84d;
+          --surface: #ffffff;
+          --text: #15120d;
+          --text-secondary: #5d5550;
+          --border: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .min-h-screen {
+          background: linear-gradient(180deg, #f4f0e8 0%, #f7f2ea 45%, #f4f0e8 100%);
+        }
+
+        [data-theme="light"] .bg-gradient-to-b {
+          background-image: linear-gradient(180deg, #f4f0e8 0%, #f7f2ea 45%, #f4f0e8 100%);
+        }
+
+        [data-theme="light"] .from-\[#0a0c16\] {
+          --tw-gradient-from: #f4f0e8;
+        }
+
+        [data-theme="light"] .to-\[#0e0e0e\] {
+          --tw-gradient-to: #f7f2ea;
+        }
+
+        [data-theme="light"] .text-\[#C9A84C\] {
+          color: #ff6a00;
+        }
+
+        [data-theme="light"] .text-\[#9a8d5e\] {
+          color: #d97706;
+        }
+
+        [data-theme="light"] .bg-\[#0d0f1c\] {
+          background-color: #ffffff;
+        }
+
+        [data-theme="light"] .bg-\[#0a0c16\] {
+          background-color: #ffffff;
+        }
+
+        [data-theme="light"] .from-\[#C9A84C\] {
+          --tw-gradient-from: #ff6a00;
+        }
+
+        [data-theme="light"] .to-\[#9a7a3f\] {
+          --tw-gradient-to: #ffb84d;
+        }
+
+        [data-theme="light"] .ring-\[#0a0c16\] {
+          --tw-ring-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .border-\[#C9A84C\] {
+          border-color: #ff6a00;
+        }
+
+        [data-theme="light"] .border-\[#3a3f4b\] {
+          border-color: rgba(21, 18, 13, 0.15);
+        }
+
+        [data-theme="light"] .hover\:bg-\[#1a1d2e\]:hover {
+          background-color: #f7f2ea;
+        }
+
+        [data-theme="light"] .hover\:text-\[#ffc859\]:hover {
+          color: #e55a00;
+        }
+
+        [data-theme="light"] button, [data-theme="light"] a[role="button"] {
+          color: #15120d;
+        }
+
+        [data-theme="light"] button:hover, [data-theme="light"] a[role="button"]:hover {
+          background-color: #f7f2ea;
+        }
+
+        [data-theme="light"] .shadow-lg {
+          box-shadow: 0 14px 40px rgba(21, 18, 13, 0.045);
+        }
+
+        [data-theme="light"] input, [data-theme="light"] textarea {
+          background-color: #ffffff;
+          color: #15120d;
+          border-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] input:focus, [data-theme="light"] textarea:focus {
+          border-color: #ff6a00;
+          box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.1);
+        }
+      `}</style>
     </>
   );
 }

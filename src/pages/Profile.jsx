@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Clock,
   Image,
+  Tag,
 } from "lucide-react";
 import SuggestPeople from "../components/SuggestPeople";
 import EditModal from "../components/EditModal";
@@ -69,6 +70,7 @@ const FORM_LABELS = {
   email: "Email",
   joined: "Joined",
   friends: "Friends",
+  interests: "Travel Interests",
 };
 
 const KYC_MESSAGES = {
@@ -97,6 +99,8 @@ const PROFILE_MESSAGES = {
 const EMPTY_STATES = {
   noFriends: "No friends yet",
   findBuddies: "Find travel buddies to connect",
+  noInterests: "No travel interests added yet",
+  addInterests: "Add your interests in Edit Profile to help find compatible travel buddies",
 };
 
 const ERROR_BOUNDARY = {
@@ -171,10 +175,25 @@ function ProfilePage() {
   const [userPhotos, setUserPhotos] = useState([]);
   const [photosLoading, setPhotosLoading] = useState(false);
 
-  useEffect(() => {
+  // Fetch user profile
+  const fetchProfile = () => {
     fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
-      .then(r => r.json()).then(d => { setProfile(d); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(r => r.json())
+      .then(d => {
+        // Normalize interests from various possible field names
+        const interests = d.interests || d.tags || d.travel_tags || d.preference_tags || [];
+        d.interests = Array.isArray(interests) ? interests : [];
+        setProfile(d);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error("Failed to fetch profile:", err);
+        setLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    fetchProfile();
   }, []);
 
   useEffect(() => {
@@ -274,7 +293,7 @@ function ProfilePage() {
           <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.025 }} xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="ch" width="24" height="24" patternUnits="userSpaceOnUse">
-                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--accent)" strokeWidth="0.5"/>
+                <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--pattern-color)" strokeWidth="0.5"/>
               </pattern>
             </defs>
             <rect width="100%" height="100%" fill="url(#ch)" />
@@ -460,27 +479,27 @@ function ProfilePage() {
                   {/* KYC Status */}
                   <div style={{
                     borderRadius: 16, padding: 20, overflow: "hidden",
-                    border: profile.status === "approved" ? "2px solid rgba(74,222,128,0.3)"
-                      : profile.status === "rejected" ? "2px solid rgba(255,68,68,0.3)"
-                      : profile.status === "pending"  ? "2px solid rgba(251,191,36,0.3)"
+                    border: profile.status === "approved" ? "2px solid var(--kyc-approved-border)"
+                      : profile.status === "rejected" ? "2px solid var(--kyc-rejected-border)"
+                      : profile.status === "pending"  ? "2px solid var(--kyc-pending-border)"
                       : "2px solid var(--accent-border)",
-                    background: profile.status === "approved" ? "rgba(74,222,128,0.07)"
-                      : profile.status === "rejected" ? "rgba(255,68,68,0.07)"
-                      : profile.status === "pending"  ? "rgba(251,191,36,0.07)"
+                    background: profile.status === "approved" ? "var(--kyc-approved-bg)"
+                      : profile.status === "rejected" ? "var(--kyc-rejected-bg)"
+                      : profile.status === "pending"  ? "var(--kyc-pending-bg)"
                       : "var(--accent-bg)",
                     transition: "border-color 0.2s",
                   }}>
                     <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
                       <div style={{ flex: 1 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                          {profile.status === "approved" ? <Check style={{ width: 20, height: 20, color: "#4ade80" }} />
-                            : profile.status === "rejected" ? <X style={{ width: 20, height: 20, color: "#ff4444" }} />
-                            : profile.status === "pending"  ? <Clock style={{ width: 20, height: 20, color: "#fbbf24" }} />
+                          {profile.status === "approved" ? <Check style={{ width: 20, height: 20, color: "var(--kyc-approved-icon)" }} />
+                            : profile.status === "rejected" ? <X style={{ width: 20, height: 20, color: "var(--kyc-rejected-icon)" }} />
+                            : profile.status === "pending"  ? <Clock style={{ width: 20, height: 20, color: "var(--kyc-pending-icon)" }} />
                             : <Gem style={{ width: 20, height: 20, color: "var(--accent)" }} />}
                           <p style={{ fontFamily: FONTS.body, fontSize: 13, fontWeight: 600, margin: 0,
-                            color: profile.status === "approved" ? "#4ade80"
-                              : profile.status === "rejected" ? "#ff4444"
-                              : profile.status === "pending" ? "#fbbf24"
+                            color: profile.status === "approved" ? "var(--kyc-approved-text)"
+                              : profile.status === "rejected" ? "var(--kyc-rejected-text)"
+                              : profile.status === "pending" ? "var(--kyc-pending-text)"
                               : "var(--accent)"
                           }}>
                             {profile.status === "approved" ? KYC_MESSAGES.verified
@@ -490,9 +509,9 @@ function ProfilePage() {
                           </p>
                         </div>
                         <p style={{ fontFamily: FONTS.body, fontSize: 12, margin: 0, lineHeight: 1.6,
-                          color: profile.status === "approved" ? "rgba(74,222,128,0.7)"
-                            : profile.status === "rejected" ? "rgba(255,68,68,0.7)"
-                            : profile.status === "pending" ? "rgba(251,191,36,0.7)"
+                          color: profile.status === "approved" ? "var(--kyc-approved-muted)"
+                            : profile.status === "rejected" ? "var(--kyc-rejected-muted)"
+                            : profile.status === "pending" ? "var(--kyc-pending-muted)"
                             : "var(--text-muted)"
                         }}>
                           {profile.status === "approved" ? KYC_MESSAGES.verifiedText
@@ -506,13 +525,13 @@ function ProfilePage() {
                         <Link to="/kyc" style={{
                           fontFamily: FONTS.body,
                           padding: "8px 16px", borderRadius: 12,
-                          background: "var(--accent)", color: "var(--btn-text)",
+                          background: "linear-gradient(90deg, var(--accent-dark), var(--accent), var(--accent-light))", color: "var(--btn-text)",
                           fontWeight: 600, fontSize: 12, textDecoration: "none",
                           flexShrink: 0, display: "flex", alignItems: "center", gap: 4,
                           transition: "background 0.2s",
                         }}
-                          onMouseEnter={e => e.currentTarget.style.background = "var(--accent-light)"}
-                          onMouseLeave={e => e.currentTarget.style.background = "var(--accent)"}
+                          onMouseEnter={e => e.currentTarget.style.background = "linear-gradient(90deg, var(--accent-dark), var(--accent-light), var(--accent-light))"}
+                          onMouseLeave={e => e.currentTarget.style.background = "linear-gradient(90deg, var(--accent-dark), var(--accent), var(--accent-light))"}
                         >
                           {profile.status === "rejected" ? KYC_MESSAGES.resubmit
                             : profile.status === "pending" ? KYC_MESSAGES.viewStatus
@@ -522,13 +541,6 @@ function ProfilePage() {
                       )}
                     </div>
                   </div>
-                </div>
-              )}
-
-              {/* ── Suggestions tab ── */}
-              {activeTab === "suggestions" && (
-                <div style={{ paddingBottom: 80 }}>
-                  <SuggestPeople currentUserId={profile.id} />
                 </div>
               )}
 
@@ -549,11 +561,59 @@ function ProfilePage() {
                       <VibeBar label={FORM_LABELS.soloLabel}   value={profile.social_level    ?? 5} left={FORM_LABELS.soloLeft}   right={FORM_LABELS.soloRight}   />
                     </div>
                   </div>
+
+                  {/* Interests/Tags - Always show section */}
+                  <div style={{ borderRadius: 16, background: "var(--surface)", border: "0.5px solid var(--border-card)", padding: 20 }}>
+                    <p style={{ fontFamily: FONTS.body, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--text-lighter)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
+                      <Tag style={{ width: 14, height: 14 }} /> {FORM_LABELS.interests}
+                    </p>
+                    {profile.interests && profile.interests.length > 0 ? (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {profile.interests.map((interest) => (
+                          <div
+                            key={interest.id || interest.name}
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "6px 14px",
+                              borderRadius: 20,
+                              background: "var(--tag-bg)",
+                              color: "var(--tag-text)",
+                              fontSize: 12,
+                              fontWeight: 500,
+                              fontFamily: FONTS.body,
+                              border: "0.5px solid var(--tag-border)",
+                              transition: "background 0.2s, border-color 0.2s",
+                            }}
+                          >
+                            {interest.name}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "32px 0", gap: 8 }}>
+                        <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--surface-hover)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <Tag style={{ width: 20, height: 20, color: "var(--text-faintest)" }} />
+                        </div>
+                        <p style={{ fontFamily: FONTS.body, fontSize: 12, color: "var(--text-faintest)", textAlign: "center", margin: "4px 0" }}>{EMPTY_STATES.noInterests}</p>
+                        <p style={{ fontFamily: FONTS.body, fontSize: 10, color: "var(--text-faintest)", textAlign: "center", opacity: 0.7, maxWidth: 280 }}>{EMPTY_STATES.addInterests}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── Suggestions tab ── */}
+              {activeTab === "suggestions" && (
+                <div className="suggestions-full" style={{ paddingBottom: 80 }}>
+                  <SuggestPeople currentUserId={profile.id} />
                 </div>
               )}
             </div>
 
-            {/* ── Friends sidebar (right) ── */}
+            {/* ── Friends sidebar (right) - Hidden during suggestions tab ── */}
+            {activeTab !== "suggestions" && (
             <div className="profile-sidebar">
               <div style={{
                 position: "sticky", top: 80,
@@ -614,6 +674,7 @@ function ProfilePage() {
                 )}
               </div>
             </div>
+            )}
           </div>
         </div>
 
@@ -621,7 +682,30 @@ function ProfilePage() {
           <EditModal
             profile={profile}
             onClose={() => setEditing(false)}
-            onSaved={updated => setProfile(p => ({ ...p, ...updated }))}
+            onSaved={updated => {
+              // Immediately update state with returned data
+              setProfile(p => ({
+                ...p,
+                ...updated,
+                // Ensure interests is always an array
+                interests: Array.isArray(updated.interests) ? updated.interests : [],
+              }));
+              
+              // Force full refresh to guarantee DB sync
+              setTimeout(() => {
+                fetch(`${API}users/me/`, { headers: { Authorization: `Bearer ${token()}` } })
+                  .then(r => r.json())
+                  .then(d => {
+                    // Normalize interests
+                    d.interests = Array.isArray(d.interests) ? d.interests : [];
+                    console.log("✅ Profile refreshed with interests:", d.interests);
+                    setProfile(d);
+                    // Trigger recommendations refresh
+                    window.dispatchEvent(new Event("profile-tags-updated"));
+                  })
+                  .catch(err => console.error("❌ Failed to refresh profile:", err));
+              }, 300);
+            }}
           />
         )}
       </div>
@@ -636,52 +720,136 @@ function ProfilePage() {
           --cover-bg:         #0c0c0c;
           --cover-gradient:   radial-gradient(ellipse 70% 100% at 15% 50%, rgba(201,168,76,0.07) 0%, transparent 65%),
                               radial-gradient(ellipse 50% 80% at 85% 60%, rgba(201,168,76,0.04) 0%, transparent 60%);
+          --pattern-color:    rgba(201,168,76,0.3);
           --text:             #ffffff;
-          --text-muted:       rgba(255,255,255,0.55);
-          --text-lighter:     rgba(255,255,255,0.40);
-          --text-faintest:    rgba(255,255,255,0.22);
+          --text-muted:       rgba(255,255,255,0.65);
+          --text-lighter:     rgba(255,255,255,0.50);
+          --text-faintest:    rgba(255,255,255,0.30);
           --accent:           #C9A84C;
           --accent-light:     #e8c96d;
           --accent-dark:      #8b6914;
-          --accent-muted:     rgba(201,168,76,0.5);
-          --accent-bg:        rgba(201,168,76,0.08);
-          --accent-border:    rgba(201,168,76,0.3);
-          --border:           rgba(255,255,255,0.08);
-          --border-card:      rgba(255,255,255,0.08);
-          --border-light:     rgba(255,255,255,0.06);
-          --surface:          rgba(255,255,255,0.03);
-          --surface-hover:    rgba(255,255,255,0.05);
-          --avatar-bg:        #111111;
-          --img-placeholder-bg: rgba(0,0,0,0.2);
-          --track-bg:         rgba(255,255,255,0.08);
+          --accent-muted:     rgba(201,168,76,0.6);
+          --accent-bg:        rgba(201,168,76,0.10);
+          --accent-border:    rgba(201,168,76,0.35);
+          --border:           rgba(255,255,255,0.12);
+          --border-card:      rgba(255,255,255,0.10);
+          --border-light:     rgba(255,255,255,0.08);
+          --surface:          rgba(255,255,255,0.04);
+          --surface-hover:    rgba(255,255,255,0.08);
+          --avatar-bg:        #1a1a1a;
+          --img-placeholder-bg: rgba(255,255,255,0.05);
+          --track-bg:         rgba(255,255,255,0.12);
           --btn-text:         #ffffff;
+          
+          /* Tag styles */
+          --tag-bg:           rgba(201,168,76,0.15);
+          --tag-text:         #e8c96d;
+          --tag-border:       rgba(201,168,76,0.3);
+          
+          /* KYC status colors */
+          --kyc-approved-bg:      rgba(74,222,128,0.10);
+          --kyc-approved-border:  rgba(74,222,128,0.35);
+          --kyc-approved-icon:    #4ade80;
+          --kyc-approved-text:    #4ade80;
+          --kyc-approved-muted:   rgba(74,222,128,0.75);
+          
+          --kyc-rejected-bg:      rgba(239,68,68,0.10);
+          --kyc-rejected-border:  rgba(239,68,68,0.35);
+          --kyc-rejected-icon:    #ef4444;
+          --kyc-rejected-text:    #ef4444;
+          --kyc-rejected-muted:   rgba(239,68,68,0.75);
+          
+          --kyc-pending-bg:       rgba(251,191,36,0.10);
+          --kyc-pending-border:   rgba(251,191,36,0.35);
+          --kyc-pending-icon:     #fbbf24;
+          --kyc-pending-text:     #fbbf24;
+          --kyc-pending-muted:    rgba(251,191,36,0.75);
         }
 
-        /* ── LIGHT MODE ── */
+        /* ── LIGHT MODE - Warm orange/cream theme ── */
         [data-theme="light"] {
-          --bg:               #f8f5f0;
-          --cover-bg:         #2d1b00;
-          --cover-gradient:   radial-gradient(ellipse 70% 100% at 15% 50%, rgba(180,83,9,0.25) 0%, transparent 65%),
-                              radial-gradient(ellipse 50% 80% at 85% 60%, rgba(180,83,9,0.15) 0%, transparent 60%);
-          --text:             #000000;
-          --text-muted:       rgba(0,0,0,0.78);
-          --text-lighter:     rgba(0,0,0,0.62);
-          --text-faintest:    rgba(0,0,0,0.45);
-          --accent:           #b45309;
-          --accent-light:     #d97706;
-          --accent-dark:      #7c3506;
-          --accent-muted:     rgba(180,83,9,0.55);
-          --accent-bg:        rgba(180,83,9,0.07);
-          --accent-border:    rgba(180,83,9,0.3);
-          --border:           rgba(26,18,9,0.1);
-          --border-card:      rgba(26,18,9,0.11);
-          --border-light:     rgba(26,18,9,0.07);
-          --surface:          rgba(255,255,255,0.72);
-          --surface-hover:    rgba(180,83,9,0.05);
-          --avatar-bg:        #e8dfd0;
-          --img-placeholder-bg: #d4c9b8;
-          --track-bg:         rgba(26,18,9,0.1);
+          --bg:               #f4f0e8;
+          --cover-bg:         #f4f0e8;
+          --cover-gradient:   radial-gradient(
+                              ellipse 70% 100% at 15% 45%,
+                              rgba(255, 106, 0, 0.12) 0%,
+                              transparent 65%
+                            ),
+                            radial-gradient(
+                              ellipse 50% 80% at 85% 60%,
+                              rgba(255, 149, 42, 0.10) 0%,
+                              transparent 60%
+                            );
+          --pattern-color:    rgba(255, 106, 0, 0.18);
+          --text:             #15120d;
+          --text-muted:       rgba(21, 18, 13, 0.70);
+          --text-lighter:     #8893aa;
+          --text-faintest:    rgba(136, 147, 170, 0.75);
+          --accent:           #ff6a00;
+          --accent-light:     #ff8a2a;
+          --accent-dark:      #f45100;
+          --accent-muted:     rgba(255, 106, 0, 0.70);
+          --accent-bg:        rgba(255, 106, 0, 0.10);
+          --accent-border:    rgba(255, 106, 0, 0.28);
+          --border:           rgba(21, 18, 13, 0.10);
+          --border-card:      rgba(21, 18, 13, 0.08);
+          --border-light:     rgba(21, 18, 13, 0.06);
+          --surface:          #ffffff;
+          --surface-hover:    rgba(255, 106, 0, 0.06);
+          --avatar-bg:        #fffaf4;
+          --img-placeholder-bg: rgba(21, 18, 13, 0.05);
+          --track-bg:         rgba(21, 18, 13, 0.10);
           --btn-text:         #ffffff;
+          
+          /* Tag styles */
+          --tag-bg:           rgba(255, 106, 0, 0.10);
+          --tag-text:         #f45100;
+          --tag-border:       rgba(255, 106, 0, 0.22);
+          
+          /* KYC status colors */
+          --kyc-approved-bg:      rgba(34, 197, 94, 0.10);
+          --kyc-approved-border:  rgba(34, 197, 94, 0.30);
+          --kyc-approved-icon:    #16a34a;
+          --kyc-approved-text:    #15803d;
+          --kyc-approved-muted:   rgba(21, 128, 61, 0.75);
+          
+          --kyc-rejected-bg:      rgba(220, 38, 38, 0.10);
+          --kyc-rejected-border:  rgba(220, 38, 38, 0.30);
+          --kyc-rejected-icon:    #dc2626;
+          --kyc-rejected-text:    #b91c1c;
+          --kyc-rejected-muted:   rgba(185, 28, 28, 0.75);
+          
+          --kyc-pending-bg:       rgba(245, 158, 11, 0.12);
+          --kyc-pending-border:   rgba(245, 158, 11, 0.30);
+          --kyc-pending-icon:     #f59e0b;
+          --kyc-pending-text:     #d97706;
+          --kyc-pending-muted:    rgba(217, 119, 6, 0.75);
+        }
+
+        /* Better light mode polish */
+        [data-theme="light"] .profile-root {
+          background: linear-gradient(180deg, #f4f0e8 0%, #f7f2ea 45%, #f4f0e8 100%);
+        }
+        [data-theme="light"] .profile-root button {
+          box-shadow: none;
+        }
+        [data-theme="light"] .profile-root [style*="background: var(--surface)"] {
+          box-shadow: 0 14px 40px rgba(21, 18, 13, 0.045);
+        }
+        [data-theme="light"] .profile-root input,
+        [data-theme="light"] .profile-root select,
+        [data-theme="light"] .profile-root textarea {
+          background: #ffffff;
+          color: #15120d;
+          border: 1px solid #ddd7ce;
+          border-radius: 14px;
+        }
+        [data-theme="light"] .profile-root input:focus,
+        [data-theme="light"] .profile-root select:focus,
+        [data-theme="light"] .profile-root textarea:focus {
+          outline: none;
+          border-color: #ff6a00;
+          box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.12);
         }
 
         /* ── Grid layout ── */
@@ -691,8 +859,23 @@ function ProfilePage() {
           .profile-grid {
             grid-template-columns: 2fr 1fr !important;
           }
-          .profile-main { grid-column: 1; }
-          .profile-sidebar { grid-column: 2; }
+          
+          .profile-main {
+            grid-column: 1;
+          }
+          
+          .profile-sidebar {
+            grid-column: 2;
+          }
+          
+          /* Full width for suggestions tab */
+          .profile-grid:has(.suggestions-full) {
+            grid-template-columns: 1fr !important;
+          }
+          
+          .suggestions-full {
+            grid-column: 1 / -1;
+          }
         }
       `}</style>
     </>
@@ -716,7 +899,7 @@ class ErrorBoundary extends React.Component {
             <p style={{ color: "var(--text-muted)", marginBottom: 24 }}>{ERROR_BOUNDARY.message}</p>
             <button
               onClick={() => window.location.reload()}
-              style={{ padding: "8px 24px", borderRadius: 10, background: "var(--accent)", color: "var(--btn-text)", fontWeight: 600, border: "none", cursor: "pointer" }}
+              style={{ padding: "8px 24px", borderRadius: 10, background: "linear-gradient(90deg, var(--accent-dark), var(--accent), var(--accent-light))", color: "var(--btn-text)", fontWeight: 600, border: "none", cursor: "pointer" }}
             >
               {ERROR_BOUNDARY.refresh}
             </button>

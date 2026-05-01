@@ -86,17 +86,17 @@ export default function Home() {
           backgroundImage: `url(${bg})`,
           backgroundSize: "cover",
           backgroundPosition: "center 30%",
-          opacity: 0.45,
+          opacity: 0.90,
         }} />
         <div className="hero-gradient-overlay" />
 
         {/* Content */}
         <div style={{ position: "relative", zIndex: 10, maxWidth: 560, width: "100%" }}>
           {/* Eyebrow */}
-          <div className="hero-eyebrow">
+          {/* <div className="hero-eyebrow">
             <span className="hero-eyebrow-dot" />
             Now live in Nepal
-          </div>
+          </div> */}
 
           <h1 className="hero-title">
             Find Your Partner
@@ -324,21 +324,21 @@ export default function Home() {
           --text-muted:      rgba(255,255,255,0.5);
           --text-light:      rgba(255,255,255,0.35);
           --text-lighter:    rgba(255,255,255,0.22);
-          --accent:          #ffd580;
-          --accent-rgb:      255,213,128;
-          --accent-bg:       rgba(255,213,128,0.08);
-          --accent-border:   rgba(255,213,128,0.28);
+          --accent:          #ffb84d;
+          --accent-rgb:      255,184,77;
+          --accent-bg:       rgba(255,184,77,0.08);
+          --accent-border:   rgba(255,184,77,0.28);
           --border:          rgba(255,255,255,0.07);
           --border-card:     rgba(255,255,255,0.09);
           --surface:         rgba(255,255,255,0.04);
           --surface-hover:   rgba(255,255,255,0.07);
           --surface-feat:    rgba(255,255,255,0.03);
-          --surface-feat-hover: rgba(255,213,128,0.03);
+          --surface-feat-hover: rgba(255,184,77,0.03);
           --search-bg:       rgba(255,255,255,0.05);
           --search-border:   rgba(255,255,255,0.12);
           --dropdown-bg:     #111827;
           --dropdown-border: rgba(255,255,255,0.12);
-          --dropdown-hover:  rgba(255,213,128,0.07);
+          --dropdown-hover:  rgba(255,184,77,0.07);
           --hero-grad:       linear-gradient(160deg, #0a0f1e 0%, #111827 55%, #0d1526 100%);
           --hero-overlay:    linear-gradient(to bottom, rgba(10,15,30,0.3) 0%, rgba(10,15,30,0.55) 60%, #0a0f1e 100%);
           --img-placeholder-bg: linear-gradient(135deg, #1a2236 0%, #0d1526 100%);
@@ -352,36 +352,36 @@ export default function Home() {
 
         /* ── LIGHT MODE ── */
         [data-theme="light"] {
-          --bg:              #f8f5f0;
-          --bg-section:      #f0ece5;
-          --text:            #1a1209;
-          --text-muted:      rgba(26,18,9,0.65);
-          --text-light:      rgba(26,18,9,0.5);
-          --text-lighter:    rgba(26,18,9,0.38);
-          --accent:          #b45309;
-          --accent-rgb:      180,83,9;
-          --accent-bg:       rgba(180,83,9,0.08);
-          --accent-border:   rgba(180,83,9,0.3);
-          --border:          rgba(26,18,9,0.1);
-          --border-card:     rgba(26,18,9,0.12);
-          --surface:         rgba(255,255,255,0.7);
-          --surface-hover:   rgba(255,255,255,0.95);
-          --surface-feat:    rgba(255,255,255,0.6);
-          --surface-feat-hover: rgba(180,83,9,0.04);
-          --search-bg:       rgba(255,255,255,0.75);
-          --search-border:   rgba(26,18,9,0.2);
+          --bg:              #f4efe7;
+          --bg-section:      #ffffff;
+          --text:            #0f172a;
+          --text-muted:      #64748b;
+          --text-light:      #94a3b8;
+          --text-lighter:    #cbd5e1;
+          --accent:          #d97706;
+          --accent-rgb:      217,119,6;
+          --accent-bg:       rgba(217,119,6,0.10);
+          --accent-border:   rgba(217,119,6,0.28);
+          --border:          #e2e8f0;
+          --border-card:     #e5e7eb;
+          --surface:         #ffffff;
+          --surface-hover:   #fff7ed;
+          --surface-feat:    #ffffff;
+          --surface-feat-hover: rgba(217,119,6,0.05);
+          --search-bg:       #ffffff;
+          --search-border:   #e2e8f0;
           --dropdown-bg:     #ffffff;
-          --dropdown-border: rgba(26,18,9,0.12);
-          --dropdown-hover:  rgba(180,83,9,0.06);
-          --hero-grad:       linear-gradient(160deg, #2d1b00 0%, #3d2510 55%, #1a0e00 100%);
-          --hero-overlay:    linear-gradient(to bottom, rgba(26,14,0,0.35) 0%, rgba(26,14,0,0.6) 60%, #f8f5f0 100%);
-          --img-placeholder-bg: linear-gradient(135deg, #e8dfd0 0%, #d4c9b8 100%);
-          --img-placeholder-icon: rgba(26,18,9,0.2);
-          --pagination-bg:   rgba(255,255,255,0.8);
-          --pagination-border: rgba(26,18,9,0.15);
-          --pagination-text: rgba(26,18,9,0.6);
-          --stats-bg:        rgba(255,255,255,0.5);
-          --scroll-color:    rgba(255,255,255,0.7);
+          --dropdown-border: #e5e7eb;
+          --dropdown-hover:  rgba(217,119,6,0.06);
+          --hero-grad:       linear-gradient(160deg, #d97706 0%, #b45309 55%, #92400e 100%);
+          --hero-overlay:    linear-gradient(to bottom, rgba(217,119,6,0.2) 0%, rgba(180,83,9,0.4) 60%, #f4efe7 100%);
+          --img-placeholder-bg: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+          --img-placeholder-icon: rgba(217,119,6,0.3);
+          --pagination-bg:   #ffffff;
+          --pagination-border: #e5e7eb;
+          --pagination-text: #64748b;
+          --stats-bg:        rgba(255,255,255,0.8);
+          --scroll-color:    rgba(15,23,42,0.5);
         }
 
         /* ── BASE ── */
@@ -468,20 +468,20 @@ export default function Home() {
           backdrop-filter: blur(12px);
           transition: border-color 0.2s;
         }
-        .search-icon { color: rgba(255,255,255,0.4); flex-shrink: 0; }
+        .search-icon { color: var(--text-light); flex-shrink: 0; }
         .search-input {
           flex: 1;
           background: transparent;
           border: none;
           outline: none;
           font-size: 14px;
-          color: #fff;
+          color: var(--text);
           font-family: inherit;
         }
-        .search-input::placeholder { color: rgba(255,255,255,0.35); }
+        .search-input::placeholder { color: var(--text-lighter); }
         .search-btn {
           background: var(--accent);
-          color: #1a0e00;
+          color: #ffffff;
           border: none;
           border-radius: 100px;
           padding: 9px 22px;
@@ -650,7 +650,7 @@ export default function Home() {
         .pagination-btn--active {
           background: var(--accent) !important;
           border-color: var(--accent) !important;
-          color: #1a0e00 !important;
+          color: #ffffff !important;
           font-weight: 700;
         }
         .pagination-btn:disabled { opacity: 0.4; cursor: default; }

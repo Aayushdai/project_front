@@ -11,28 +11,62 @@ import TripInviteModal from "../components/TripInviteModal";
 import TripPhotos from "../components/TripPhotos";
 
 // ─── Palette ────────────────────────────────────────────────────────────────
-const C = {
-  bg:         "#07080f",
-  surface:    "#0d0f1c",
-  card:       "#0f1220",
-  border:     "#1a1d2e",
-  borderHi:   "#252840",
-  gold:       "#c8b882",
-  goldDim:    "#8a7040",
-  goldBg:     "rgba(200,184,130,0.08)",
-  goldRing:   "rgba(200,184,130,0.25)",
-  text:       "#f0ece0",
-  textSub:    "#8a8890",
-  textMuted:  "#4a4a60",
-  red:        "#c05050",
-  redBg:      "rgba(192,80,80,0.1)",
-  green:      "#50a878",
-  greenBg:    "rgba(80,168,120,0.1)",
-  blue:       "#5588cc",
-  blueBg:     "rgba(85,136,204,0.1)",
+const PALETTES = {
+  dark: {
+    bg:         "#07080f",
+    surface:    "#0d0f1c",
+    card:       "#0f1220",
+    border:     "#1a1d2e",
+    borderHi:   "#252840",
+    gold:       "#c8b882",
+    goldDim:    "#8a7040",
+    goldBg:     "rgba(200,184,130,0.08)",
+    goldRing:   "rgba(200,184,130,0.25)",
+    text:       "#f0ece0",
+    textSub:    "#8a8890",
+    textMuted:  "#4a4a60",
+    red:        "#c05050",
+    redBg:      "rgba(192,80,80,0.1)",
+    green:      "#50a878",
+    greenBg:    "rgba(80,168,120,0.1)",
+    blue:       "#5588cc",
+    blueBg:     "rgba(85,136,204,0.1)",
+  },
+  light: {
+    bg:         "#f4f0e8",
+    surface:    "#ffffff",
+    card:       "#ffffff",
+    border:     "rgba(21, 18, 13, 0.10)",
+    borderHi:   "rgba(21, 18, 13, 0.15)",
+    gold:       "#ff6a00",
+    goldDim:    "#f45100",
+    goldBg:     "rgba(255, 106, 0, 0.10)",
+    goldRing:   "rgba(255, 106, 0, 0.28)",
+    text:       "#15120d",
+    textSub:    "#6b5d52",
+    textMuted:  "rgba(21, 18, 13, 0.50)",
+    red:        "#dc2626",
+    redBg:      "rgba(220, 38, 38, 0.10)",
+    green:      "#16a34a",
+    greenBg:    "rgba(22, 163, 74, 0.10)",
+    blue:       "#2563eb",
+    blueBg:     "rgba(37, 99, 235, 0.10)",
+  }
 };
 
-const CHART_COLORS = ["#c8b882","#5588cc","#50a878","#c05050","#9b88cc","#cc8855","#55a8cc","#cc5588"];
+const getTheme = () => {
+  if (typeof document !== 'undefined') {
+    const theme = document.documentElement.getAttribute('data-theme');
+    return theme === 'light' ? 'light' : 'dark';
+  }
+  return 'dark';
+};
+
+const C = PALETTES[getTheme()];
+
+const CHART_COLORS = getTheme() === 'light' 
+  ? ["#ff6a00","#2563eb","#16a34a","#dc2626","#9333ea","#ea580c","#0891b2","#db2777"]
+  : ["#c8b882","#5588cc","#50a878","#c05050","#9b88cc","#cc8855","#55a8cc","#cc5588"];
 
 const TEXTS = {
   loadingTrip: "Loading trip…",
@@ -65,16 +99,19 @@ const fmt = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day
 const fmtTime = (d) => new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 function Avatar({ name = "?", size = 36, style = {}, src = null }) {
+  const theme = getTheme();
+  const C = PALETTES[theme];
   const initials = name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
   const baseUrl = (process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/").replace('/api/', '');
   const imageUrl = src && (src.startsWith("http") ? src : `${baseUrl}${src}`);
+  const textColor = theme === 'light' ? '#15120d' : '#0d0f1c';
   
   return (
     <div style={{
       width: size, height: size, borderRadius: "50%", flexShrink: 0,
       background: `linear-gradient(135deg, ${C.gold}, ${C.goldDim})`,
       display: "flex", alignItems: "center", justifyContent: "center",
-      fontSize: size * 0.36, fontWeight: 600, color: "#0d0f1c",
+      fontSize: size * 0.36, fontWeight: 600, color: textColor,
       letterSpacing: "-0.5px", overflow: "hidden", ...style
     }}>
       {imageUrl ? <img src={imageUrl} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : initials}
@@ -82,7 +119,7 @@ function Avatar({ name = "?", size = 36, style = {}, src = null }) {
   );
 }
 
-function Badge({ children, color = C.gold, bg }) {
+function Badge({ children, color, bg }) {
   return (
     <span style={{
       padding: "3px 10px", borderRadius: 20, fontSize: 11, fontWeight: 500,
@@ -93,6 +130,7 @@ function Badge({ children, color = C.gold, bg }) {
 }
 
 function SectionTitle({ children }) {
+  const C = PALETTES[getTheme()];
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
       <span style={{ width: 3, height: 18, borderRadius: 2, background: C.gold, flexShrink: 0 }} />
@@ -101,10 +139,32 @@ function SectionTitle({ children }) {
   );
 }
 
+function useThemeColors() {
+  const [theme, setTheme] = useState(getTheme());
+  const [C, setC] = useState(PALETTES[theme]);
+
+  useEffect(() => {
+    const handleThemeChange = () => {
+      const newTheme = getTheme();
+      setTheme(newTheme);
+      setC(PALETTES[newTheme]);
+    };
+
+    // Check for theme changes on mount and when document changes
+    const observer = new MutationObserver(handleThemeChange);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return C;
+}
+
 // ─── Main Component ──────────────────────────────────────────────────────────
 export default function TripDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const C = useThemeColors();
 
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(true);

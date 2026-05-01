@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { MapPin, Loader2, AlertCircle, ArrowLeft, Users } from "lucide-react";
 import { useAuthRequired } from "../hooks/useAuthRequired";
@@ -6,6 +6,55 @@ import { apiFetch, getToken, getBaseUrl } from "../utils/api";
 
 // ──── CONSTANTS ────
 const API_URL = "http://127.0.0.1:8000";
+
+const PALETTES = {
+  dark: {
+    bg: "#0a0c16",
+    bgSecondary: "#0f1219",
+    text: "#ffffff",
+    textSecondary: "#ffffff99",
+    border: "rgba(255, 255, 255, 0.1)",
+    gold: "#C9A84C",
+    green: "#22c55e",
+    blue: "#3b82f6",
+    yellow: "#eab308",
+  },
+  light: {
+    bg: "#f4f0e8",
+    bgSecondary: "#f7f2ea",
+    text: "#15120d",
+    textSecondary: "#5d5550",
+    border: "rgba(21, 18, 13, 0.10)",
+    gold: "#ff6a00",
+    green: "#22c55e",
+    blue: "#3b82f6",
+    yellow: "#eab308",
+  },
+};
+
+const getTheme = () => {
+  return document.documentElement.getAttribute("data-theme") || "dark";
+};
+
+const useThemeColors = () => {
+  const [theme, setTheme] = useState(getTheme());
+
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const newTheme = getTheme();
+      setTheme(newTheme);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  return PALETTES[theme];
+};
 
 const SIMILARITY_COLORS = {
   green: { bg: "bg-green-500/20", text: "text-green-400" },
@@ -88,7 +137,7 @@ function UserRow({ user, similarity, onUserClick }) {
               }}
             />
           ) : (
-            <span className="text-sm font-bold text-white">
+            <span className="text-sm font-bold search-text">
               {displayName[0].toUpperCase()}
             </span>
           )}
@@ -98,15 +147,15 @@ function UserRow({ user, similarity, onUserClick }) {
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
-          <h3 className="text-sm font-semibold text-white truncate">
+          <h3 className="text-sm font-semibold search-text truncate">
             {displayName}
           </h3>
-          <span className="text-xs text-white/50 flex-shrink-0">
+          <span className="text-xs search-text-50 flex-shrink-0">
             @{user.username}
           </span>
         </div>
         {user.location && (
-          <div className="flex items-center gap-1 text-white/40 mt-0.5">
+          <div className="flex items-center gap-1 search-text-40 mt-0.5">
             <MapPin className="w-3 h-3 flex-shrink-0" />
             <span className="text-xs truncate">{user.location}</span>
           </div>
@@ -125,6 +174,7 @@ export default function SearchResults() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthRequired();
+  const C = useThemeColors();
   const query = searchParams.get("q") || "";
   
   const [results, setResults] = useState([]);
@@ -191,7 +241,7 @@ export default function SearchResults() {
     .sort((a, b) => (similarities[b.id] || 0) - (similarities[a.id] || 0));
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] pb-20">
+    <div className="search-results-page min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] pb-20">
       {/* Header */}
       <div className="border-b border-white/10 bg-[rgba(10,12,22,0.85)] backdrop-blur-md sticky top-16 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
@@ -199,12 +249,12 @@ export default function SearchResults() {
             onClick={() => navigate(-1)}
             className="p-2 hover:bg-white/10 rounded-lg transition"
           >
-            <ArrowLeft className="w-5 h-5 text-white" />
+            <ArrowLeft className="w-5 h-5 search-text" />
           </button>
           <div>
-            <h1 className="text-lg font-bold text-white">{TEXTS.searchTitle}</h1>
+            <h1 className="text-lg font-bold search-text">{TEXTS.searchTitle}</h1>
             {query && (
-              <p className="text-xs text-white/50">
+              <p className="text-xs search-text-50">
                 {TEXTS.resultsFor} "{query}"
               </p>
             )}
@@ -216,8 +266,8 @@ export default function SearchResults() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 text-white/60 animate-spin mb-3" />
-            <p className="text-white/60 text-sm">{TEXTS.searchingUsers}</p>
+            <Loader2 className="w-8 h-8 search-text-60 animate-spin mb-3" />
+            <p className="search-text-60 text-sm">{TEXTS.searchingUsers}</p>
           </div>
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -231,7 +281,7 @@ export default function SearchResults() {
               <div className="mb-8">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="w-1 h-5 bg-gradient-to-b from-green-400 to-green-600 rounded-full" />
-                  <h2 className="text-sm font-semibold text-white uppercase tracking-wide">
+                  <h2 className="text-sm font-semibold search-text uppercase tracking-wide">
                     {TEXTS.bestResult}
                   </h2>
                 </div>
@@ -253,9 +303,9 @@ export default function SearchResults() {
             {otherMatches.length > 0 && (
               <div>
                 <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-4 h-4 text-white/60" />
-                  <p className="text-xs text-white/60 font-medium">
-                    <span className="font-semibold text-white">{otherMatches.length}</span> {otherMatches.length !== 1 ? TEXTS.otherResultsPlural : TEXTS.otherResults}
+                  <Users className="w-4 h-4 search-text-60" />
+                  <p className="text-xs search-text-60 font-medium">
+                    <span className="font-semibold search-text">{otherMatches.length}</span> {otherMatches.length !== 1 ? TEXTS.otherResultsPlural : TEXTS.otherResults}
                   </p>
                 </div>
                 <div className="border border-white/10 rounded-lg overflow-hidden bg-white/[0.02] divide-y divide-white/10">
@@ -273,9 +323,9 @@ export default function SearchResults() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 text-center">
-            <Users className="w-12 h-12 text-white/20 mb-4" />
-            <p className="text-white/60 text-sm font-medium">{TEXTS.noUsersFound}</p>
-            <p className="text-white/40 text-xs mt-1">
+            <Users className="w-12 h-12 search-text-20 mb-4" />
+            <p className="search-text-60 text-sm font-medium">{TEXTS.noUsersFound}</p>
+            <p className="search-text-40 text-xs mt-1">
               {query
                 ? TEXTS.tryelDifferent
                 : TEXTS.enterSearchQuery}
@@ -283,6 +333,158 @@ export default function SearchResults() {
           </div>
         )}
       </div>
+
+      <style>{`
+        .search-results-page .search-text {
+          color: #ffffff;
+        }
+        .search-results-page .search-text-80 {
+          color: rgba(255, 255, 255, 0.80);
+        }
+        .search-results-page .search-text-60 {
+          color: rgba(255, 255, 255, 0.60);
+        }
+        .search-results-page .search-text-50 {
+          color: rgba(255, 255, 255, 0.50);
+        }
+        .search-results-page .search-text-40 {
+          color: rgba(255, 255, 255, 0.40);
+        }
+        .search-results-page .search-text-20 {
+          color: rgba(255, 255, 255, 0.20);
+        }
+
+        [data-theme="light"] .search-results-page .search-text {
+          color: #15120d;
+        }
+        [data-theme="light"] .search-results-page .search-text-80 {
+          color: rgba(21, 18, 13, 0.80);
+        }
+        [data-theme="light"] .search-results-page .search-text-60 {
+          color: rgba(21, 18, 13, 0.60);
+        }
+        [data-theme="light"] .search-results-page .search-text-50 {
+          color: rgba(21, 18, 13, 0.50);
+        }
+        [data-theme="light"] .search-results-page .search-text-40 {
+          color: rgba(21, 18, 13, 0.40);
+        }
+        [data-theme="light"] .search-results-page .search-text-20 {
+          color: rgba(21, 18, 13, 0.20);
+        }
+
+        [data-theme="light"] {
+          --bg: #f4f0e8;
+          --accent: #ff6a00;
+          --text: #15120d;
+          --text-secondary: #5d5550;
+          --border: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .bg-gradient-to-b {
+          background-image: linear-gradient(180deg, #f4f0e8 0%, #f7f2ea 100%);
+        }
+
+        [data-theme="light"] .from-\[#0a0c16\] {
+          --tw-gradient-from: #f4f0e8;
+        }
+
+        [data-theme="light"] .to-\[#0f1219\] {
+          --tw-gradient-to: #f7f2ea;
+        }
+
+        [data-theme="light"] .bg-\[rgba\(10\,12\,22\,0\.85\)\] {
+          background-color: rgba(244, 240, 232, 0.85);
+        }
+
+        [data-theme="light"] .border-white\/10 {
+          border-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .text-white {
+          color: #15120d;
+        }
+
+        [data-theme="light"] .text-white\/50 {
+          color: rgba(21, 18, 13, 0.50);
+        }
+
+        [data-theme="light"] .text-white\/60 {
+          color: rgba(21, 18, 13, 0.60);
+        }
+
+        [data-theme="light"] .text-white\/40 {
+          color: rgba(21, 18, 13, 0.40);
+        }
+
+        [data-theme="light"] .text-white\/20 {
+          color: rgba(21, 18, 13, 0.20);
+        }
+
+        [data-theme="light"] .text-red-400 {
+          color: #ff6a00;
+        }
+
+        [data-theme="light"] .text-white\/80 {
+          color: #15120d;
+        }
+
+        [data-theme="light"] .hover\:bg-white\/5:hover {
+          background-color: rgba(21, 18, 13, 0.05);
+        }
+
+        [data-theme="light"] .ring-white\/10 {
+          --tw-ring-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .group-hover\:ring-white\/20:hover {
+          --tw-ring-color: rgba(21, 18, 13, 0.20);
+        }
+
+        [data-theme="light"] .from-blue-500 {
+          --tw-gradient-from: #ff6a00;
+        }
+
+        [data-theme="light"] .to-blue-600 {
+          --tw-gradient-to: #e55a00;
+        }
+
+        [data-theme="light"] .bg-green-500\/20 {
+          background-color: rgba(255, 106, 0, 0.20);
+        }
+
+        [data-theme="light"] .border-green-500\/20 {
+          border-color: rgba(255, 106, 0, 0.20);
+        }
+
+        [data-theme="light"] .bg-green-500\/5 {
+          background-color: rgba(255, 106, 0, 0.05);
+        }
+
+        [data-theme="light"] .border-green-500\/10 {
+          border-color: rgba(255, 106, 0, 0.10);
+        }
+
+        [data-theme="light"] .from-green-400 {
+          --tw-gradient-from: #ff6a00;
+        }
+
+        [data-theme="light"] .to-green-600 {
+          --tw-gradient-to: #e55a00;
+        }
+
+        [data-theme="light"] .bg-white\/\[0\.02\] {
+          background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        [data-theme="light"] .divide-white\/10 {
+          border-color: rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .p-2:hover {
+          background-color: rgba(21, 18, 13, 0.05);
+        }
+      `}</style>
     </div>
   );
 }

@@ -138,6 +138,14 @@ export default function SettingPage() {
   const [securityAnswers, setSecurityAnswers] = useState({});
   const [savedSecurityQuestionIds, setSavedSecurityQuestionIds] = useState([]);
   const [savingSecurityQuestions, setSavingSecurityQuestions] = useState(false);
+  const [showSecurityQuestionEditor, setShowSecurityQuestionEditor] = useState(false);
+
+  const MIN_SECURITY_QUESTIONS = 2;
+  const savedQuestionCount = savedSecurityQuestionIds.length;
+  const newQuestionCount = Object.values(securityAnswers).filter(
+    (a) => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0
+  ).length;
+  const recoveryComplete = savedQuestionCount >= MIN_SECURITY_QUESTIONS;
 
   // ── Show toast then auto-clear ──────────────────────────────────────────────
   const showToast = (type, message) => {
@@ -735,6 +743,302 @@ export default function SettingPage() {
           to { transform: rotate(360deg); }
         }
 
+        /* LIGHT MODE FIX FOR SETTINGS PAGE */
+        [data-theme="light"] .sg-root {
+          background: #f4f0e8;
+          color: #15120d;
+        }
+
+        [data-theme="light"] .sg-sidebar {
+          background: #ffffff;
+          border-right: 1px solid rgba(21, 18, 13, 0.10);
+        }
+
+        [data-theme="light"] .sg-sidebar-header {
+          border-bottom: 1px solid rgba(21, 18, 13, 0.08);
+        }
+
+        [data-theme="light"] .sg-sidebar-title,
+        [data-theme="light"] .sg-panel-title,
+        [data-theme="light"] .sg-avatar-name,
+        [data-theme="light"] .sg-toggle-label,
+        [data-theme="light"] .sg-sec-label {
+          color: #15120d;
+        }
+
+        [data-theme="light"] .sg-sidebar-sub,
+        [data-theme="light"] .sg-panel-sub,
+        [data-theme="light"] .sg-avatar-email,
+        [data-theme="light"] .sg-toggle-desc,
+        [data-theme="light"] .sg-sec-sub,
+        [data-theme="light"] .sg-hint {
+          color: #5d5550;
+        }
+
+        [data-theme="light"] .sg-content {
+          background: linear-gradient(180deg, #f4f0e8 0%, #f7f2ea 100%);
+        }
+
+        [data-theme="light"] .sg-card,
+        [data-theme="light"] .sg-avatar-block,
+        [data-theme="light"] .sg-danger-zone {
+          background: #ffffff;
+          border-color: rgba(21, 18, 13, 0.10);
+          box-shadow: 0 14px 40px rgba(21, 18, 13, 0.045);
+        }
+
+        [data-theme="light"] .sg-input {
+          background: #ffffff;
+          color: #15120d;
+          border-color: #ddd7ce;
+        }
+
+        [data-theme="light"] .sg-input:focus {
+          border-color: #ff6a00;
+          box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.12);
+        }
+
+        [data-theme="light"] .sg-label {
+          color: #8893aa;
+        }
+
+        [data-theme="light"] .sg-section-label,
+        [data-theme="light"] .sg-nav-section {
+          color: #ff6a00;
+        }
+
+        [data-theme="light"] .sg-nav-item {
+          color: #5d5550;
+        }
+
+        [data-theme="light"] .sg-nav-item:hover {
+          background: rgba(255, 106, 0, 0.06);
+          color: #15120d;
+        }
+
+        [data-theme="light"] .sg-nav-item--active {
+          background: rgba(255, 106, 0, 0.10) !important;
+          color: #15120d !important;
+        }
+
+        [data-theme="light"] .sg-nav-item--active svg {
+          color: #ff6a00 !important;
+        }
+
+        [data-theme="light"] .sg-btn--gold {
+          background: linear-gradient(135deg, #ff6a00, #ff8a2a);
+          color: #ffffff;
+        }
+
+        [data-theme="light"] .sg-btn--outline {
+          color: #ff6a00;
+          border-color: rgba(255, 106, 0, 0.25);
+        }
+
+        [data-theme="light"] .sg-btn--outline:hover {
+          background: rgba(255, 106, 0, 0.06);
+        }
+
+        [data-theme="light"] .sg-toggle-row,
+        [data-theme="light"] .sg-sec-row {
+          border-bottom-color: rgba(21, 18, 13, 0.08);
+        }
+
+        [data-theme="light"] .sg-toggle {
+          background: #eee6dc;
+          border-color: #ddd7ce;
+        }
+
+        [data-theme="light"] .sg-toggle--on {
+          background: #ff6a00;
+          border-color: #ff6a00;
+        }
+
+        [data-theme="light"] .sg-toggle-knob {
+          background: #ffffff;
+        }
+
+        [data-theme="light"] .sg-toggle--on .sg-toggle-knob {
+          background: #ffffff;
+        }
+
+        /* SECURITY QUESTION UI */
+        .sg-recovery-card {
+          padding: 0;
+        }
+
+        .sg-recovery-complete {
+          display: flex;
+          align-items: flex-start;
+          gap: 14px;
+          padding: 18px;
+        }
+
+        .sg-recovery-complete-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          background: rgba(80, 160, 96, 0.14);
+          color: #50a060;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        .sg-recovery-complete-body {
+          flex: 1;
+        }
+
+        .sg-recovery-complete-title {
+          font-size: 14px;
+          font-weight: 600;
+          color: #ffffff;
+          margin-bottom: 4px;
+        }
+
+        .sg-recovery-complete-desc {
+          font-size: 13px;
+          color: #999999;
+          line-height: 1.5;
+        }
+
+        .sg-recovery-complete-note {
+          font-size: 12px;
+          color: #50a060;
+          margin-top: 8px;
+        }
+
+        .sg-recovery-editor {
+          padding: 16px;
+        }
+
+        .sg-question-list {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .sg-question-item {
+          border-radius: 10px;
+          border: 1px solid rgba(255, 255, 255, 0.10);
+          background: rgba(255, 255, 255, 0.03);
+          padding: 12px;
+        }
+
+        .sg-question-item--saved {
+          border-color: rgba(80, 160, 96, 0.30);
+          background: rgba(80, 160, 96, 0.08);
+        }
+
+        .sg-question-saved,
+        .sg-question-editable {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
+        }
+
+        .sg-question-editable {
+          cursor: pointer;
+        }
+
+        .sg-question-check {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          background: #10b981;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 11px;
+          font-weight: 700;
+          flex-shrink: 0;
+        }
+
+        .sg-question-content {
+          flex: 1;
+        }
+
+        .sg-question-title {
+          font-size: 13px;
+          font-weight: 500;
+          color: #ffffff;
+        }
+
+        .sg-question-status {
+          margin-top: 4px;
+          font-size: 12px;
+          color: #10b981;
+          font-weight: 500;
+        }
+
+        .sg-question-input {
+          width: 100%;
+          margin-top: 8px;
+          padding: 9px 12px;
+          font-size: 13px;
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          border-radius: 8px;
+          background: #0a0c16;
+          color: #ffffff;
+          outline: none;
+          font-family: inherit;
+          box-sizing: border-box;
+        }
+
+        .sg-question-input:focus {
+          border-color: #c8b882;
+        }
+
+        .sg-recovery-count {
+          display: flex;
+          gap: 16px;
+          margin-top: 14px;
+          font-size: 12px;
+          color: #999999;
+        }
+
+        .sg-recovery-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          margin-top: 16px;
+        }
+
+        /* LIGHT MODE FOR SECURITY QUESTION UI */
+        [data-theme="light"] .sg-recovery-complete-title,
+        [data-theme="light"] .sg-question-title {
+          color: #15120d;
+        }
+
+        [data-theme="light"] .sg-recovery-complete-desc,
+        [data-theme="light"] .sg-recovery-count {
+          color: #5d5550;
+        }
+
+        [data-theme="light"] .sg-question-item {
+          background: #fffaf4;
+          border-color: #ddd7ce;
+        }
+
+        [data-theme="light"] .sg-question-item--saved {
+          background: #f0fdf4;
+          border-color: #bbf7d0;
+        }
+
+        [data-theme="light"] .sg-question-input {
+          background: #ffffff;
+          color: #15120d;
+          border-color: #ddd7ce;
+        }
+
+        [data-theme="light"] .sg-question-input:focus {
+          border-color: #ff6a00;
+          box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.12);
+        }
+
         @media (max-width: 640px) {
           .sg-sidebar { width: 60px; }
           .sg-nav-label, .sg-sidebar-header, .sg-nav-section { display: none; }
@@ -1141,129 +1445,135 @@ export default function SettingPage() {
               </div>
 
               <div className="sg-section-label">Recovery options</div>
-              <div className="sg-card">
-                <div style={{ padding: "16px" }}>
-                  <div className="sg-sec-label" style={{ marginBottom: "12px" }}>Set up security questions</div>
-                  <div className="sg-sec-sub" style={{ marginBottom: "16px" }}>Answer security questions to recover your account if you forget your password</div>
-                  
-                  <div className="space-y-4">
-                    {allSecurityQuestions.slice(0, 5).map((q) => {
-                      const isSaved = savedSecurityQuestionIds.includes(String(q.id));
-                      const isSelected = securityAnswers[q.id] !== undefined && securityAnswers[q.id] !== "saved";
-                      
-                      return (
-                        <div key={q.id} style={{ borderRadius: "8px", border: isSaved ? "1px solid #d1f0d1" : "1px solid #e5e0d8", padding: "12px", background: isSaved ? "#f0fdf4" : "#fafaf8" }}>
-                          {isSaved ? (
-                            // Show saved state
-                            <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
-                              <div style={{ marginTop: "2px", width: "16px", height: "16px", display: "flex", alignItems: "center", justifyContent: "center", background: "#10b981", borderRadius: "50%", color: "white", fontWeight: "bold", fontSize: "12px" }}>
-                                ✓
+              <div className="sg-card sg-recovery-card">
+                {recoveryComplete && !showSecurityQuestionEditor ? (
+                  <div className="sg-recovery-complete">
+                    <div className="sg-recovery-complete-icon">✓</div>
+                    <div className="sg-recovery-complete-body">
+                      <div className="sg-recovery-complete-title">
+                        Security questions set up
+                      </div>
+                      <div className="sg-recovery-complete-desc">
+                        Your account recovery questions are complete. You have {savedQuestionCount} saved question{savedQuestionCount !== 1 ? "s" : ""}.
+                      </div>
+                      <div className="sg-recovery-complete-note">
+                        Saved answers are hidden for your security.
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="sg-btn sg-btn--outline"
+                      onClick={() => setShowSecurityQuestionEditor(true)}
+                    >
+                      Manage
+                    </button>
+                  </div>
+                ) : (
+                  <div className="sg-recovery-editor">
+                    <div className="sg-sec-label" style={{ marginBottom: "8px" }}>
+                      Set up security questions
+                    </div>
+                    <div className="sg-sec-sub" style={{ marginBottom: "16px" }}>
+                      Choose at least 2 questions to help recover your account.
+                    </div>
+                    <div className="sg-question-list">
+                      {allSecurityQuestions.slice(0, 5).map((q) => {
+                        const isSaved = savedSecurityQuestionIds.includes(String(q.id));
+                        const isSelected =
+                          securityAnswers[q.id] !== undefined &&
+                          securityAnswers[q.id] !== "saved";
+                        return (
+                          <div
+                            key={q.id}
+                            className={`sg-question-item ${
+                              isSaved ? "sg-question-item--saved" : ""
+                            }`}
+                          >
+                            {isSaved ? (
+                              <div className="sg-question-saved">
+                                <div className="sg-question-check">✓</div>
+                                <div>
+                                  <div className="sg-question-title">
+                                    {q.question}
+                                  </div>
+                                  <div className="sg-question-status">Saved</div>
+                                </div>
                               </div>
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: "13px", fontWeight: 500, color: "#111827", marginBottom: "4px" }}>
-                                  {q.question}
-                                </div>
-                                <div style={{ fontSize: "12px", color: "#10b981", fontWeight: 500 }}>
-                                  ✓ Saved
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            // Show editable state
-                            <label style={{ display: "flex", alignItems: "flex-start", gap: "10px", cursor: "pointer" }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSecurityAnswers((prev) => ({ ...prev, [q.id]: "" }));
-                                  } else {
-                                    const updated = { ...securityAnswers };
-                                    delete updated[q.id];
-                                    setSecurityAnswers(updated);
-                                  }
-                                }}
-                                style={{ marginTop: "2px", width: "16px", height: "16px", cursor: "pointer" }}
-                              />
-                              <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: "13px", fontWeight: 500, color: "#111827", marginBottom: "8px" }}>
-                                  {q.question}
-                                </div>
-                                {isSelected && (
-                                  <input
-                                    type="text"
-                                    value={securityAnswers[q.id] || ""}
-                                    onChange={(e) =>
+                            ) : (
+                              <label className="sg-question-editable">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
                                       setSecurityAnswers((prev) => ({
                                         ...prev,
-                                        [q.id]: e.target.value,
-                                      }))
+                                        [q.id]: "",
+                                      }));
+                                    } else {
+                                      const updated = { ...securityAnswers };
+                                      delete updated[q.id];
+                                      setSecurityAnswers(updated);
                                     }
-                                    placeholder="Your answer..."
-                                    style={{
-                                      width: "100%",
-                                      padding: "8px 12px",
-                                      fontSize: "13px",
-                                      border: "1px solid #d1ccc3",
-                                      borderRadius: "6px",
-                                      outline: "none",
-                                      fontFamily: "inherit",
-                                      boxSizing: "border-box"
-                                    }}
-                                    onFocus={(e) => e.target.style.borderColor = "#f97316"}
-                                    onBlur={(e) => e.target.style.borderColor = "#d1ccc3"}
-                                  />
-                                )}
-                              </div>
-                            </label>
-                          )}
-                        </div>
-                      );
-                    })}
+                                  }}
+                                />
+                                <div className="sg-question-content">
+                                  <div className="sg-question-title">
+                                    {q.question}
+                                  </div>
+                                  {isSelected && (
+                                    <input
+                                      type="text"
+                                      value={securityAnswers[q.id] || ""}
+                                      onChange={(e) =>
+                                        setSecurityAnswers((prev) => ({
+                                          ...prev,
+                                          [q.id]: e.target.value,
+                                        }))
+                                      }
+                                      placeholder="Your answer..."
+                                      className="sg-question-input"
+                                    />
+                                  )}
+                                </div>
+                              </label>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="sg-recovery-count">
+                      <span>
+                        Saved: <strong>{savedQuestionCount}</strong>
+                      </span>
+                      <span>
+                        New: <strong>{newQuestionCount}</strong>
+                      </span>
+                    </div>
+                    <div className="sg-recovery-actions">
+                      {recoveryComplete && (
+                        <button
+                          type="button"
+                          className="sg-btn sg-btn--outline"
+                          onClick={() => setShowSecurityQuestionEditor(false)}
+                        >
+                          Cancel
+                        </button>
+                      )}
+                      <button
+                        onClick={handleSaveSecurityQuestions}
+                        disabled={savingSecurityQuestions || newQuestionCount === 0}
+                        className="sg-btn sg-btn--gold"
+                      >
+                        {savingSecurityQuestions
+                          ? "Saving..."
+                          : savedQuestionCount > 0
+                          ? "Add More Security Questions"
+                          : "Save Security Questions"}
+                      </button>
+                    </div>
                   </div>
-                  
-                  <div style={{ marginTop: "16px", fontSize: "12px", color: "#666" }}>
-                    <div>✓ Saved: <strong>{savedSecurityQuestionIds.length} question(s)</strong></div>
-                    <div style={{ marginTop: "4px" }}>New: <strong>{Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim().length > 0).length} question(s)</strong></div>
-                  </div>
-                  
-                  <button
-                    onClick={handleSaveSecurityQuestions}
-                    disabled={savingSecurityQuestions || Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length === 0}
-                    style={{
-                      marginTop: "16px",
-                      padding: "10px 20px",
-                      background: savingSecurityQuestions 
-                        ? "linear-gradient(135deg, #9ca3af, #6b7280)" 
-                        : "linear-gradient(135deg, #f97316, #ea580c)",
-                      color: "white",
-                      border: "none",
-                      borderRadius: "8px",
-                      fontWeight: 600,
-                      fontSize: "13px",
-                      cursor: (savingSecurityQuestions || Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length === 0) ? "not-allowed" : "pointer",
-                      opacity: savingSecurityQuestions ? 0.7 : 1,
-                      transition: "all 0.2s",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px"
-                    }}
-                    onMouseEnter={(e) => !savingSecurityQuestions && Object.values(securityAnswers).filter(a => a !== "saved" && a !== undefined && a.trim && a.trim().length > 0).length > 0 && (e.target.style.transform = "translateY(-1px)")}
-                    onMouseLeave={(e) => (e.target.style.transform = "translateY(0)")}
-                  >
-                    {savingSecurityQuestions ? (
-                      <>
-                        <span style={{ display: "inline-block", width: "14px", height: "14px", border: "2px solid rgba(255,255,255,0.3)", borderTop: "2px solid white", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-                        Saving...
-                      </>
-                    ) : savedSecurityQuestionIds.length > 0 ? (
-                      "✓ Add More Security Questions"
-                    ) : (
-                      "✓ Save Security Questions"
-                    )}
-                  </button>
-                </div>
+                )}
               </div>
             </section>
           )}
