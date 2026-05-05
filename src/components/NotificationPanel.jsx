@@ -391,21 +391,21 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
   const getNotificationColor = (type) => {
     switch (type) {
       case "invitation_received":
-        return "bg-blue-500/10 border-blue-500/30 hover:bg-blue-500/15";
+        return "bg-blue-900 border-blue-700 hover:bg-blue-800";
       case "invitation_accepted":
-        return "bg-green-500/10 border-green-500/30 hover:bg-green-500/15";
+        return "bg-green-900 border-green-700 hover:bg-green-800";
       case "invitation_rejected":
-        return "bg-red-500/10 border-red-500/30 hover:bg-red-500/15";
+        return "bg-red-900 border-red-700 hover:bg-red-800";
       case "member_joined":
-        return "bg-green-500/10 border-green-500/30 hover:bg-green-500/15";
+        return "bg-green-900 border-green-700 hover:bg-green-800";
       case "member_left":
-        return "bg-red-500/10 border-red-500/30 hover:bg-red-500/15";
+        return "bg-red-900 border-red-700 hover:bg-red-800";
       case "friend_request":
-        return "bg-purple-500/10 border-purple-500/30 hover:bg-purple-500/15";
+        return "bg-purple-900 border-purple-700 hover:bg-purple-800";
       case "message":
-        return "bg-cyan-500/10 border-cyan-500/30 hover:bg-cyan-500/15";
+        return "bg-cyan-900 border-cyan-700 hover:bg-cyan-800";
       default:
-        return "bg-yellow-500/10 border-yellow-500/30 hover:bg-yellow-500/15";
+        return "bg-yellow-900 border-yellow-700 hover:bg-yellow-800";
     }
   };
 
@@ -415,18 +415,18 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
 
   return (
     <div
-      className="notification-panel absolute right-0 top-12 w-[420px] rounded-2xl shadow-2xl z-50 border overflow-hidden backdrop-blur-xl"
+      className="notification-panel absolute right-0 top-12 w-[420px] rounded-2xl shadow-2xl z-50 border overflow-hidden"
       style={{ maxHeight: "600px", display: "flex", flexDirection: "column" }}
     >
       {/* Header */}
       <div className="notification-panel-header flex items-center justify-between px-6 py-4 border-b">
         <h3 className="font-bold text-lg flex items-center gap-2" style={{ color: "var(--text)" }}>
-          <div className="p-2 rounded-lg bg-cyan-500/20 border border-cyan-500/30">
+          <div className="p-2 rounded-lg bg-cyan-700 border border-cyan-600">
             <AlertCircle size={18} className="text-cyan-400" />
           </div>
           Notifications
         </h3>
-        <button onClick={onClose} className="text-[var(--text-lighter)] hover:text-[var(--text)] transition-colors p-1.5 hover:bg-white/10 rounded-lg">
+        <button onClick={onClose} className="text-[var(--text-lighter)] hover:text-[var(--text)] transition-colors p-1.5 hover:bg-cyan-900 rounded-lg">
           <X size={20} />
         </button>
       </div>
@@ -458,11 +458,11 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                 return (
                   <div
                     key={notif.id}
-                    className="p-4 border-l-4 border-l-purple-500/50 bg-gradient-to-r from-purple-500/8 to-transparent hover:from-purple-500/12 transition-all duration-200 cursor-pointer group"
+                    className="p-4 border-l-4 border-l-purple-600 bg-purple-900 hover:bg-purple-800 transition-all duration-200 cursor-pointer group"
                     onClick={() => navigate(`/user/${notif.username}`)}
                   >
                     <div className="flex items-center gap-3.5">
-                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-purple-500/30 to-purple-600/30 border border-purple-500/30 flex items-center justify-center group-hover:ring-2 ring-purple-500/30 transition-all">
+                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-purple-700 border border-purple-600 flex items-center justify-center group-hover:ring-2 ring-purple-600 transition-all">
                         {pic ? (
                           <img 
                             src={pic} 
@@ -486,7 +486,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                           onClick={(e) => {e.stopPropagation(); handleFriendRequestResponse(notif, "accept");}}
                           disabled={requestAction[notif.id]}
                           className="h-8 w-8 rounded-lg border flex items-center justify-center transition-all font-medium text-sm disabled:opacity-40"
-                          style={{ backgroundColor: "rgba(168, 85, 247, 0.3)", borderColor: "rgba(168, 85, 247, 0.5)", color: "#e9d5ff" }}
+                          style={{ backgroundColor: "#7c3aed", borderColor: "#6d28d9", color: "#e9d5ff" }}
                         >
                           {requestAction[notif.id] ? <Loader2 size={16} className="animate-spin" /> : "✓"}
                         </button>
@@ -517,12 +517,12 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                     className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
                       notif.is_read
                         ? "border-l-transparent bg-transparent hover:bg-[var(--surface-hover)]"
-                        : "border-l-cyan-500/50 bg-gradient-to-r from-cyan-500/8 to-transparent hover:from-cyan-500/12"
+                        : "border-l-cyan-600 bg-cyan-900 hover:bg-cyan-800"
                     }`}
                     onClick={() => handleMessageNotificationClick(notif)}
                   >
                     <div className="flex gap-3.5">
-                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-gradient-to-br from-cyan-500/30 to-blue-600/30 border border-cyan-500/30 flex items-center justify-center relative group-hover:ring-2 ring-cyan-500/30 transition-all">
+                      <div className="h-12 w-12 flex-shrink-0 rounded-full overflow-hidden bg-cyan-700 border border-cyan-600 flex items-center justify-center relative group-hover:ring-2 ring-cyan-600 transition-all">
                         {pic ? (
                           <img 
                             src={pic} 
@@ -534,7 +534,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                           <span className="text-xs font-bold text-cyan-300">{initial}</span>
                         )}
                         {hasMultiple && (
-                          <div className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border border-cyan-400/50 shadow-lg">
+                          <div className="absolute -top-2 -right-2 bg-gradient-to-br from-cyan-500 to-cyan-600 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center border border-cyan-400 shadow-lg">
                             {notif.total_count > 9 ? "9+" : notif.total_count}
                           </div>
                         )}
@@ -547,7 +547,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                                 {notif.sender_name}
                               </p>
                               {hasMultiple && (
-                                <span className="text-xs bg-cyan-500/30 text-cyan-200 px-2 py-0.5 rounded-full border border-cyan-500/20 font-medium">
+                                <span className="text-xs bg-cyan-700 text-cyan-100 px-2 py-0.5 rounded-full border border-cyan-600 font-medium">
                                   +{notif.total_count}
                                 </span>
                               )}
@@ -580,7 +580,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                   className={`p-4 border-l-4 transition-all duration-200 cursor-pointer group ${
                     notif.is_read
                       ? "border-l-transparent hover:bg-[var(--surface-hover)]"
-                      : "border-l-blue-500/50 bg-gradient-to-r from-blue-500/8 to-transparent hover:from-blue-500/12"
+                      : "border-l-blue-600 bg-blue-900 hover:bg-blue-800"
                   }`}
                   onClick={() => {
                     handleMarkAsRead(notif);
@@ -588,7 +588,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                   }}
                 >
                   <div className="flex gap-3.5">
-                    <div className="flex-shrink-0 mt-0.5 p-2 rounded-lg bg-blue-500/15 border border-blue-500/20 text-blue-400 group-hover:bg-blue-500/25 transition-all">
+                    <div className="flex-shrink-0 mt-0.5 p-2 rounded-lg bg-blue-700 border border-blue-600 text-blue-400 group-hover:bg-blue-600 transition-all">
                       {getNotificationIcon(notif.notification_type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -617,7 +617,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
                           <button
                             onClick={() => handleInvitationAction(notif, "accept")}
                             disabled={actionLoading[notif.id]}
-                            className="flex-1 px-3 py-2 text-xs font-semibold bg-gradient-to-r from-green-500/40 to-green-600/20 text-green-200 hover:from-green-500/60 border border-green-500/40 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
+                            className="flex-1 px-3 py-2 text-xs font-semibold bg-green-700 text-green-100 hover:bg-green-600 border border-green-600 rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-1.5"
                           >
                             {actionLoading[notif.id] ? <Loader2 size={14} className="animate-spin" /> : <>✓ Accept</>}
                           </button>
@@ -645,7 +645,7 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
         <div className="notification-panel-footer border-t p-3">
           <button
             onClick={handleMarkAllAsRead}
-            className="w-full text-center text-xs font-medium py-2 rounded-lg hover:bg-blue-500/10 transition"
+            className="w-full text-center text-xs font-medium py-2 rounded-lg hover:bg-blue-700 transition"
             style={{ color: "var(--accent)", borderColor: "var(--border)" }}
           >
             Mark all as read
@@ -656,32 +656,31 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
       {/* LIGHT MODE CSS & THEME VARIABLES */}
       <style>{`
         .notification-panel {
-          background: linear-gradient(180deg, var(--surface) 0%, var(--surface) 95%);
-          border-color: var(--border-card);
+          background: #0f1219;
+          border-color: rgba(201, 168, 76, 0.2);
         }
 
         .notification-panel-header {
-          background: linear-gradient(90deg, var(--surface-hover) 0%, transparent 100%);
-          border-bottom-color: var(--border);
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+          border-bottom-color: rgba(255, 255, 255, 0.1);
         }
 
         .notification-panel-list {
-          background: var(--surface);
+          background: #0f1219;
         }
 
-        .notification-panel-divider {
-          --tw-divide-opacity: 1;
-          border-color: rgb(0 0 0 / calc(0.1 * var(--tw-divide-opacity)));
+        .notification-panel-divider > * + * {
+          border-top-color: rgba(255, 255, 255, 0.08);
         }
 
         .notification-panel-empty {
-          background: var(--surface-hover);
-          border-color: var(--border);
+          background: rgba(255, 255, 255, 0.05);
+          border-color: rgba(255, 255, 255, 0.1);
         }
 
         .notification-panel-footer {
-          background: var(--surface);
-          border-top-color: var(--border);
+          background: #0f1219;
+          border-top-color: rgba(255, 255, 255, 0.1);
         }
 
         [data-theme="light"] .notification-panel {
@@ -698,9 +697,8 @@ export default function NotificationPanel({ onClose, onUnreadChange }) {
           background: #ffffff;
         }
 
-        [data-theme="light"] .notification-panel-divider {
-          --tw-divide-opacity: 1;
-          border-color: rgba(21, 18, 13, 0.08);
+        [data-theme="light"] .notification-panel-divider > * + * {
+          border-top-color: rgba(21, 18, 13, 0.08);
         }
 
         [data-theme="light"] .notification-panel-empty {
