@@ -436,6 +436,98 @@ const AVATAR_COLORS = [
   }
   .send-btn:hover:not(:disabled) { background: var(--accent-hover); }
   .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  
+  /* ── Read-only ended trip banner ── */
+  .ended-trip-banner {
+    background: linear-gradient(135deg, rgba(30, 30, 40, 0.8) 0%, rgba(40, 35, 50, 0.6) 100%);
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin: 16px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+  
+  .ended-trip-banner-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.15) 0%, rgba(201, 168, 76, 0.08) 100%);
+    border: 1px solid rgba(201, 168, 76, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  
+  .ended-trip-banner-content {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .ended-trip-banner-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+  }
+  
+  .ended-trip-banner-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+  
+  .ended-trip-banner-button {
+    padding: 7px 14px;
+    background: transparent;
+    border: 1px solid rgba(201, 168, 76, 0.3);
+    border-radius: 8px;
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    letter-spacing: -0.2px;
+  }
+  
+  .ended-trip-banner-button:hover {
+    background: rgba(201, 168, 76, 0.08);
+    border-color: rgba(201, 168, 76, 0.5);
+    color: var(--accent-hover);
+  }
+  
+  /* ── Disabled input state ── */
+  .input-row.disabled {
+    background: var(--bg-muted);
+    border-color: var(--border);
+    opacity: 0.65;
+  }
+  
+  .input-row.disabled input {
+    color: var(--text-muted);
+    cursor: not-allowed;
+  }
+  
+  .input-row.disabled input::placeholder {
+    color: rgba(153, 153, 153, 0.6);
+  }
+  
+  .lock-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    opacity: 0.6;
+  }
+
 `;
 
 // ── Helper: get avatar initials ──────────────────────────────────────────────
@@ -598,6 +690,7 @@ export default function Chat() {
               avatar: trip.cover_image || null,
               tripId: trip.id,
               memberCount: trip.participants?.length || 0,
+              isEndedTrip: trip.is_trip_ended || trip.is_completed, // 🔒 Trip status for disabling messages
               unread: 0,
               lastMessage: "",
               lastMessageTime: null,
@@ -701,6 +794,12 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!messageInput.trim() || !selectedConversation || sendingMessage) return;
 
+    // 🔒 Check if this is an ended trip
+    if (selectedConversation.isEndedTrip) {
+      setChatError("This trip has ended. Messaging is disabled.");
+      return;
+    }
+
     setSendingMessage(true);
     try {
       const token = localStorage.getItem("access_token");
@@ -740,7 +839,7 @@ export default function Chat() {
       } else {
         const err = await res.json();
         console.error("Send error:", err);
-        setChatError("Could not send message");
+        setChatError(err.error || "Could not send message");
       }
     } catch (error) {
       console.error("Failed to send message:", error);
@@ -909,6 +1008,18 @@ export default function Chat() {
 
             {/* Messages */}
             <div className="messages-area">
+              {selectedConversation?.isEndedTrip && (
+                <div className="ended-trip-banner">
+                  <div className="ended-trip-banner-icon">🔒</div>
+                  <div className="ended-trip-banner-content">
+                    <div className="ended-trip-banner-title">This trip has ended</div>
+                    <div className="ended-trip-banner-subtitle">
+                      You can still view the conversation history, but messaging is no longer available.
+                    </div>
+                  </div>
+                  <button className="ended-trip-banner-button">Learn more ↗</button>
+                </div>
+              )}
               {chatLoading && messages.length === 0 ? (
                 <MessageThreadSkeleton count={6} />
               ) : messages.length === 0 ? (
@@ -1055,7 +1166,7 @@ export default function Chat() {
 
             {/* Input */}
             <div className="input-area">
-              {chatError && (
+              {chatError && !selectedConversation?.isEndedTrip && (
                 <div style={{
                   fontSize: 11, color: "#dc2626", marginBottom: 8,
                   padding: "6px 12px", background: "#fef2f2",
@@ -1064,22 +1175,29 @@ export default function Chat() {
                   {chatError}
                 </div>
               )}
-              <div className="input-row">
+              <div className={`input-row${selectedConversation?.isEndedTrip ? " disabled" : ""}`}>
+                {selectedConversation?.isEndedTrip && (
+                  <svg className="lock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                )}
                 <input
                   type="text"
-                  placeholder={`${MESSAGES.messagePrefix} ${selectedConversation.name}…`}
+                  placeholder={selectedConversation?.isEndedTrip ? "Messaging is disabled for this trip." : `${MESSAGES.messagePrefix} ${selectedConversation.name}…`}
                   value={messageInput}
                   maxLength={1000}
                   onChange={e => setMessageInput(e.target.value)}
                   onKeyDown={e =>
-                    e.key === "Enter" && !e.shiftKey && handleSendMessage()
+                    e.key === "Enter" && !e.shiftKey && !selectedConversation?.isEndedTrip && handleSendMessage()
                   }
-                  disabled={sendingMessage}
+                  disabled={sendingMessage || selectedConversation?.isEndedTrip}
                 />
                 <button
                   className="send-btn"
                   onClick={handleSendMessage}
-                  disabled={!messageInput.trim() || sendingMessage}
+                  disabled={!messageInput.trim() || sendingMessage || selectedConversation?.isEndedTrip}
+                  title={selectedConversation?.isEndedTrip ? "This trip has ended" : "Send message"}
                 >
                   {sendingMessage ? (
                     <div

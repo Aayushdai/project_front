@@ -18,13 +18,13 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from "react";
-import { useLocation, Link } from "react-router-dom";
+import { useLocation, Link, useNavigate } from "react-router-dom";
 import {
   MapContainer, TileLayer, Marker,
   Popup, Circle, Polyline, useMap,
 } from "react-leaflet";
 import {
-  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin, Lock, Radio, Archive, Menu, X, Clock, Phone, ExternalLink, BookOpen, Mountain
+  Heart, MoreVertical, Navigation2, Globe, Bike, MapPin, Lock, Radio, Archive, Menu, X, Clock, Phone, ExternalLink, BookOpen, Mountain, BarChart3, ArrowRight
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -41,39 +41,39 @@ const getThemeColors = () => {
     : true;
   
   if (isDarkMode) {
-    // Dark mode colors (original)
+    // Dark mode colors — Premium modern travel app aesthetic
     return {
-      gold: "#f0c27a",
-      goldGradientStart: "#c9973a",
-      goldGradientEnd: "#f0c27a",
+      gold: "#E0B15C",
+      goldGradientStart: "#D4A03D",
+      goldGradientEnd: "#E0B15C",
       emerald: "#34d399",
       teal: "#5dcaa5",
       blue: "#7b9fd4",
       grey: "#888780",
       liveLocation: "#4285f4",
       altRoute: "#4a5568",
-      clusterGold: "#C9A84C",
-      gold15: "rgba(201,168,76,.15)",
-      gold45: "rgba(201,168,76,.45)",
-      gold08: "rgba(240,194,122,.08)",
-      gold25: "rgba(240,194,122,.25)",
-      gold3: "rgba(240,194,122,.3)",
-      gold05: "rgba(240,194,122,.05)",
-      gold06: "rgba(240,194,122,.06)",
-      gold1: "rgba(240,194,122,.1)",
+      clusterGold: "#D4A03D",
+      gold15: "rgba(224,177,92,.15)",
+      gold45: "rgba(224,177,92,.45)",
+      gold08: "rgba(224,177,92,.08)",
+      gold25: "rgba(224,177,92,.25)",
+      gold3: "rgba(224,177,92,.3)",
+      gold05: "rgba(224,177,92,.05)",
+      gold06: "rgba(224,177,92,.06)",
+      gold1: "rgba(224,177,92,.1)",
       errorRed: "#f87171",
       errorBg: "rgba(248,113,113,.08)",
       errorBorder: "rgba(248,113,113,.2)",
-      // Dark mode specific
-      background: "#07080f",
-      sidebarBg: "rgba(10,11,20,.98)",
-      sidebarBorder: "rgba(201,168,76,.1)",
-      cardBg: "rgba(255,255,255,.03)",
-      cardBorder: "rgba(201,168,76,.08)",
-      text: "#f5f0e8",
-      textSecondary: "rgba(255,255,255,.6)",
-      textTertiary: "rgba(255,255,255,.3)",
-      inputBg: "rgba(255,255,255,.04)",
+      // Dark mode specific — Premium aesthetic
+      background: "#0a0b14",
+      sidebarBg: "rgba(12,13,25,.92)",
+      sidebarBorder: "rgba(224,177,92,.08)",
+      cardBg: "rgba(255,255,255,.05)",
+      cardBorder: "rgba(224,177,92,.12)",
+      text: "#f8f6f1",
+      textSecondary: "rgba(255,255,255,.65)",
+      textTertiary: "rgba(255,255,255,.35)",
+      inputBg: "rgba(255,255,255,.06)",
       dropdownBg: "#0d0e1a",
       popupBg: "#0d0e1a",
       popupText: "#f5f0e8",
@@ -598,6 +598,7 @@ function MapControls({ tracking, onToggleTrack, routeCoords, colors, S }) {
 ═══════════════════════════════════════════════════════════════ */
 export default function NepalMap() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab,   setActiveTab]   = useState("route");
   const [colors, setColors] = useState(getThemeColors());
@@ -647,6 +648,21 @@ export default function NepalMap() {
 
   // Places
   const [allPlaces] = useState([]);
+
+  // Recent searches
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("tm_recent") || "[]"); } catch { return []; }
+  });
+
+  useEffect(() => { localStorage.setItem("tm_recent", JSON.stringify(recentSearches)); }, [recentSearches]);
+
+  const addToRecentSearches = (searchText) => {
+    if (!searchText.trim()) return;
+    setRecentSearches(prev => {
+      const filtered = prev.filter(s => s !== searchText);
+      return [searchText, ...filtered].slice(0, 6);
+    });
+  };
 
   // Auto-fill destination from location state
   useEffect(() => {
@@ -814,44 +830,71 @@ export default function NepalMap() {
             <aside
               className="tm-sidebar"
               style={{
-                width: sidebarOpen ? 380 : 0,
-                minWidth: sidebarOpen ? 380 : 0,
-                background: colors.sidebarBg,
+                width: sidebarOpen ? 400 : 0,
+                minWidth: sidebarOpen ? 400 : 0,
+                background: document.documentElement.getAttribute('data-theme') === 'light'
+                  ? colors.sidebarBg
+                  : "rgba(12,13,25,.94)",
                 borderRight: `1px solid ${colors.sidebarBorder}`,
                 boxShadow: document.documentElement.getAttribute('data-theme') === 'light'
                   ? "10px 0 35px rgba(15,23,42,.10)"
-                  : "10px 0 45px rgba(0,0,0,.55)",
+                  : "20px 0 60px rgba(0,0,0,.55), inset -1px 0 0 rgba(255,255,255,.04)",
                 display: "flex",
                 flexDirection: "column",
                 transition: "all .35s cubic-bezier(.4,0,.2,1)",
                 overflow: "hidden",
-                zIndex: 1001
+                zIndex: 1001,
+                backdropFilter: document.documentElement.getAttribute('data-theme') === 'light' ? "none" : "blur(18px)",
               }}
             >
 
-          <div className="tm-sidebar-header" style={{ padding:"24px 22px 16px", marginTop:"0", borderBottom:`1px solid ${colors.sidebarBorder}`, flexShrink:0 }}>
-            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:20, color: colors.text, marginBottom:14, letterSpacing:"-.5px", display:"flex", alignItems:"center", gap:"8px" }}>
-              <Globe size={20} color={colors.clusterGold} /> {MESSAGES.travelNepal} <span style={{ color: colors.clusterGold }}>{MESSAGES.nepal}</span>
+          <div className="tm-sidebar-header" style={{ padding:"28px 24px 20px", marginTop:"0", borderBottom:`1px solid ${colors.sidebarBorder}`, flexShrink:0 }}>
+            <div style={{ fontFamily:"'Syne',sans-serif", fontWeight:800, fontSize:24, color: colors.text, marginBottom:20, letterSpacing:"-.6px" }}>
+              Travel Explorer
             </div>
-            <div className="tm-tabs" style={{ display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:6, background: colors.cardBg, padding:5, borderRadius:14, border:`1px solid ${colors.cardBorder}` }}>
-              {[{id:"route",l:MESSAGES.route},{id:"nearby",l:MESSAGES.nearby},{id:"saved",l:MESSAGES.saved},{id:"chat",l:MESSAGES.chat}].map(t => (
-                <button key={t.id} onClick={() => setActiveTab(t.id)} style={{ ...S.tabBtn, background:activeTab===t.id?colors.gold:"transparent", color:activeTab===t.id?"#0f0e0d": colors.textTertiary, flex:"1 1 auto", minWidth:"60px" }}>{t.l}</button>
-              ))}
-            </div>
+            {/* Single Route Tab Button */}
+            <button 
+              onClick={() => setActiveTab("route")} 
+              style={{ 
+                width: "100%",
+                padding: "12px 16px",
+                borderRadius: 14,
+                border: "none",
+                background: colors.gold,
+                color: "#0a0b14",
+                fontFamily: "'Syne',sans-serif",
+                fontWeight: 800,
+                fontSize: 13,
+                cursor: "pointer",
+                letterSpacing: ".4px",
+                boxShadow: `0 12px 32px rgba(224,177,92,.25)`,
+                transition: "all .3s cubic-bezier(.4,0,.2,1)",
+              }}
+              onMouseEnter={e => {
+                e.target.style.transform = "translateY(-2px)";
+                e.target.style.boxShadow = `0 16px 40px rgba(224,177,92,.35)`;
+              }}
+              onMouseLeave={e => {
+                e.target.style.transform = "translateY(0)";
+                e.target.style.boxShadow = `0 12px 32px rgba(224,177,92,.25)`;
+              }}
+            >
+              Route
+            </button>
           </div>
 
-          {/* Only show tab content in sidebar if not Chat tab */}
-          {activeTab !== "chat" && (
-          <div className="tm-sidebar-content" style={{ flex:1, overflowY:"auto", padding:"18px 20px 22px", display:"flex", flexDirection:"column", gap:14 }}>
+          {/* Only show Route tab content in sidebar */}
+          {activeTab === "route" && (
+            <div className="tm-sidebar-content" style={{ flex:1, overflowY:"auto", padding:"24px 24px 28px", display:"flex", flexDirection:"column", gap:18 }}>
 
-            {/* ── ROUTE TAB ── */}
-            {activeTab === "route" && (
-              <>
-                {/* Route Controls */}
-                <div>
+              {/* ── ROUTE TAB ── */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 18, flex: 1, minHeight: 0 }}>
+                {/* Scrollable route controls */}
+                <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
+                  <>
                   <SearchBox
                     value={originText} onChange={setOriginText}
-                    onSelect={p => { setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
+                    onSelect={p => { addToRecentSearches(p.name); setOrigin(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
                     placeholder={MESSAGES.startPlaceholder}
                     dotColor={colors.emerald}
                     colors={colors}
@@ -859,7 +902,7 @@ export default function NepalMap() {
                   />
                   <SearchBox
                     value={destText} onChange={setDestText}
-                    onSelect={p => { setDest(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
+                    onSelect={p => { addToRecentSearches(p.name); setDest(p); setShowRoute(false); setRoutes([]); setSteps([]); }}
                     placeholder={MESSAGES.destPlaceholder}
                     dotColor={colors.gold}
                     colors={colors}
@@ -876,6 +919,94 @@ export default function NepalMap() {
                 ))}
               </div>
 
+              {/* Select on map card */}
+              <div style={{
+                background: `linear-gradient(135deg, rgba(224,177,92,.12), rgba(224,177,92,.06))`,
+                border: `1.5px solid rgba(224,177,92,.2)`,
+                borderRadius: 16,
+                padding: "16px 14px",
+                display: "flex",
+                alignItems: "center",
+                gap: 12,
+                cursor: "pointer",
+                transition: "all .2s",
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = `linear-gradient(135deg, rgba(224,177,92,.18), rgba(224,177,92,.1))`;
+                e.currentTarget.style.borderColor = `rgba(224,177,92,.35)`;
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = `linear-gradient(135deg, rgba(224,177,92,.12), rgba(224,177,92,.06))`;
+                e.currentTarget.style.borderColor = `rgba(224,177,92,.2)`;
+              }}>
+                <div style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 12,
+                  background: `linear-gradient(135deg, ${colors.goldGradientStart}, ${colors.goldGradientEnd})`,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  <MapPin size={18} color="#0a0b14" />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: colors.text, letterSpacing: ".3px" }}>
+                    Click on map
+                  </div>
+                  <div style={{ fontSize: 11, color: colors.textTertiary, marginTop: 2 }}>
+                    to set destination
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Searches */}
+              {recentSearches.length > 0 && !showRoute && (
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: 1.8, textTransform: "uppercase", color: colors.gold, marginBottom: 10 }}>Recent</div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                    {recentSearches.map((search, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => {
+                          setDestText(search);
+                          setDest({ name: search, lat: 27.7, lng: 85.32 });
+                        }}
+                        style={{
+                          padding: "8px 14px",
+                          borderRadius: 20,
+                          border: `1.5px solid rgba(224,177,92,.25)`,
+                          background: "rgba(224,177,92,.08)",
+                          color: colors.textSecondary,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: "pointer",
+                          transition: "all .2s",
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          maxWidth: "100%",
+                        }}
+                        onMouseEnter={e => {
+                          e.currentTarget.style.background = "rgba(224,177,92,.15)";
+                          e.currentTarget.style.borderColor = `rgba(224,177,92,.4)`;
+                          e.currentTarget.style.color = colors.text;
+                        }}
+                        onMouseLeave={e => {
+                          e.currentTarget.style.background = "rgba(224,177,92,.08)";
+                          e.currentTarget.style.borderColor = `rgba(224,177,92,.25)`;
+                          e.currentTarget.style.color = colors.textSecondary;
+                        }}
+                      >
+                        <Clock size={12} style={{ display: "inline", marginRight: 6 }} />
+                        {search}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {origin && destination && (
                 <div style={{ display:"flex", gap:8 }}>
                   <button style={{...S.btnSec, display:"flex", alignItems:"center", gap:"6px"}}  onClick={handleSwap}><MoreVertical size={16} style={{rotate:"90deg"}} /> {MESSAGES.swap}</button>
@@ -884,7 +1015,15 @@ export default function NepalMap() {
               )}
 
               {origin && destination && !showRoute && (
-                <button style={S.btnRoute} onClick={() => setShowRoute(true)}>{MESSAGES.showRoute}</button>
+                <button 
+                  style={{
+                    ...S.btnRoute,
+                    marginTop: "auto",
+                  }} 
+                  onClick={() => setShowRoute(true)}
+                >
+                  Find Route
+                </button>
               )}
 
               {routeLoading && (
@@ -931,59 +1070,87 @@ export default function NepalMap() {
                   </div>
                 </div>
               )}
+
+                  </>
                 </div>
-              </>
-            )}
 
-            {/* ── NEARBY TAB ── */}
-            {activeTab === "nearby" && (
-              nearby.length === 0
-                ? <div style={S.empty}>
-                    <Radio size={28} color={colors.gold} style={{ margin: "0 auto 10px" }} />
-                    <p>{MESSAGES.enableLocation}</p>
-                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.discoverPlaces}</p>
-                  </div>
-                : nearby.map(p => (
-                    <div key={p.id} onClick={() => handleSetDest(p.id)} style={S.nearbyCard}>
-                      <MapPin size={20} color={colors.gold} style={{ flexShrink:0 }} />
-                      <div style={{ minWidth:0, flex:1 }}>
-                        <div style={{ fontSize:13, fontWeight:500, color: colors.text, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{p.name}</div>
-                        <div style={{ fontSize:11, color: colors.textTertiary, marginTop:3, display:"flex", alignItems:"center", gap:5 }}>
-                          <StarsDisplay rating={p.rating} size={11} colors={colors}/> {p.rating} · {p.dist<1 ? `${Math.round(p.dist*1000)}m` : `${p.dist.toFixed(1)}km`}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-            )}
+                {/* Sticky Find Route Button */}
+                {origin && destination && !showRoute && (
+                  <button 
+                    style={{
+                      ...S.btnRoute,
+                      flexShrink: 0,
+                    }} 
+                    onClick={() => setShowRoute(true)}
+                  >
+                    Find Route
+                  </button>
+                )}
 
-            {/* ── SAVED TAB ── */}
-            {activeTab === "saved" && (
-              favorites.length === 0
-                ? <div style={S.empty}>
-                    <Archive size={28} color={colors.gold} style={{ margin: "0 auto 10px" }} />
-                    <p>{MESSAGES.noSavedPlaces}</p>
-                    <p style={{ fontSize:11, marginTop:6, opacity:.5 }}>{MESSAGES.savePlaces}</p>
-                  </div>
-                : favorites.map(f => (
-                    <div key={f.id} style={S.favItem}>
-                      <div style={{ fontSize:12, fontWeight:600, color: colors.gold, marginBottom:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{f.name}</div>
-                      <div style={{ fontSize:10, color: colors.textTertiary }}>{f.lat.toFixed(4)}, {f.lng.toFixed(4)}</div>
-                      <div style={{ display:"flex", gap:6, marginTop:8 }}>
-                        <button style={S.btnUse} onClick={() => { setDest(f); setDestText(f.name); setShowRoute(false); setRoutes([]); setSteps([]); setActiveTab("route"); }}>{MESSAGES.use}</button>
-                        <button style={S.btnRemove} onClick={() => setFavorites(prev => prev.filter(x => x.id !== f.id))}>{MESSAGES.remove}</button>
-                      </div>
-                    </div>
-                  ))
-            )}
-
-            {/* Chat removed - now displayed in main area */}
-          </div>
+                {/* Go to Dashboard Button */}
+                <button 
+                  onClick={() => navigate("/dashboard")}
+                  style={{
+                    width: "100%",
+                    padding: "12px 16px",
+                    borderRadius: 14,
+                    border: `1.5px solid rgba(224,177,92,.25)`,
+                    background: document.documentElement.getAttribute('data-theme') !== 'light' 
+                      ? "rgba(12,13,25,.6)" 
+                      : "rgba(255,255,255,.9)",
+                    color: document.documentElement.getAttribute('data-theme') !== 'light' 
+                      ? "rgba(255,255,255,.85)" 
+                      : "#475569",
+                    fontFamily: "'DM Sans',sans-serif",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 8,
+                    flexShrink: 0,
+                    transition: "all .2s",
+                    boxShadow: document.documentElement.getAttribute('data-theme') !== 'light' 
+                      ? "0 8px 24px rgba(224,177,92,.12), inset 0 1px 0 rgba(255,255,255,.06)"
+                      : "0 8px 20px rgba(15,23,42,.08)",
+                  }}
+                  onMouseEnter={e => {
+                    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                    if (isDark) {
+                      e.currentTarget.style.background = "rgba(12,13,25,.75)";
+                      e.currentTarget.style.borderColor = "rgba(224,177,92,.4)";
+                      e.currentTarget.style.boxShadow = "0 10px 32px rgba(224,177,92,.18), inset 0 1px 0 rgba(255,255,255,.08)";
+                    } else {
+                      e.currentTarget.style.background = "rgba(255,255,255,.96)";
+                      e.currentTarget.style.boxShadow = "0 10px 28px rgba(15,23,42,.12)";
+                    }
+                  }}
+                  onMouseLeave={e => {
+                    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+                    if (isDark) {
+                      e.currentTarget.style.background = "rgba(12,13,25,.6)";
+                      e.currentTarget.style.borderColor = "rgba(224,177,92,.25)";
+                      e.currentTarget.style.boxShadow = "0 8px 24px rgba(224,177,92,.12), inset 0 1px 0 rgba(255,255,255,.06)";
+                    } else {
+                      e.currentTarget.style.background = "rgba(255,255,255,.9)";
+                      e.currentTarget.style.boxShadow = "0 8px 20px rgba(15,23,42,.08)";
+                    }
+                  }}
+                  aria-label="Go to Dashboard"
+                >
+                  <BarChart3 size={16} style={{ flexShrink: 0 }} />
+                  <span style={{ flex: 1, textAlign: "center" }}>Go to Dashboard</span>
+                  <ArrowRight size={16} style={{ flexShrink: 0 }} />
+                </button>
+              </div>
+            </div>
           )}
 
           </aside>
 
           {/* Toggle */}
-          <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 396 : 16 }} aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}>
+          <button onClick={() => setSidebarOpen(o => !o)} style={{ ...S.toggleBtn, left: sidebarOpen ? 416 : 16 }} aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}>
             {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
           </button>
 
@@ -1083,34 +1250,34 @@ const getThemeStyles = (colors) => {
 
   const shadow = isLight
     ? "0 12px 30px rgba(15,23,42,.08)"
-    : "0 14px 35px rgba(0,0,0,.35)";
+    : "0 18px 42px rgba(0,0,0,.45)";
 
   return {
     input: {
       width: "100%",
-      paddingLeft: 38,
-      paddingRight: 38,
-      paddingTop: 12,
-      paddingBottom: 12,
+      paddingLeft: 42,
+      paddingRight: 42,
+      paddingTop: isLight ? 12 : 14,
+      paddingBottom: isLight ? 12 : 14,
       border: `1px solid ${colors.cardBorder}`,
-      borderRadius: 14,
-      fontSize: 13,
+      borderRadius: isLight ? 14 : 16,
+      fontSize: isLight ? 13 : 13.5,
       fontFamily: "'DM Sans',sans-serif",
-      background: colors.inputBg,
+      background: isLight ? colors.inputBg : "rgba(255,255,255,.07)",
       color: colors.text,
       outline: "none",
       transition: "border-color .2s, box-shadow .2s, background .2s",
-      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
-      marginBottom: 10,
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "0 10px 28px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.08)",
+      marginBottom: 12,
     },
     spinner: {
       position: "absolute",
-      right: 12,
+      right: 14,
       top: "50%",
       transform: "translateY(-50%)",
-      width: 14,
-      height: 14,
-      border: `2px solid ${colors.gold}`,
+      width: 16,
+      height: 16,
+      border: `2.5px solid ${colors.gold}`,
       borderTopColor: "transparent",
       borderRadius: "50%",
       animation: "tm-spin .7s linear infinite",
@@ -1118,23 +1285,24 @@ const getThemeStyles = (colors) => {
     dropdown: {
       position: "absolute",
       width: "100%",
-      top: "calc(100% + 6px)",
-      background: colors.dropdownBg,
-      borderRadius: 14,
+      top: "calc(100% + 8px)",
+      background: isLight ? colors.dropdownBg : "rgba(13,14,26,.96)",
+      borderRadius: 16,
       border: `1px solid ${colors.cardBorder}`,
-      boxShadow: isLight ? "0 18px 45px rgba(15,23,42,.16)" : "0 18px 45px rgba(0,0,0,.55)",
-      maxHeight: 220,
+      boxShadow: isLight ? "0 18px 45px rgba(15,23,42,.16)" : "0 24px 56px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06)",
+      maxHeight: 240,
       overflowY: "auto",
       zIndex: 9999,
       animation: "tm-fade .15s ease",
+      backdropFilter: isLight ? "none" : "blur(12px)",
     },
     dropItem: {
-      padding: "11px 14px",
-      fontSize: 12,
-      color: colors.textSecondary,
+      padding: "12px 16px",
+      fontSize: 12.5,
+      color: isLight ? colors.textSecondary : "rgba(255,255,255,.65)",
       cursor: "pointer",
-      borderBottom: `1px solid ${isLight ? "rgba(226,232,240,.9)" : "rgba(255,255,255,.05)"}`,
-      transition: "background .15s",
+      borderBottom: `1px solid ${isLight ? "rgba(226,232,240,.9)" : "rgba(255,255,255,.04)"}`,
+      transition: "background .15s, color .15s",
       lineHeight: 1.45,
     },
     tabBtn: {
@@ -1150,14 +1318,14 @@ const getThemeStyles = (colors) => {
     },
     modeBtn: {
       flex: 1,
-      padding: "10px 0",
-      borderRadius: 12,
+      padding: isLight ? "10px 0" : "12px 0",
+      borderRadius: isLight ? 12 : 14,
       border: `1px solid ${colors.cardBorder}`,
       cursor: "pointer",
       fontFamily: "'DM Sans',sans-serif",
       fontWeight: 700,
-      fontSize: 12,
-      background: colors.cardBg,
+      fontSize: 12.5,
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.04)",
       color: colors.textTertiary,
       transition: "all .2s",
       justifyContent: "center",
@@ -1166,162 +1334,170 @@ const getThemeStyles = (colors) => {
       background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
       color: "#ffffff",
       borderColor: "transparent",
-      boxShadow: `0 10px 24px ${colors.gold25}`,
+      boxShadow: isLight ? `0 10px 24px ${colors.gold25}` : `0 14px 36px rgba(224,177,92,.32)`,
     },
     btnSec: {
       flex: 1,
-      padding: 10,
-      borderRadius: 12,
+      padding: isLight ? 10 : 12,
+      borderRadius: isLight ? 12 : 14,
       border: `1px solid ${colors.cardBorder}`,
-      background: colors.cardBg,
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.05)",
       color: colors.textSecondary,
       fontFamily: "'DM Sans',sans-serif",
       fontWeight: 700,
-      fontSize: 12,
+      fontSize: 12.5,
       cursor: "pointer",
       justifyContent: "center",
+      transition: "all .2s",
     },
     btnGold: {
-      padding: "10px 16px",
-      borderRadius: 12,
+      padding: isLight ? "10px 16px" : "12px 18px",
+      borderRadius: isLight ? 12 : 14,
       border: "none",
       background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
-      color: "#ffffff",
+      color: isLight ? "#ffffff" : "#0a0b14",
       fontFamily: "'DM Sans',sans-serif",
       fontWeight: 800,
-      fontSize: 12,
+      fontSize: 12.5,
       cursor: "pointer",
-      boxShadow: `0 10px 24px ${colors.gold25}`,
+      boxShadow: isLight ? `0 10px 24px ${colors.gold25}` : `0 12px 32px rgba(224,177,92,.28)`,
       justifyContent: "center",
+      transition: "all .2s",
     },
     btnRoute: {
       width: "100%",
-      padding: 14,
-      borderRadius: 14,
+      padding: isLight ? 14 : 16,
+      borderRadius: isLight ? 14 : 16,
       border: "none",
       background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
-      color: "#ffffff",
+      color: isLight ? "#ffffff" : "#0a0b14",
       fontFamily: "'Syne',sans-serif",
       fontWeight: 800,
-      fontSize: 13,
+      fontSize: isLight ? 13 : 14,
       cursor: "pointer",
-      letterSpacing: ".4px",
-      boxShadow: `0 12px 28px ${colors.gold3}`,
+      letterSpacing: isLight ? ".4px" : ".5px",
+      boxShadow: isLight ? `0 12px 28px ${colors.gold3}` : `0 16px 42px rgba(224,177,92,.32)`,
+      transition: "all .2s",
     },
     card: {
-      background: colors.cardBg,
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.05)",
       border: `1px solid ${colors.cardBorder}`,
-      borderRadius: 16,
-      padding: 15,
+      borderRadius: isLight ? 16 : 18,
+      padding: isLight ? 15 : 18,
       animation: "tm-fade .2s ease",
-      boxShadow: isLight ? "0 10px 28px rgba(15,23,42,.05)" : "none",
+      boxShadow: isLight ? "0 10px 28px rgba(15,23,42,.05)" : "0 12px 32px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05)",
+      backdropFilter: isLight ? "none" : "blur(14px)",
     },
     cardTitle: {
       fontFamily: "'Syne',sans-serif",
       fontWeight: 800,
       fontSize: 10,
-      letterSpacing: 1.6,
+      letterSpacing: 1.8,
       textTransform: "uppercase",
       color: colors.gold,
-      marginBottom: 10,
+      marginBottom: 12,
     },
     routeAlt: {
-      padding: "11px 12px",
-      borderRadius: 12,
+      padding: isLight ? "11px 12px" : "13px 14px",
+      borderRadius: isLight ? 12 : 14,
       cursor: "pointer",
       border: "1px solid",
       background: "transparent",
       textAlign: "left",
       width: "100%",
-      marginBottom: 7,
+      marginBottom: 8,
       transition: "all .2s",
     },
     nearbyCard: {
-      background: colors.cardBg,
-      borderRadius: 14,
-      padding: "12px 13px",
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.05)",
+      borderRadius: isLight ? 14 : 16,
+      padding: isLight ? "12px 13px" : "14px 15px",
       border: `1px solid ${colors.cardBorder}`,
       display: "flex",
       alignItems: "center",
-      gap: 11,
+      gap: 13,
       cursor: "pointer",
       transition: "border-color .2s, box-shadow .2s, transform .2s",
       animation: "tm-fade .15s ease",
-      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "0 10px 28px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.05)",
     },
     favItem: {
-      background: colors.cardBg,
-      borderRadius: 14,
-      padding: 13,
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.05)",
+      borderRadius: isLight ? 14 : 16,
+      padding: isLight ? 13 : 15,
       border: `1px solid ${colors.cardBorder}`,
       animation: "tm-fade .15s ease",
-      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "none",
+      boxShadow: isLight ? "0 8px 22px rgba(15,23,42,.04)" : "0 10px 28px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.05)",
     },
     btnUse: {
-      padding: "6px 12px",
-      borderRadius: 8,
+      padding: "7px 14px",
+      borderRadius: isLight ? 8 : 10,
       border: "none",
       background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
-      color: "#ffffff",
-      fontSize: 11,
+      color: isLight ? "#ffffff" : "#0a0b14",
+      fontSize: 11.5,
       fontWeight: 700,
       cursor: "pointer",
+      transition: "all .2s",
     },
     btnRemove: {
-      padding: "6px 10px",
-      borderRadius: 8,
-      border: `1px solid ${isLight ? "rgba(220,38,38,.2)" : "rgba(255,100,100,.2)"}`,
-      background: isLight ? "rgba(220,38,38,.07)" : "rgba(255,80,80,.07)",
+      padding: "7px 12px",
+      borderRadius: isLight ? 8 : 10,
+      border: `1px solid ${isLight ? "rgba(220,38,38,.2)" : "rgba(248,113,113,.25)"}`,
+      background: isLight ? "rgba(220,38,38,.07)" : "rgba(248,113,113,.08)",
       color: colors.errorRed,
-      fontSize: 11,
+      fontSize: 11.5,
       fontWeight: 700,
       cursor: "pointer",
+      transition: "all .2s",
     },
     toggleBtn: {
       position: "absolute",
       zIndex: 1002,
-      top: 82,
-      width: 42,
-      height: 42,
+      top: 104,
+      width: 44,
+      height: 44,
       background: `linear-gradient(135deg,${colors.goldGradientStart},${colors.goldGradientEnd})`,
       border: "none",
       borderRadius: 14,
-      color: "#ffffff",
+      color: isLight ? "#ffffff" : "#0a0b14",
       cursor: "pointer",
-      boxShadow: `0 10px 26px ${colors.gold3}`,
+      boxShadow: isLight ? `0 10px 26px ${colors.gold3}` : `0 14px 38px rgba(224,177,92,.32)`,
       transition: "left .35s cubic-bezier(.4,0,.2,1)",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
+      fontWeight: 700,
     },
     ctrlBtn: {
       width: 44,
       height: 44,
       borderRadius: 14,
       border: `1px solid ${colors.sidebarBorder}`,
-      background: isLight ? "rgba(255,255,255,.94)" : `${colors.background}dd`,
+      background: isLight ? "rgba(255,255,255,.94)" : "rgba(12,13,25,.7)",
       color: colors.text,
       fontSize: 18,
       cursor: "pointer",
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      boxShadow: shadow,
+      boxShadow: isLight ? shadow : "0 12px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.08)",
       transition: "background .2s, transform .2s",
       fontFamily: "'DM Sans',sans-serif",
+      backdropFilter: isLight ? "none" : "blur(10px)",
     },
     ctrlActive: {
-      background: isLight ? "rgba(5,150,105,.12)" : "rgba(52,211,153,.15)",
-      borderColor: "rgba(52,211,153,.4)",
+      background: isLight ? "rgba(5,150,105,.12)" : "rgba(52,211,153,.2)",
+      borderColor: isLight ? "rgba(52,211,153,.3)" : "rgba(52,211,153,.5)",
       color: colors.emerald,
     },
     empty: {
       textAlign: "center",
-      padding: "52px 18px",
+      padding: isLight ? "52px 18px" : "58px 20px",
       color: colors.textTertiary,
-      fontSize: 13,
+      fontSize: isLight ? 13 : 13.5,
       lineHeight: 1.7,
-      background: colors.cardBg,
+      background: isLight ? colors.cardBg : "rgba(255,255,255,.04)",
       border: `1px dashed ${colors.cardBorder}`,
       borderRadius: 16,
     },

@@ -31,15 +31,27 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
   const [loadingPending, setLoadingPending] = useState(false);
 
   const inputRef = useRef(null);
+  const abortControllerRef = useRef(null); // Track pending requests
 
   // ──── EFFECTS ────
   useEffect(() => {
     if (isOpen) {
       generateInviteLink();
-      fetchSuggestedPeople();
+      fetchSuggestedPeople('');
       fetchPendingInvitations();
     }
   }, [isOpen, tripId]);
+
+  // Debounced search effect
+  useEffect(() => {
+    const debounceTimer = setTimeout(() => {
+      if (activeTab === 'people') {
+        fetchSuggestedPeople(searchQuery);
+      }
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, activeTab, tripId]);
 
   // ──── FUNCTIONS ────
 
@@ -95,18 +107,31 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
   };
 
   /**
-   * Fetch suggested people based on interest similarity
+   * Fetch suggested people based on interest similarity or search query
    */
-  const fetchSuggestedPeople = async () => {
+  const fetchSuggestedPeople = async (query = '') => {
     try {
+      // Cancel previous request if still pending
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+      
+      abortControllerRef.current = new AbortController();
       setLoadingPeople(true);
       setError('');
 
-      const response = await fetch(`http://127.0.0.1:8000/api/users/suggestions/?trip_id=${tripId}`, {
+      // Build URL with query parameter if search is provided
+      let url = `http://127.0.0.1:8000/api/users/suggestions/?trip_id=${tripId}`;
+      if (query && query.trim().length >= 2) {
+        url += `&q=${encodeURIComponent(query.trim())}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
           'Content-Type': 'application/json'
-        }
+        },
+        signal: abortControllerRef.current.signal
       });
 
       if (response.ok) {
@@ -118,53 +143,22 @@ const TripInviteModal = ({ tripId, tripTitle, onClose, isOpen, currentUserId, is
         setSuggestedPeople([]);
       }
     } catch (err) {
-      setError('Failed to load suggested people');
-      console.error(err);
-      setSuggestedPeople([]);
+      // Don't show error for aborted requests
+      if (err.name !== 'AbortError') {
+        setError('Failed to load suggested people');
+        console.error(err);
+        setSuggestedPeople([]);
+      }
     } finally {
       setLoadingPeople(false);
     }
   };
 
   /**
-   * Filter and sort people by search query and priority
-   * Priority: 1) Friends 2) Similar interests 3) Name match
+   * Backend now handles filtering, so use suggested people directly
+   * Results are already sorted by relevance (friends first, then similarity)
    */
-  const filteredPeople = suggestedPeople
-    .filter(person => {
-      // If search is empty, show all
-      if (!searchQuery.trim()) return true;
-      // Otherwise filter by name or interests
-      return (
-        person.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        person.interests.some(interest =>
-          interest.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    })
-    .sort((a, b) => {
-      const query = searchQuery.toLowerCase().trim();
-      
-      // 1. Friends first
-      const aIsFriend = a.is_friend ? 1 : 0;
-      const bIsFriend = b.is_friend ? 1 : 0;
-      if (aIsFriend !== bIsFriend) return bIsFriend - aIsFriend;
-      
-      // 2. For name search, prioritize exact/close name matches
-      if (query) {
-        const aNameMatch = a.name.toLowerCase().includes(query) ? 1 : 0;
-        const bNameMatch = b.name.toLowerCase().includes(query) ? 1 : 0;
-        if (aNameMatch !== bNameMatch) return bNameMatch - aNameMatch;
-      }
-      
-      // 3. Sort by similarity (high first)
-      const aSimilarity = a.similarity || 0;
-      const bSimilarity = b.similarity || 0;
-      if (aSimilarity !== bSimilarity) return bSimilarity - aSimilarity;
-      
-      // 4. Fallback: alphabetical by name
-      return a.name.localeCompare(b.name);
-    });
+  const filteredPeople = suggestedPeople;
 
   /**
    * Invite a person to the trip
