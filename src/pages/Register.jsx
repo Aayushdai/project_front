@@ -53,7 +53,7 @@ const VALIDATION_ERRORS = {
   // Phone
   phoneRequired: "Phone number is required",
   phoneTooShort: "Phone number must be exactly 10 digits",
-  phoneStartInvalid: "Phone number must start with 984, 985, 986, or 974",
+  phoneStartInvalid: "Phone number must start with 980, 981, 982, 984, 985, 986, or 974",
   // Email
   emailRequired: "Email is required",
   emailTooLong: "Email must be less than 100 characters",
@@ -216,7 +216,7 @@ const VALIDATORS = {
     if (!v.trim()) return VALIDATION_ERRORS.phoneRequired;
     const cleaned = v.replace(/[\s\-().+]/g, "");
     if (!/^\d{10}$/.test(cleaned)) return VALIDATION_ERRORS.phoneTooShort;
-    if (!/^(984|985|986|974)\d{7}$/.test(cleaned)) return VALIDATION_ERRORS.phoneStartInvalid;
+    if (!/^(980|981|982|984|985|986|974)\d{7}$/.test(cleaned)) return VALIDATION_ERRORS.phoneStartInvalid;
     return "";
   },
   email: (v) => {

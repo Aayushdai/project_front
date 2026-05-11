@@ -1312,6 +1312,15 @@ export default function Dashboard() {
       });
 
       const combined = [...userTripsCreated, ...userTripsJoined];
+      
+      // Filter out ended trips from myTrips (only show active/upcoming trips)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const activeTrips = combined.filter((t) => {
+        if (!t.end_date) return true; // Include trips without end_date
+        const endDate = new Date(t.end_date);
+        return endDate >= today; // Only include trips that haven't ended yet
+      });
 
       // Use recommended trips if available, otherwise fallback to basic filtering
       const publicTrips =
@@ -1319,10 +1328,10 @@ export default function Dashboard() {
           ? recommendedTrips
           : allTrips.filter(
               (t) =>
-                t.is_public && !combined.some((mt) => mt.id === t.id)
+                t.is_public && !activeTrips.some((mt) => mt.id === t.id)
             );
 
-      setMyTrips(combined);
+      setMyTrips(activeTrips);
       setAvailableTrips(publicTrips);
       setStats({
         created: userTripsCreated.length,
@@ -2129,6 +2138,7 @@ export default function Dashboard() {
                             key={trip.id}
                             trip={trip}
                             isCreator={trip.creator?.id === userProfileId}
+                            isParticipant={true}
                             onView={() => navigate(`/trip/${trip.id}`)}
                             kycApproved={userProfile?.status === "approved"}
                           />

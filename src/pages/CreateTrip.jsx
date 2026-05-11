@@ -172,6 +172,12 @@ export default function CreateTrip() {
     return today.toISOString().split('T')[0];
   };
 
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -180,10 +186,10 @@ export default function CreateTrip() {
       return;
     }
 
-    // Validate that start date is not before today
+    // Validate that start date is at least tomorrow
     const today = getTodayDate();
-    if (form.start_date < today) {
-      setError("Trip start date cannot be before today");
+    if (form.start_date <= today) {
+      setError("Trips can only be created starting from tomorrow.");
       return;
     }
 
@@ -358,7 +364,7 @@ export default function CreateTrip() {
                   name="start_date"
                   value={form.start_date}
                   onChange={handleChange}
-                  min={getTodayDate()}
+                  min={getTomorrowDate()}
                   className={inp}
                 />
               </div>
@@ -369,7 +375,7 @@ export default function CreateTrip() {
                   name="end_date"
                   value={form.end_date}
                   onChange={handleChange}
-                  min={form.start_date || getTodayDate()}
+                  min={form.start_date || getTomorrowDate()}
                   className={inp}
                 />
               </div>
