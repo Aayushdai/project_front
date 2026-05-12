@@ -28,6 +28,11 @@ const MODAL_LABELS = {
   accommodation: "Accommodation",
   changePhoto: "Change photo",
   interests: "Interests",
+  about: "About",
+  diet: "Diet",
+  smoking: "Smoking",
+  drinking: "Drinking",
+  experience: "Experience",
 };
 
 const MODAL_PLACEHOLDERS = {
@@ -117,6 +122,7 @@ export default function EditModal({ profile, onClose, onSaved }) {
     adventure_level: profile.adventure_level ?? 5,
     social_level: profile.social_level ?? 5,
     interests: profile.interests || [],
+    constraint_tags: profile.constraint_tags || [],
   });
 
   const [photoFile, setPhotoFile] = useState(null);
@@ -126,6 +132,8 @@ export default function EditModal({ profile, onClose, onSaved }) {
   const [tagsOpen, setTagsOpen] = useState(false);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [groupedTags, setGroupedTags] = useState({});
+  const [constraintTagsLoading, setConstraintTagsLoading] = useState(false);
+  const [absoluteTagsMap, setAbsoluteTagsMap] = useState({});
   const fileRef = useRef();
 
   // Load interests from API
@@ -153,6 +161,57 @@ export default function EditModal({ profile, onClose, onSaved }) {
       }
     };
     loadTags();
+  }, []);
+
+  // Load constraint tags (absolute tags) from API
+  useEffect(() => {
+    const loadConstraintTags = async () => {
+      try {
+        setConstraintTagsLoading(true);
+        const res = await fetch(`${getApiUrl()}/api/users/constraint-tags/`, {
+          headers: { Authorization: `Bearer ${token()}` },
+        });
+        if (res.ok) {
+          const tags = await res.json();
+          // Map constraint tags into absolute tag categories
+          const absoluteMap = {
+            diet: [],
+            smoking: [],
+            drinking: [],
+            experience: [],
+          };
+          
+          tags.forEach(tag => {
+            // Map diet tags
+            if (tag.category === 'diet') {
+              if (['Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Gluten-free', 'Dairy-free'].includes(tag.name)) {
+                absoluteMap.diet.push(tag);
+              }
+            }
+            // Map smoking tags
+            else if (tag.category === 'lifestyle' && ['Smoker', 'Non-smoker'].includes(tag.name)) {
+              absoluteMap.smoking.push(tag);
+            }
+            // Map drinking tags
+            else if (tag.category === 'lifestyle' && ['Drinks Alcohol', 'Non-drinker'].includes(tag.name)) {
+              absoluteMap.drinking.push(tag);
+            }
+            // Map experience tags (using Adventure Seeker and similar for now)
+            else if (tag.category === 'values' && ['Adventure Seeker', 'Quiet Traveler', 'Social Butterfly', 'Introvert', 'Extrovert'].includes(tag.name)) {
+              absoluteMap.experience.push(tag);
+            }
+          });
+          
+          setAbsoluteTagsMap(absoluteMap);
+          console.log("✅ Loaded absolute tags:", absoluteMap);
+        }
+      } catch (e) {
+        console.error("Failed to load constraint tags:", e);
+      } finally {
+        setConstraintTagsLoading(false);
+      }
+    };
+    loadConstraintTags();
   }, []);
 
   const set = (k) => (e) => {
@@ -187,6 +246,38 @@ export default function EditModal({ profile, onClose, onSaved }) {
     }));
   };
 
+  const toggleConstraintTag = (tagId, category, tagName) => {
+    setForm(f => {
+      const current = f.constraint_tags || [];
+      const exists = current.some(t => t.id === tagId);
+      return {
+        ...f,
+        constraint_tags: exists
+          ? current.filter(t => t.id !== tagId)
+          : [...current, { id: tagId, category, name: tagName }]
+      };
+    });
+  };
+
+  const removeConstraintTag = (tagId) => {
+    setForm(f => ({
+      ...f,
+      constraint_tags: (f.constraint_tags || []).filter(t => t.id !== tagId)
+    }));
+  };
+
+  const getDisplayAge = () => {
+    if (!profile.dob) return "Not set";
+    const today = new Date();
+    const birthDate = new Date(profile.dob);
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -212,6 +303,11 @@ export default function EditModal({ profile, onClose, onSaved }) {
           const tagIds = v.map(t => t.id);
           console.log("📤 Sending interests:", { form: form.interests, tagIds });
           fd.append('interest_ids', JSON.stringify(tagIds));
+        } else if (k === 'constraint_tags') {
+          // Send constraint tag IDs as JSON array
+          const constraintTagIds = v.map(t => t.id);
+          console.log("📤 Sending constraint tags:", { form: form.constraint_tags, constraintTagIds });
+          fd.append('constraint_tag_ids', JSON.stringify(constraintTagIds));
         } else {
           fd.append(k, v);
         }
@@ -398,6 +494,179 @@ export default function EditModal({ profile, onClose, onSaved }) {
                     </div>
                   ))
                 )}
+              </div>
+            )}
+          </div>
+
+          {/* ─── ABOUT SECTION (ABSOLUTE TAGS) ─── */}
+          <div className="h-px bg-white/6" />
+          <div className="flex flex-col gap-3">
+            <label style={{ fontFamily: FONTS.body }} className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[var(--text-faintest)]">{MODAL_LABELS.about}</label>
+            
+            {/* Auto-populated: Gender & Age (locked) */}
+            <div className="flex gap-2">
+              <div className="flex-1 rounded-lg border border-[var(--border)]/50 bg-[var(--surface)]/30 px-3 py-2">
+                <p style={{ fontFamily: FONTS.body }} className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-faintest)] mb-1">Gender</p>
+                <p style={{ fontFamily: FONTS.body }} className="text-sm text-[var(--text)]">{profile.gender || "Not set"}</p>
+              </div>
+              <div className="flex-1 rounded-lg border border-[var(--border)]/50 bg-[var(--surface)]/30 px-3 py-2">
+                <p style={{ fontFamily: FONTS.body }} className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-faintest)] mb-1">Age</p>
+                <p style={{ fontFamily: FONTS.body }} className="text-sm text-[var(--text)]">{getDisplayAge()}</p>
+              </div>
+            </div>
+
+            {/* Selected absolute tags */}
+            {form.constraint_tags && form.constraint_tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {form.constraint_tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => removeConstraintTag(tag.id)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[#8B5CF6]/40 border border-[#8B5CF6] px-3 py-1.5 text-[11px] font-semibold text-[#C8A2FF] hover:bg-[#8B5CF6]/60 transition"
+                  >
+                    <span>{tag.name || tag.id}</span>
+                    <X className="w-3 h-3" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {(!form.constraint_tags || form.constraint_tags.length === 0) && (
+              <p style={{ fontFamily: FONTS.body }} className="text-xs text-[var(--text-lighter)] italic">Select your lifestyle preferences...</p>
+            )}
+          </div>
+
+          {/* Absolute tags dropdowns - Diet, Smoking, Drinking, Experience */}
+          <div className="space-y-2">
+            {/* Diet */}
+            {absoluteTagsMap.diet && absoluteTagsMap.diet.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  style={{ fontFamily: FONTS.body }}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
+                >
+                  + {MODAL_LABELS.diet}
+                </button>
+                <div className="mt-2 space-y-1">
+                  {absoluteTagsMap.diet.map((tag) => {
+                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
+                          isSelected
+                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
+                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
+                        }`}
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Smoking */}
+            {absoluteTagsMap.smoking && absoluteTagsMap.smoking.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  style={{ fontFamily: FONTS.body }}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
+                >
+                  + {MODAL_LABELS.smoking}
+                </button>
+                <div className="mt-2 space-y-1">
+                  {absoluteTagsMap.smoking.map((tag) => {
+                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
+                          isSelected
+                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
+                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
+                        }`}
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Drinking */}
+            {absoluteTagsMap.drinking && absoluteTagsMap.drinking.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  style={{ fontFamily: FONTS.body }}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
+                >
+                  + {MODAL_LABELS.drinking}
+                </button>
+                <div className="mt-2 space-y-1">
+                  {absoluteTagsMap.drinking.map((tag) => {
+                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
+                          isSelected
+                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
+                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
+                        }`}
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Experience */}
+            {absoluteTagsMap.experience && absoluteTagsMap.experience.length > 0 && (
+              <div className="relative">
+                <button
+                  type="button"
+                  style={{ fontFamily: FONTS.body }}
+                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
+                >
+                  + {MODAL_LABELS.experience}
+                </button>
+                <div className="mt-2 space-y-1">
+                  {absoluteTagsMap.experience.map((tag) => {
+                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
+                          isSelected
+                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
+                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
+                        }`}
+                        style={{ fontFamily: FONTS.body }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

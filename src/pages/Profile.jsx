@@ -126,6 +126,25 @@ const AccommIcon = ({ accomm }) => {
   return <Icon style={{ color, width: 20, height: 20 }} />;
 };
 
+// ─── helper: extract constraint tag values ────────────────────────────────────
+const getConstraintTagValue = (constraintTags, category) => {
+  if (!Array.isArray(constraintTags)) return null;
+  return constraintTags.find(tag => tag.category === category)?.name || null;
+};
+
+// ─── helper: calculate age from DOB ───────────────────────────────────────────
+const calculateAge = (dob) => {
+  if (!dob) return null;
+  const birthDate = new Date(dob);
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+};
+
 // ─── vibe bar ────────────────────────────────────────────────────────────────
 function VibeBar({ label, value, left, right }) {
   return (
@@ -183,6 +202,11 @@ function ProfilePage() {
         // Normalize interests from various possible field names
         const interests = d.interests || d.tags || d.travel_tags || d.preference_tags || [];
         d.interests = Array.isArray(interests) ? interests : [];
+        
+        // Normalize constraint tags
+        const constraintTags = d.constraint_tags || [];
+        d.constraint_tags = Array.isArray(constraintTags) ? constraintTags : [];
+        
         setProfile(d);
         setLoading(false);
       })
@@ -562,6 +586,160 @@ function ProfilePage() {
                     </div>
                   </div>
 
+                  {/* ── About Section (Absolute Preferences) ── */}
+                  <div style={{ marginTop: 32 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                      <p style={{ 
+                        fontFamily: FONTS.body, 
+                        fontSize: 11, 
+                        fontWeight: 600, 
+                        textTransform: "uppercase", 
+                        letterSpacing: "0.15em", 
+                        color: "var(--text-lighter)",
+                        margin: 0
+                      }}>
+                        ABOUT <span style={{ color: "var(--text-faintest)", fontWeight: 400 }}>(Absolute Preferences)</span>
+                      </p>
+                      <div style={{
+                        width: 16,
+                        height: 16,
+                        borderRadius: "50%",
+                        border: "1.5px solid var(--text-faintest)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 11,
+                        color: "var(--text-faintest)",
+                        fontWeight: 600,
+                        cursor: "help",
+                        fontFamily: FONTS.body,
+                      }} title="About tags are absolute preferences that carry 20% higher priority in matching and recommendations">
+                        i
+                      </div>
+                    </div>
+
+                    {/* About Pills/Cards */}
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
+                      {[
+                        { icon: "🌱", label: getConstraintTagValue(profile.constraint_tags, "diet") || "Diet", locked: true },
+                        { icon: "🚭", label: getConstraintTagValue(profile.constraint_tags, "lifestyle")?.includes("Smoker") ? "Smoker" : "Non-Smoker", locked: true },
+                        { icon: "🍷", label: getConstraintTagValue(profile.constraint_tags, "lifestyle")?.includes("Drinks") ? "Drinker" : "Non-Drinker", locked: true },
+                        { icon: "👤", label: getConstraintTagValue(profile.constraint_tags, "experience") || "Traveler", locked: true },
+                        { icon: "♂", label: profile.gender || "Gender", locked: true },
+                        { icon: "🎂", label: calculateAge(profile.dob) ? `Age: ${calculateAge(profile.dob)}` : "Age: —", locked: true },
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          style={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "10px 16px",
+                            borderRadius: 12,
+                            background: "var(--surface)",
+                            border: "1px solid var(--border-card)",
+                            fontSize: 14,
+                            fontWeight: 500,
+                            fontFamily: FONTS.body,
+                            color: "var(--text)",
+                          }}
+                        >
+                          <span style={{ fontSize: 16 }}>{item.icon}</span>
+                          <span>{item.label}</span>
+                          {item.locked && (
+                            <svg 
+                              width="12" 
+                              height="12" 
+                              viewBox="0 0 12 12" 
+                              fill="none" 
+                              style={{ opacity: 0.4 }}
+                            >
+                              <rect x="3" y="5" width="6" height="5" rx="1" stroke="currentColor" strokeWidth="1.2"/>
+                              <path d="M4 5V3.5C4 2.67 4.67 2 5.5 2H6.5C7.33 2 8 2.67 8 3.5V5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                            </svg>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Edit About Button */}
+                    <div
+                      onClick={() => setEditing(true)}
+                      style={{
+                        padding: "14px 16px",
+                        borderRadius: 14,
+                        border: "1.5px dashed var(--border)",
+                        background: "var(--surface)",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        cursor: "pointer",
+                        transition: "border-color 0.2s, background 0.2s",
+                        marginBottom: 16,
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = "var(--accent-muted)";
+                        e.currentTarget.style.background = "var(--surface-hover)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = "var(--border)";
+                        e.currentTarget.style.background = "var(--surface)";
+                      }}
+                    >
+                      <span style={{ fontSize: 18, color: "var(--accent)" }}>+</span>
+                      <span style={{ 
+                        fontFamily: FONTS.body, 
+                        fontSize: 14, 
+                        color: "var(--text-lighter)",
+                        fontWeight: 400
+                      }}>
+                        Edit about
+                      </span>
+                    </div>
+
+                    {/* Info Banner */}
+                    <div style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 12,
+                      padding: "14px 16px",
+                      borderRadius: 14,
+                      background: "rgba(201, 168, 76, 0.08)",
+                      border: "1px solid rgba(201, 168, 76, 0.2)",
+                    }}>
+                      <div style={{
+                        width: 28,
+                        height: 28,
+                        flexShrink: 0,
+                        borderRadius: "50%",
+                        background: "rgba(201, 168, 76, 0.15)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}>
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                          <path d="M8 0L9.798 5.528L15.708 6.472L11.416 10.472L12.596 16L8 13.528L3.404 16L4.584 10.472L0.292 6.472L6.202 5.528L8 0Z" fill="var(--accent)"/>
+                        </svg>
+                      </div>
+                      <p style={{
+                        fontFamily: FONTS.body,
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: "var(--text-muted)",
+                        margin: 0,
+                      }}>
+                        About tags are absolute preferences that carry{" "}
+                        <span style={{ 
+                          fontWeight: 600, 
+                          color: "var(--accent)" 
+                        }}>
+                          20% higher priority
+                        </span>
+                        {" "}in matching and recommendations.
+                      </p>
+                    </div>
+                  </div>
+
                   {/* Interests/Tags - Always show section */}
                   <div style={{ borderRadius: 16, background: "var(--surface)", border: "0.5px solid var(--border-card)", padding: 20 }}>
                     <p style={{ fontFamily: FONTS.body, fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "var(--text-lighter)", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
@@ -689,6 +867,8 @@ function ProfilePage() {
                 ...updated,
                 // Ensure interests is always an array
                 interests: Array.isArray(updated.interests) ? updated.interests : [],
+                // Ensure constraint_tags is always an array
+                constraint_tags: Array.isArray(updated.constraint_tags) ? updated.constraint_tags : [],
               }));
               
               // Force full refresh to guarantee DB sync
@@ -698,7 +878,10 @@ function ProfilePage() {
                   .then(d => {
                     // Normalize interests
                     d.interests = Array.isArray(d.interests) ? d.interests : [];
+                    // Normalize constraint tags
+                    d.constraint_tags = Array.isArray(d.constraint_tags) ? d.constraint_tags : [];
                     console.log("✅ Profile refreshed with interests:", d.interests);
+                    console.log("✅ Profile refreshed with constraint_tags:", d.constraint_tags);
                     setProfile(d);
                     // Trigger recommendations refresh
                     window.dispatchEvent(new Event("profile-tags-updated"));
