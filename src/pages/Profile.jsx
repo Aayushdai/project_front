@@ -255,21 +255,20 @@ function ProfilePage() {
     const fetchUserPhotos = async () => {
       setPhotosLoading(true);
       try {
-        const res = await fetch(`${API}trips/`, { headers: { Authorization: `Bearer ${token()}` } });
+        // Fetch completed trips from history endpoint
+        const res = await fetch(`${API}trips/history/`, { headers: { Authorization: `Bearer ${token()}` } });
         const trips = await res.json();
         const tripsList = Array.isArray(trips) ? trips : trips.results || [];
         const photos = [];
         for (const trip of tripsList) {
-          if (new Date(trip.end_date) < new Date()) {
-            try {
-              const photoRes = await fetch(`${API}trips/${trip.id}/photos/`, { headers: { Authorization: `Bearer ${token()}` } });
-              if (photoRes.ok) {
-                const photoData = await photoRes.json();
-                const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
-                tripPhotos.forEach(photo => photos.push({ ...photo, trip }));
-              }
-            } catch (e) { console.error(`Failed to fetch photos for trip ${trip.id}:`, e); }
-          }
+          try {
+            const photoRes = await fetch(`${API}trips/${trip.id}/photos/`, { headers: { Authorization: `Bearer ${token()}` } });
+            if (photoRes.ok) {
+              const photoData = await photoRes.json();
+              const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
+              tripPhotos.forEach(photo => photos.push({ ...photo, trip }));
+            }
+          } catch (e) { console.error(`Failed to fetch photos for trip ${trip.id}:`, e); }
         }
         setUserPhotos(photos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at)));
       } catch (err) { console.error("Failed to fetch user photos:", err); }
@@ -458,7 +457,7 @@ function ProfilePage() {
                             onMouseLeave={e => e.currentTarget.style.borderColor = "var(--border-card)"}
                           >
                             <div style={{ position: "relative", aspectRatio: "16/9", overflow: "hidden", background: "var(--img-placeholder-bg)" }}>
-                              <img src={photo.image} alt={photo.caption || "trip photo"} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
+                              <img src={avatar(photo.image)} alt={photo.caption || "trip photo"} style={{ width: "100%", height: "100%", objectFit: "cover", transition: "transform 0.3s" }}
                                 onMouseEnter={e => e.currentTarget.style.transform = "scale(1.05)"}
                                 onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}
                               />
