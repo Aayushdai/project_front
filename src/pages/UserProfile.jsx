@@ -434,6 +434,8 @@ export default function UserProfile() {
     }
   };
 
+  const isOwnProfile = currentUser?.username === username;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#0a0c16] to-[#0f1219] p-6">
@@ -545,8 +547,6 @@ export default function UserProfile() {
     : userData.profile_picture
     ? `${API_URL}${userData.profile_picture}`
     : null;
-
-  const isOwnProfile = currentUser?.username === username;
 
   return (
     <>

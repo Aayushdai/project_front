@@ -266,7 +266,11 @@ function ProfilePage() {
             if (photoRes.ok) {
               const photoData = await photoRes.json();
               const tripPhotos = Array.isArray(photoData) ? photoData : photoData.results || [];
-              tripPhotos.forEach(photo => photos.push({ ...photo, trip }));
+              tripPhotos.forEach(photo => {
+                if (photo.uploaded_by === profile.id) {
+                  photos.push({ ...photo, trip });
+                }
+              });
             }
           } catch (e) { console.error(`Failed to fetch photos for trip ${trip.id}:`, e); }
         }
@@ -1032,6 +1036,29 @@ function ProfilePage() {
           outline: none;
           border-color: #ff6a00;
           box-shadow: 0 0 0 4px rgba(255, 106, 0, 0.12);
+        }
+
+        /* ── EDIT MODAL DARK MODE FIX ── */
+        [data-theme="dark"] .profile-root input,
+        [data-theme="dark"] .profile-root select,
+        [data-theme="dark"] .profile-root textarea {
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+          border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        
+        [data-theme="dark"] .profile-root input::placeholder,
+        [data-theme="dark"] .profile-root textarea::placeholder {
+          color: rgba(255, 255, 255, 0.35);
+        }
+        
+        [data-theme="dark"] .profile-root input:focus,
+        [data-theme="dark"] .profile-root select:focus,
+        [data-theme="dark"] .profile-root textarea:focus {
+          outline: none;
+          border-color: #C9A84C;
+          background: rgba(255, 255, 255, 0.12);
+          box-shadow: 0 0 0 4px rgba(201, 168, 76, 0.15);
         }
 
         /* ── Grid layout ── */

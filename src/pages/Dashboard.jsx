@@ -1270,6 +1270,7 @@ export default function Dashboard() {
     data: invitationsList = [],
     isLoading: invLoadingState,
   } = useInvitations(activeTab === "invitations"); // Fetch when tab is opened
+  const pendingInvitationsList = invitationsList.filter(inv => inv.status === "pending" && !inv.is_expired);
 
   const { data: cities = [] } = useCities(!!user);
 
@@ -1449,6 +1450,13 @@ export default function Dashboard() {
   };
 
   const handleRespondToInvitation = async (invitationId, action) => {
+    const invitation = invitationsList.find(inv => inv.id === invitationId);
+    if (!invitation || invitation.status !== "pending" || invitation.is_expired) {
+      setError("This invitation is no longer available.");
+      queryClient.invalidateQueries({ queryKey: ["invitations"] });
+      return;
+    }
+
     try {
       const res = await api.patch(
         `trips/invitations/${invitationId}/respond/`,
@@ -1469,6 +1477,7 @@ export default function Dashboard() {
       console.error(`Failed to ${action} invitation:`, err.message);
       setError(
         err.response?.data?.detail ||
+          err.response?.data?.message ||
           `Failed to ${action} invitation`
       );
     }
@@ -1963,7 +1972,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
                       <Loader2 size={24} style={{ animation: 'spin 1s linear infinite' }} />
                     </div>
-                  ) : invitationsList.length === 0 ? (
+                  ) : pendingInvitationsList.length === 0 ? (
                     <EmptyState 
                       icon={<Mail size={28} />} 
                       title="No invitations yet" 
@@ -1973,7 +1982,7 @@ export default function Dashboard() {
                     />
                   ) : (
                     <div style={{ display: 'grid', gap: '1rem', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))' }}>
-                      {invitationsList.map(inv => (
+                      {pendingInvitationsList.map(inv => (
                         <div
                           key={inv.id}
                           style={{
@@ -2530,10 +2539,38 @@ function CreateTripSection({ onTripCreated, setActiveTab }) {
     return expenses.reduce((sum, exp) => sum + exp.amount, 0);
   };
 
+  const getLocalDateString = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const getTodayDate = () => getLocalDateString(new Date());
+
+  const getTomorrowDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return getLocalDateString(tomorrow);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault(); 
     setLoading(true); 
     setError("");
+
+    if (!formData.description.trim()) {
+      setError("Description is required.");
+      setLoading(false);
+      return;
+    }
+
+    const today = getTodayDate();
+    if (formData.start_date <= today) {
+      setError("Trips can only be created starting from tomorrow.");
+      setLoading(false);
+      return;
+    }
     
     // Validate date range
     if (formData.start_date && formData.end_date) {
@@ -2541,19 +2578,11 @@ function CreateTripSection({ onTripCreated, setActiveTab }) {
       const endDate = new Date(formData.end_date);
       
       if (endDate < startDate) {
-        setError("End date cannot be before start date. No time travel allowed! 🚫");
+        setError("End date cannot be before start date.");
         setLoading(false);
         return;
       }
     }
-    
-    // DEBUG: Log expenses array
-    console.log(" FORM SUBMISSION DEBUG");
-    console.log("Expenses array:", expenses);
-    console.log("Expenses count:", expenses.length);
-    expenses.forEach((exp, idx) => {
-      console.log(`  [${idx}] ${exp.category}: Rs ${exp.amount}`);
-    });
     
     try {
       // Step 1: Create trip with cover image
@@ -2654,8 +2683,8 @@ function CreateTripSection({ onTripCreated, setActiveTab }) {
         </div>
 
         <div className="form-group">
-          <label className="form-label">Description</label>
-          <textarea className="form-textarea" name="description" value={formData.description} onChange={handleChange} placeholder="Tell others what this trip is about..." rows="4" />
+          <label className="form-label">Description *</label>
+          <textarea className="form-textarea" name="description" value={formData.description} onChange={handleChange} placeholder="Tell others what this trip is about..." rows="4" required />
         </div>
 
         {/* Cover Image Upload */}
@@ -2909,11 +2938,11 @@ function CreateTripSection({ onTripCreated, setActiveTab }) {
         <div className="form-group form-grid">
           <div>
             <label className="form-label">Start Date *</label>
-            <input className="form-input" type="date" name="start_date" value={formData.start_date} onChange={handleChange} required />
+            <input className="form-input" type="date" name="start_date" value={formData.start_date} onChange={handleChange} min={getTomorrowDate()} required />
           </div>
           <div>
             <label className="form-label">End Date *</label>
-            <input className="form-input" type="date" name="end_date" value={formData.end_date} onChange={handleChange} min={formData.start_date} required />
+            <input className="form-input" type="date" name="end_date" value={formData.end_date} onChange={handleChange} min={formData.start_date || getTomorrowDate()} required />
             {formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date) && (
               <div style={{ color: '#ff6b6b', fontSize: '0.75rem', marginTop: '4px' }}>
                 ⚠️ End date must be on or after start date
@@ -2937,7 +2966,7 @@ function CreateTripSection({ onTripCreated, setActiveTab }) {
           <button 
             type="submit" 
             className="form-submit" 
-            disabled={loading || (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date))}
+            disabled={loading || (formData.start_date && formData.start_date <= getTodayDate()) || (formData.start_date && formData.end_date && new Date(formData.end_date) < new Date(formData.start_date))}
           >
             {loading ? <><Loader2 size={15} className="db-spinner" /> Creating...</> : "Create Trip"}
           </button>

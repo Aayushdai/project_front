@@ -59,6 +59,24 @@ const FORM_LABELS = {
   soloRight: "Group",
 };
 
+const CONSTRAINT_TAG_CONFLICT_GROUPS = [
+  ["Vegetarian", "Vegan", "Pescatarian", "Non-vegetarian", "Non-Vegetarian"],
+  ["Smoker", "Non-smoker", "Non-Smoker"],
+  ["Drinks Alcohol", "Non-drinker", "Social Drinker"],
+  ["Introvert", "Extrovert"],
+  ["Quiet Traveler", "Social Butterfly"],
+];
+
+const normalizeConstraintTagName = (name) =>
+  String(name || "").trim().toLowerCase().replace(/[-_]+/g, " ").replace(/\s+/g, " ");
+
+const getConstraintConflictGroup = (tagName) => {
+  const normalizedTagName = normalizeConstraintTagName(tagName);
+  return CONSTRAINT_TAG_CONFLICT_GROUPS.find(group =>
+    group.some(name => normalizeConstraintTagName(name) === normalizedTagName)
+  );
+};
+
 const API = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
 const getApiUrl = () => {
   const backendUrl = process.env.REACT_APP_BACKEND_URL || "http://127.0.0.1:8000/api/";
@@ -184,7 +202,7 @@ export default function EditModal({ profile, onClose, onSaved }) {
           tags.forEach(tag => {
             // Map diet tags
             if (tag.category === 'diet') {
-              if (['Vegetarian', 'Vegan', 'Pescatarian', 'Halal', 'Kosher', 'Gluten-free', 'Dairy-free'].includes(tag.name)) {
+              if (['Vegetarian', 'Vegan', 'Pescatarian', 'Non-vegetarian', 'Non-Vegetarian', 'Halal', 'Kosher', 'Gluten-free', 'Dairy-free'].includes(tag.name)) {
                 absoluteMap.diet.push(tag);
               }
             }
@@ -250,11 +268,20 @@ export default function EditModal({ profile, onClose, onSaved }) {
     setForm(f => {
       const current = f.constraint_tags || [];
       const exists = current.some(t => t.id === tagId);
+      const conflictGroup = getConstraintConflictGroup(tagName);
+      const conflictNames = conflictGroup?.map(normalizeConstraintTagName) || [];
+      const withoutConflicts = conflictNames.length
+        ? current.filter(t => !conflictNames.includes(normalizeConstraintTagName(t.name)) || t.id === tagId)
+        : current;
+
       return {
         ...f,
         constraint_tags: exists
           ? current.filter(t => t.id !== tagId)
-          : [...current, { id: tagId, category, name: tagName }]
+          : [
+              ...withoutConflicts.filter(t => t.id !== tagId),
+              { id: tagId, category, name: tagName }
+            ]
       };
     });
   };
@@ -354,6 +381,36 @@ export default function EditModal({ profile, onClose, onSaved }) {
   }, []);
 
   const inp = "edit-profile-input w-full rounded-xl px-4 py-3 text-sm outline-none transition";
+
+  const AbsoluteTagDropdown = ({ label, tags = [] }) => {
+    if (!tags.length) return null;
+
+    return (
+      <details className="edit-profile-lifestyle-dropdown">
+        <summary style={{ fontFamily: FONTS.body }} className="edit-profile-lifestyle-summary">
+          <span>+ {label}</span>
+        </summary>
+        <div className="edit-profile-lifestyle-options">
+          {tags.map((tag) => {
+            const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
+            return (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
+                className={`edit-profile-lifestyle-option ${
+                  isSelected ? "edit-profile-lifestyle-option--selected" : ""
+                }`}
+                style={{ fontFamily: FONTS.body }}
+              >
+                {tag.name}
+              </button>
+            );
+          })}
+        </div>
+      </details>
+    );
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-md p-0 sm:p-4"
@@ -459,7 +516,7 @@ export default function EditModal({ profile, onClose, onSaved }) {
               type="button"
               onClick={() => setTagsOpen(!tagsOpen)}
               style={{ fontFamily: FONTS.body }}
-              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#C9A84C]/50 transition"
+              className="edit-profile-interest-trigger w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#C9A84C]/50 transition"
             >
               + Add interests
             </button>
@@ -471,7 +528,7 @@ export default function EditModal({ profile, onClose, onSaved }) {
                 ) : (
                   Object.entries(groupedTags).map(([category, tags]) => (
                     <div key={category}>
-                      <div className="sticky top-0 px-3 py-2 bg-[var(--surface)]/50 border-b border-[var(--border)] text-[10px] font-bold uppercase text-[var(--text-faintest)]">
+                      <div className="edit-profile-interest-category sticky top-0 px-3 py-2 bg-[var(--surface)]/50 border-b border-[var(--border)] text-[10px] font-bold uppercase text-[var(--text-faintest)]">
                         {category.replace('_', ' ')}
                       </div>
                       {tags.map((tag) => {
@@ -481,9 +538,9 @@ export default function EditModal({ profile, onClose, onSaved }) {
                             key={tag.id}
                             type="button"
                             onClick={() => toggleTag(tag.id, tag.category, tag.name)}
-                            className={`w-full text-left px-4 py-2.5 text-sm transition ${
+                            className={`edit-profile-interest-option w-full text-left px-4 py-2.5 text-sm transition ${
                               isSelected
-                                ? "bg-[#C9A84C]/20 text-[#C9A84C] font-semibold"
+                                ? "edit-profile-interest-option--selected bg-[#C9A84C]/20 text-[#C9A84C] font-semibold"
                                 : "text-[var(--text-lighter)] hover:bg-[var(--surface)]/30 hover:text-[var(--text)]"
                             }`}
                           >
@@ -538,137 +595,10 @@ export default function EditModal({ profile, onClose, onSaved }) {
 
           {/* Absolute tags dropdowns - Diet, Smoking, Drinking, Experience */}
           <div className="space-y-2">
-            {/* Diet */}
-            {absoluteTagsMap.diet && absoluteTagsMap.diet.length > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  style={{ fontFamily: FONTS.body }}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
-                >
-                  + {MODAL_LABELS.diet}
-                </button>
-                <div className="mt-2 space-y-1">
-                  {absoluteTagsMap.diet.map((tag) => {
-                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
-                          isSelected
-                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
-                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
-                        }`}
-                        style={{ fontFamily: FONTS.body }}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Smoking */}
-            {absoluteTagsMap.smoking && absoluteTagsMap.smoking.length > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  style={{ fontFamily: FONTS.body }}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
-                >
-                  + {MODAL_LABELS.smoking}
-                </button>
-                <div className="mt-2 space-y-1">
-                  {absoluteTagsMap.smoking.map((tag) => {
-                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
-                          isSelected
-                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
-                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
-                        }`}
-                        style={{ fontFamily: FONTS.body }}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Drinking */}
-            {absoluteTagsMap.drinking && absoluteTagsMap.drinking.length > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  style={{ fontFamily: FONTS.body }}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
-                >
-                  + {MODAL_LABELS.drinking}
-                </button>
-                <div className="mt-2 space-y-1">
-                  {absoluteTagsMap.drinking.map((tag) => {
-                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
-                          isSelected
-                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
-                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
-                        }`}
-                        style={{ fontFamily: FONTS.body }}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Experience */}
-            {absoluteTagsMap.experience && absoluteTagsMap.experience.length > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  style={{ fontFamily: FONTS.body }}
-                  className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)]/40 px-3 py-2 text-left text-sm text-[var(--text-lighter)] hover:border-[#8B5CF6]/50 transition"
-                >
-                  + {MODAL_LABELS.experience}
-                </button>
-                <div className="mt-2 space-y-1">
-                  {absoluteTagsMap.experience.map((tag) => {
-                    const isSelected = form.constraint_tags?.some(t => t.id === tag.id);
-                    return (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => toggleConstraintTag(tag.id, tag.category, tag.name)}
-                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition ${
-                          isSelected
-                            ? "bg-[#8B5CF6]/20 text-[#C8A2FF] font-semibold border border-[#8B5CF6]"
-                            : "bg-[var(--surface)]/30 text-[var(--text-lighter)] border border-[var(--border)] hover:bg-[var(--surface)]/50 hover:text-[var(--text)]"
-                        }`}
-                        style={{ fontFamily: FONTS.body }}
-                      >
-                        {tag.name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            <AbsoluteTagDropdown label={MODAL_LABELS.diet} tags={absoluteTagsMap.diet} />
+            <AbsoluteTagDropdown label={MODAL_LABELS.smoking} tags={absoluteTagsMap.smoking} />
+            <AbsoluteTagDropdown label={MODAL_LABELS.drinking} tags={absoluteTagsMap.drinking} />
+            <AbsoluteTagDropdown label={MODAL_LABELS.experience} tags={absoluteTagsMap.experience} />
           </div>
 
           {err && <p style={{ fontFamily: FONTS.body }} className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{err}</p>}
@@ -705,6 +635,134 @@ export default function EditModal({ profile, onClose, onSaved }) {
             .edit-profile-dropdown {
               background: var(--surface);
               border-color: var(--border);
+            }
+
+            .edit-profile-lifestyle-dropdown {
+              position: relative;
+            }
+
+            .edit-profile-lifestyle-summary {
+              align-items: center;
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              color: var(--text-lighter);
+              cursor: pointer;
+              display: flex;
+              font-size: 14px;
+              justify-content: space-between;
+              list-style: none;
+              padding: 8px 12px;
+              transition: border-color 0.2s, color 0.2s, background 0.2s;
+              width: 100%;
+            }
+
+            .edit-profile-lifestyle-summary::-webkit-details-marker {
+              display: none;
+            }
+
+            .edit-profile-lifestyle-summary:hover {
+              border-color: rgba(139, 92, 246, 0.5);
+              color: var(--text);
+            }
+
+            .edit-profile-lifestyle-summary::after {
+              color: currentColor;
+              content: "v";
+              font-size: 13px;
+              line-height: 1;
+              transition: transform 0.2s;
+            }
+
+            .edit-profile-lifestyle-dropdown[open] .edit-profile-lifestyle-summary::after {
+              transform: rotate(180deg);
+            }
+
+            .edit-profile-lifestyle-options {
+              background: var(--surface);
+              border: 1px solid var(--border);
+              border-radius: 8px;
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+              margin-top: 8px;
+              padding: 6px;
+            }
+
+            .edit-profile-lifestyle-option {
+              background: transparent;
+              border: 0;
+              border-radius: 6px;
+              color: var(--text-lighter);
+              cursor: pointer;
+              font-size: 14px;
+              padding: 9px 10px;
+              text-align: left;
+              transition: background 0.2s, color 0.2s;
+              width: 100%;
+            }
+
+            .edit-profile-lifestyle-option:hover {
+              background: var(--surface-hover);
+              color: var(--text);
+            }
+
+            .edit-profile-lifestyle-option--selected {
+              background: #8B5CF6;
+              color: #ffffff;
+              font-weight: 600;
+            }
+
+            [data-theme="dark"] .edit-profile-interest-trigger {
+              background: #0f0f0f;
+              color: rgba(255, 255, 255, 0.82);
+            }
+
+            [data-theme="dark"] .edit-profile-dropdown {
+              background: #101010;
+              border-color: rgba(255, 255, 255, 0.24);
+            }
+
+            [data-theme="dark"] .edit-profile-interest-category {
+              background: #181818;
+              color: rgba(255, 255, 255, 0.72);
+              border-bottom-color: rgba(255, 255, 255, 0.16);
+            }
+
+            [data-theme="dark"] .edit-profile-interest-option {
+              background: #101010;
+              color: rgba(255, 255, 255, 0.82);
+            }
+
+            [data-theme="dark"] .edit-profile-interest-option:hover {
+              background: #202020;
+              color: #ffffff;
+            }
+
+            [data-theme="dark"] .edit-profile-interest-option--selected {
+              background: #C9A84C;
+              color: #050505;
+            }
+
+            [data-theme="dark"] .edit-profile-lifestyle-summary,
+            [data-theme="dark"] .edit-profile-lifestyle-options {
+              background: #101010;
+              border-color: rgba(255, 255, 255, 0.24);
+            }
+
+            [data-theme="dark"] .edit-profile-lifestyle-option {
+              background: #101010;
+              color: rgba(255, 255, 255, 0.82);
+            }
+
+            [data-theme="dark"] .edit-profile-lifestyle-option:hover {
+              background: #202020;
+              color: #ffffff;
+            }
+
+            [data-theme="dark"] .edit-profile-lifestyle-option--selected {
+              background: #8B5CF6;
+              color: #ffffff;
             }
 
             [data-theme="light"] .edit-profile-modal {
